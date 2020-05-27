@@ -143,16 +143,15 @@ function circularstepindex_modefield!(e_SXY::AbstractArray{<:Number,3}, r::Real,
     α_2 = α2(na, ncore, λ, β);
 
     iXY = 1;
-    @inbounds for iY in eachindex(y_Y)
-        for iX in eachindex(x_X)
+    @inbounds Threads.@threads for iY in eachindex(y_Y)
+        @simd for iX in eachindex(x_X)
             r_var = √(x_X[iX]^2 + y_Y[iY]^2);
             ϕ = atan(y_Y[iY], x_X[iX]);
             if (r_var < r)
-                e_SXY[iXY] = weigth * C * besselj(m, α_1 * r_var) * exp(im * (m * ϕ + β * z));
+                e_SXY[1,iX,iY] = weigth * C * besselj(m, α_1 * r_var) * exp(im * (m * ϕ + β * z));
             else
-                e_SXY[iXY] = weigth * D * besselk(m, α_2 * r_var) * exp(im * (m * ϕ + β * z));
+                e_SXY[1,iX,iY] = weigth * D * besselk(m, α_2 * r_var) * exp(im * (m * ϕ + β * z));
             end
-            iXY += 1;
         end
     end
 end
@@ -166,11 +165,12 @@ function circularstepindex_calculatecoupling!(emodes_A::AbstractArray{Complex{T}
     modeshape_SXY = Array{Complex{T}}(undef, 1, length(x_X), length(y_Y))
     modeshape_XY = reshape(modeshape_SXY, length(x_X), length(y_Y))
 
-    for iMode in eachindex(modes.m)
+    @inbounds @simd for iMode in eachindex(modes.m)
         circularstepindex_modefield!(modeshape_SXY, modes.r, modes.ncore, modes.na, modes.λ, modes.m[iMode], modes.β[iMode], modes.C[iMode], modes.D[iMode], 1, x_X, y_Y, 0)
         conj!(modeshape_SXY)
-        modeshape_SXY .*= e_SXY;
-
+        @simd for i in eachindex(e_SXY)
+            modeshape_SXY[i] *= e_SXY[i]
+        end
         emodes_A[iMode] = ∫∫(modeshape_XY, x_X, y_Y)
     end
 end
@@ -185,10 +185,12 @@ function calculatefieldspace(fieldmodes::FieldModes{T}, x_X::AbstractVector{<:Re
     modesNumber = length(fieldmodes.modes.m);
     e_SXY = zeros(Complex{T}, length(x_X) * length(y_Y));
     tmp_e_SXY = Array{Complex{T}, 3}(undef, 1, length(x_X), length(y_Y));
-    for i in 1:modesNumber
+    @inbounds @simd for i in 1:modesNumber
        circularstepindex_modefield!(tmp_e_SXY, fieldmodes.modes.r, fieldmodes.modes.ncore, fieldmodes.modes.na, fieldmodes.modes.λ, fieldmodes.modes.m[i], fieldmodes.modes.β[i], fieldmodes.modes.C[i], fieldmodes.modes.D[i], fieldmodes.modesamplitude[i], x_X, y_Y, 0)
-       e_SXY .+= vec(tmp_e_SXY);
-    end
+       @simd for i in eachindex(e_SXY)
+           e_SXY[i] += tmp_e_SXY[i]
+       end
+   end
     e_SXY = reshape(e_SXY, 1, length(x_X), length(y_Y))
 end
 

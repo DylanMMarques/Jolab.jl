@@ -247,7 +247,8 @@ function ∫∫(f_XY::AbstractArray{T,2}, x_X::AbstractVector{<:Number}, y_Y::Ab
 	sizeY = length(y_Y);
 	res = zero(T);
 	(sizeX == size(f_XY, 1) && sizeY == size(f_XY, 2)) || error("Size of vector for integration must be the same");
-	@inbounds for iX in 1:sizeX
+
+	@inbounds @simd for iX in 1:sizeX
 		aux = zero(T);
 		@simd for iY in 1:sizeY
 			aux += f_XY[iX,iY] * Δy_Y[iY];
@@ -255,6 +256,15 @@ function ∫∫(f_XY::AbstractArray{T,2}, x_X::AbstractVector{<:Number}, y_Y::Ab
 		res += aux * Δx_X[iX];
 	end
 	return res;
+end
+
+function ∫∫(f_XY::AbstractArray{T,2}, x_X::AbstractRange{<:Number}, y_Y::AbstractRange{<:Number}) where T <: Number
+	(length(x_X) == size(f_XY, 1) && length(y_Y) == size(f_XY, 2)) || error("Size of vector for integration must be the same");
+	res = zero(T)
+	@inbounds @simd for i in eachindex(f_XY)
+		res += f_XY[i]
+	end
+	return res * (x_X[2] - x_X[1]) * (y_Y[2] - y_Y[1]);
 end
 
 function ndgrid(v1::AbstractVector{<:Number}, v2::AbstractVector{<:Number})

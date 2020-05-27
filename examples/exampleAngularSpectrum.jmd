@@ -21,7 +21,7 @@ n = Jolab.refractiveindex_air(printBool= false); # Refractive index of the mediu
 dir = 1; # Direction of propagation of the field (forward 1 or backward -1)
 ref = ReferenceFrame(0 , 0, 0); # Position in mirrors of the field (x,y,z)
 fieldspace = FieldSpace_gaussian(x, y, σ, λ, n(λ), dir, ref); # Creation of the field
-plot(fieldspace, fill = true, c = :sequential) # Display the field intensity
+plot(fieldspace, fill = true, c = :amp) # Display the field intensity
 ```
 
 ## Transforming to an Angular Spectrum
@@ -32,7 +32,7 @@ The VOS toolbox has already a function to calculate the angular spectrum based o
 sx = range(-.5, .5, length = 128); #x spatial frequencies where the field is evaluated
 sy = range(-.5, .5, length = 128); #y spatial frequencies where the field is evaluated
 angspe = FieldAngularSpectrum_fromspace(fieldspace, sx, sy); # calculate the angular spectrum from the field distribution in space
-plot(angspe, fill = true, c = :sequential)
+plot(angspe, fill = true, c = :amp)
 ```
 The color scale of the graph above represent the amplitude of the plane wave and the x,y axis the x and y spatial frequencies, i.e. the direction of the respective plane wave. This can be illustrator by changing the distribution of the plane wave amplitude so that the field just has one angular component.
 
@@ -42,7 +42,7 @@ angspeTest.e_SXY .= 0.; # Set all plane waves amplitude to 0
 angspeTest.e_SXY[1,64,64] = 1; # Choose a plane a set amplitude 1. For the index [64,64] the plane wave is propagating parallel to the z axis
 z = copy(x) # Create the z coordinates where the field is evaluated
 fieldspaceTest = angspeto3Dspace(angspeTest, x, [0.], z); # evaluate the field in space. It returns a 4D matrix where the first dimension is the vectorial dimension and then x,y,z
-plot(x, z, real.(fieldspaceTest[1,:,1,:]), fill = true, c = :diverging) # Plot the real part of the data
+plot(x, z, real.(fieldspaceTest[1,:,1,:]), fill = true, c = :bluesreds) # Plot the real part of the data
 ```
 The code above shows that if we only have a single component defined on the angular spectrum the respective field in space corresponds to a plane wave. We recomment the user to play with the code and changing the index which will change the direction of the plane wave.
 
@@ -50,7 +50,7 @@ The code above shows that if we only have a single component defined on the angu
 From an angular spectrum we can calculate the field in space using the respective inverse transformation.
 ```julia
 fieldspace2 = FieldSpace_fromangspe(angspe, x, y);
-plot(fieldspace2, fill = true, c = :sequential)
+plot(fieldspace2, fill = true, c = :amp)
 ```
 The code above transformed the field back to its distribution in space and ,as we can see, fieldspace2 is identical to fieldspace which was initially calculated.
 It is important to understand that defining a field in space or as a angular spectrum is irrelevant as the information about the field is the same but just in another format. The user can always switch between the spatial field and the angular spectrum using the respective function (angspetofield and fieldtoangspe). The only errors induced are due to evaluating the 2D fourrier transform numerically.
@@ -61,7 +61,7 @@ The big advantages of the angular spectrum is that there are theories that allow
 ```julia
 z = 2 .* x; #  position in the z axis where the field is evaluated
 fieldpropagation = angspeto3Dspace(angspe, x, [0.], z); # evaluate the field in space. It returns a 4D matrix where the first dimension is the vectorial dimension and then x,y,z
-plot(x, z, real.(fieldpropagation[1,:,1,:]), fill = true, c = :diverging) # Plot the real part of the data
+plot(x, z, real.(fieldpropagation[1,:,1,:]), fill = true, c = :bluesreds) # Plot the real part of the data
 ```
 The code above shows the field propagation using the angular spectrum in which we can see the Gaussian field first converging and then diverging as it propagates. This approach is valid for any arbitrary beam.
 
