@@ -1,0 +1,32 @@
+---
+title : Non Parallel
+options:
+---
+```julia
+# THIS IS NOT READY. DO NOT USE
+using Jolab;
+using Plots; plotly()
+
+sx_X = 2range(-.15, stop = .15, length = 100);
+
+ref_1 = ReferenceFrame(0., 0., 0., 0., 0.)
+pointdet = PointDetector(ref_1);
+mls1 = MultilayerStructure([1.; 2.; 3.; 1.], [100E-9; 100E-9], ref_1)
+
+ref_2 = ReferenceFrame(0., 0., 20E-6 + 200E-9, 0.02, 0.)
+mls2 = MultilayerStructure([1.; 2.; 3.; 1.], [100E-9; 100E-9], ref_2)
+
+mls = [mls1, mls2]
+
+λ_M = collect(range(1520E-9, stop = 1570E-9, length = 50));
+
+angspe = FieldAngularSpectrum_gaussian.(Ref(sx_X), Ref(sx_X), Ref(28E-6 / sqrt(2)), λ_M, Ref(1), Ref(1), Ref(ref_1));
+#Jolab.scalartovectorial!.(angspe);
+
+rtangspe = lightinteraction_recursive.(Ref(mls), angspe);
+rangspe = first.(rtangspe);
+tangspe = last.(rtangspe);
+i2_M = signal.(Ref(pointdet), rangspe);
+i_M = signal.(Ref(pointdet), tangspe);
+plot(i2_M)
+```

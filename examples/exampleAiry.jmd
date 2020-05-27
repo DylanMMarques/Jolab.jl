@@ -1,0 +1,87 @@
+---
+title : Angular Airy Function
+options:
+---
+# Example: Angular Airy Function
+This example shows how to use the Airy Function to calculate how light is reflected from a Fabry-Perot etalon based on its mirror reflectivities
+
+```julia
+using Jolab
+using Plots; plotly();
+```
+
+The optical setup considered is based on the optical setup used by [D.Marques et al.](https://www.osapublishing.org/oe/abstract.cfm?uri=oe-28-5-7691) and the aim is to calculate the reflected light intensity as a function of wavelength (λ), known as Interferometer Transfer Function (ITF).
+
+## Designing the optical setup
+The optical setup is a single mode fibre, two lenses (labelled collimator and objective) and the FP etalon.
+We start by defining the optical fibre based on its
+Mode Field Diameter (mfd) and the position of the tip.
+```julia
+mfd = 10E-6 # Mode field diameter in meters
+n_fibre = Jolab.refractiveindex_air(printBool = false) # refractive index outside the fibre
+dir_fibre = 1 # Direction to which the fibre tip is pointing at (1 to forward and -1 to backward)
+ref_fibre = ReferenceFrame(0, 0, 0) # Position of the fibre tip in meters (x,y,z)
+fibre = SingleModeFibre(mfd, n_fibre, dir_fibre, ref_fibre);
+```
+We now define the first lens, labelled collimator, based on its focal length, numerical aperture and referential.
+```julia
+f_col = 15E-3 # focal length in meters of the collimator
+na_col = 1 # Numerical aperture of the collimator
+ref_col = ReferenceFrame(0, 0, f_col) # Position of the collimator in meters (x,y,z)
+collimator = Lens(f_col, na_col, ref_col);
+```
+Similarly the second lens
+```julia
+f_obj = 15E-3 * 8 # focal length in meters of the objective
+na_obj = 1 # Numerical aperture of the objective
+ref_obj = ReferenceFrame(0, 0, 2f_col + f_obj) # Position of the objective in meters (x,y,z)
+objective = Lens(f_obj, na_obj,ref_obj);
+```
+
+The last optical component to be defined is the FP etalo based on its mirror reflectivity, its cavity thickness and refractive index and position (defined by the position of the first mirror)
+```julia
+R₁ = 0.9925; # Reflectivity of the first mirror
+R₂ = 0.9925; # Reflectivity of the second mirror
+h = 102E-6; # Cavity thickness in meters
+n₁ = Jolab.refractiveindex_air(printBool = false); # Refractive index before the first mirror
+n₂ = Jolab.refractiveindex_fusedsilica(printBool = false); # Refractive index before the first mirror
+n₃ = Jolab.refractiveindex_air(printBool = false);# Refrative index after the second mirror
+ref_m₁ = ReferenceFrame(0, 0, 2f_col + 2f_obj); # Position of the first FP mirror in meters (x,y,z)
+ref_m₂ = ReferenceFrame(0, 0, 2f_col + 2f_obj + h); # Position of the second FP mirror in meters (x,y,z).
+mirror1 = Mirror(R₁, n₁, n₂, ref_m₁); # Creates the first mirror. Specifies the refractive index before and after the mirror and the position
+mirror2 = Mirror(R₂, n₂, n₃, ref_m₂); # Creates the second mirror. Specifies the refractive index before and after the mirror and the position
+fp = [mirror1, mirror2];
+```
+
+## Definition of the simulation parameters
+
+The aim of the simulation is to propagate the light emerging for the fibre by the optical setup. The reflected light propagates back by the optical setup and goes back inside the fibre that leads to a detector. To calculate the ITF we need to evaluate the intensity as a function of the wavelength:
+
+```julia
+λ = range(1552.5E-9, 1553E-9, length = 100) # range of wavelength in meters
+itf = zeros(length(λ)); # preallocation of the array to store the result
+sx = range(-.2, .2, length = 100); # Directions of the plane waves considered. It is related with the angles by sx = sinθcosϕ. Affect the model convergence
+sy = range(-.2, .2, length = 100); # Directions of the plane waves considered. It is related with the angles by sy = sinθsinϕ. Affect the model convergence
+```
+
+## Propagating the field by the optical setup
+The optical setup and the simulation parameters were defined on the previous section. The code bellow propagates the light by the optical setup and calculates the intensity detected on the detector.
+
+```julia
+for i in eachindex(λ)
+    field = FieldAngularSpectrum_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
+
+    field = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
+    field = lightinteraction(objective, field) # Field in the focal plane of the objective
+    (fieldr, fieldt) = lightinteraction(fp, field) # Reflected field by the Fabry Perot etalon
+    # @show fieldr.ref
+
+    fieldr = lightinteraction(objective, fieldr) # Reflected field in the back focal plane of the collimator/objective
+    fieldr = lightinteraction(collimator, fieldr) # Reflected field in the focal plane of the collimator, i.e., the tip of the fibre
+
+    itf[i] = signal(fibre, fieldr); # Calculate the signal measured using a fibre based detection system
+end
+plot(λ, itf)
+```
+This example is concluded with the calculation of the ITF. A good application of this model is to better understand the physics behind the interrogation of FP etalons with focused beam.
+In order to understand the appearence of the fringe assymentry, visibility reduction and the fringe broadding I suggest you to plot the reflected angular spectrum (fieldr) as you change the wavelength within the ITF fringe. Some help from literature by [D.Marques et al.](https://www.spiedigitallibrary.org/conference-proceedings-of-spie/10878/108780Q/On-the-intuitive-understanding-of-interrogating-Fabry-Perot-etalon-with/10.1117/12.2508413.full?SSO=1) and [Prof. Shaoul Ezekiel](https://ocw.mit.edu/resources/res-6-006-video-demonstrations-in-lasers-and-optics-spring-2008/demonstrations-in-physical-optics/plane-mirror-cavity-2014-diverging-beams/)

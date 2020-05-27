@@ -1,0 +1,60 @@
+---
+title : Rough interface
+options:
+---
+```julia
+using Jolab
+using FFTW
+using Plots; plotly()
+
+
+function z(x,y,θ,α)
+	aux = sin(θ) * x
+
+	# Tukey window (as implement on DSP.jl)
+	b = 20E-6
+	(x < -100E-6) && (aux *= exp(-1/2 * (x + 100E-6)^2/(b)^2))
+	(x > 100E-6) && (aux *= exp(-1/2 * (x - 100E-6)^2/(b)^2))
+	(y < -100E-6) && (aux *= exp(-1/2 * (y + 100E-6)^2/(b)^2))
+	(y > 100E-6) && (aux *= exp(-1/2 * (y - 100E-6)^2/(b)^2))
+	return aux
+end
+
+ref_1 = ReferenceFrame(0., 0, 0, 0, 0)
+mls = MultilayerStructure([1, 20., 1], [1550E-9/80], ref_1)
+
+profile(x,y) = z(x,y, .5E-3 * 0 , .5)
+ref_2 = ReferenceFrame(0,0,20E-6,0,0)
+ri1 = RoughInterface(1., 20., profile, ref_2)
+ref_3 = ReferenceFrame(0,0,20E-6 + 1550E-9/80,0,0)
+ri2 = RoughInterface(20., 1., profile, ref_3)
+ri1 = MultilayerStructure([1., 20.], [], ref_2)
+ri2 = MultilayerStructure([20., 1.], [], ref_3)
+λ = 1550E-9
+sx_X = range(-.2, .2, length = 100)
+
+sx_t_X = range(-.1, .1, length = 100)
+# field = FieldSpace_fromangspefft(angspe)
+
+
+reftilt_2 = ReferenceFrame(0,0,20E-6,.0E-3,0)
+mls2 = MultilayerStructure([1, 20., 1], [1550E-9/80], reftilt_2)
+fp = [mls, ri1, ri2]
+fptilt = [mls, mls2]
+
+λ = range(1534.5E-9, 1539E-9, length = 10);
+
+i_t = zeros(length(λ))
+i = zeros(length(λ))
+for ai in eachindex(λ)
+	angspe = FieldAngularSpectrum_gaussian(sx_X, sx_X, 50E-6, λ[ai], 1., 1., ref_1)
+	(rangspe,tangspe) = Jolab.lightinteraction_recursivegridded(fp, angspe, thresold = 1E-2)
+	i[ai] = intensity(rangspe)
+
+	angspe = FieldAngularSpectrum_gaussian(sx_t_X, sx_t_X, 50E-6, λ[ai], 1., 1., ref_1)
+	# (rangspe,tangspe) = Jolab.lightinteraction_recursive(fptilt, angspe)
+	# (rangspe,tangspe) = Jolab.lightinteraction(fptilt, angspe)
+	i_t[ai] = intensity(rangspe)
+	# @show ai
+	break
+end

@@ -1,0 +1,13 @@
+name = "Jolab"
+uuid = "0583885e-d035-482f-8ce1-fd86afbe19e8"
+authors = ["Dylan M. Marques", "James A. Guggenheim", "Peter R. T. Munro"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
