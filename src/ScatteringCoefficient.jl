@@ -34,7 +34,7 @@ struct PropagationScatteringConvolutionCoefficientScalar{T,X1,X2} <: AbstractPro
 	n₂::Complex{T}
 	ref₂::ReferenceFrame{T}
 	PropagationScatteringConvolutionCoefficientScalar{T,X1,X2}(prop, scat) where {T,X1,X2} = new{T,X1,X2}(prop, scat, prop.λ, prop.n₁, prop.ref₁, prop.n₂, prop.ref₂)
-	PropagationScatteringConvolutionCoefficientScalar{T,X1,X2}(prop, scat) where T = new{T,JolabFunction1D{T,Complex{T}}, JolabFunction2D{T,Complex{T}}}(prop, scat, prop.λ, prop.n₁, prop.ref₁, prop.n₂, prop.ref₂)
+	PropagationScatteringConvolutionCoefficientScalar{T}(prop, scat) where T = new{T,JolabFunction1D{T,Complex{T}}, JolabFunction2D{T,Complex{T}}}(prop, scat, prop.λ, prop.n₁, prop.ref₁, prop.n₂, prop.ref₂)
 end
 
 Base.eltype(coef::AbstractCoefficient{T}) where T = T
