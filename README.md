@@ -15,7 +15,7 @@ The package is currently at a very early stage in its development. Due to that, 
 In the future, we want to develop the package to allow users to simulate a variety of optical setups as microscopes, Optical Coherence Tomography setups (OCT), interferometers, ellipsometers, etc. We want the package to be a tool to help scientists and engineers to design and understand their optical setups.
 
 ## Instalation
-Jolab is not a register package yet. To install, the user need to run:
+To install Jolab, a user need to run:
 ```julia
 ] add https://github.com/DylanMMarques/Jolab.jl
 ```
