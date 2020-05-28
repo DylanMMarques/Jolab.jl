@@ -18,6 +18,15 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 julia = "1"
+DSP = ">= 0.6"
+FFTW = "1"
+FunctionWrappers = "1"
+HCubature = "1"
+Interpolations = ">= 0.12"
+RecipesBase = "1"
+Roots = "1"
+SpecialFunctions = ">= 0.10"
+StaticArrays = ">= 0.12"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
