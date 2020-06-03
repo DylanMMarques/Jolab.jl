@@ -12,7 +12,7 @@ function z(x,y,θ,α)
 	aux = sin(θ) * x
 
 	# Tukey window (as implement on DSP.jl)
-	b = 20E-6
+	b = 10E-6
 	(x < -100E-6) && (aux *= exp(-1/2 * (x + 100E-6)^2/(b)^2))
 	(x > 100E-6) && (aux *= exp(-1/2 * (x - 100E-6)^2/(b)^2))
 	(y < -100E-6) && (aux *= exp(-1/2 * (y + 100E-6)^2/(b)^2))
@@ -21,40 +21,44 @@ function z(x,y,θ,α)
 end
 
 ref_1 = ReferenceFrame(0., 0, 0, 0, 0)
+ref_2 = ReferenceFrame(0., 0, 20E-6, .5E-3, 0)
 mls = MultilayerStructure([1, 20., 1], [1550E-9/80], ref_1)
+mls2 = MultilayerStructure([1, 20., 1], [1550E-9/80], ref_2)
+fp_tilt = [mls, mls2]
 
-profile(x,y) = z(x,y, .5E-3 * 0 , .5)
+profile(x,y) = z(x,y, .5E-3, .5)
 ref_2 = ReferenceFrame(0,0,20E-6,0,0)
 ri1 = RoughInterface(1., 20., profile, ref_2)
 ref_3 = ReferenceFrame(0,0,20E-6 + 1550E-9/80,0,0)
 ri2 = RoughInterface(20., 1., profile, ref_3)
-ri1 = MultilayerStructure([1., 20.], [], ref_2)
-ri2 = MultilayerStructure([20., 1.], [], ref_3)
+r1 = MultilayerStructure([1., 20.], [], ref_2)
+r2 = MultilayerStructure([20., 1.], [], ref_3)
 λ = 1550E-9
-sx_X = range(-.2, .2, length = 100)
+sx_X = range(-.05, .05, length = 200)
 
-sx_t_X = range(-.1, .1, length = 100)
+sx_t_X = range(-.05, .05, length = 200)
 # field = FieldSpace_fromangspefft(angspe)
 
 
-reftilt_2 = ReferenceFrame(0,0,20E-6,.0E-3,0)
-mls2 = MultilayerStructure([1, 20., 1], [1550E-9/80], reftilt_2)
+reftilt_2 = ReferenceFrame(0,0,20E-6, .0E-3,0)
 fp = [mls, ri1, ri2]
-fptilt = [mls, mls2]
+# fp2 = [mls, r1, r2]
 
-λ = range(1534.5E-9, 1539E-9, length = 10);
-
+λ = range(1534.5E-9, 1538E-9, length = 5);
+5
 i_t = zeros(length(λ))
 i = zeros(length(λ))
-for ai in eachindex(λ)
+ai = 1
+# Threads.@threads for ai in eachindex(λ)
+if true
 	angspe = FieldAngularSpectrum_gaussian(sx_X, sx_X, 50E-6, λ[ai], 1., 1., ref_1)
-	(rangspe,tangspe) = Jolab.lightinteraction_recursivegridded(fp, angspe, thresold = 1E-2)
+	(rangspe,tangspe) = Jolab.lightinteraction_recursivegridded(fp, angspe, thresold = 1E-3)
 	i[ai] = intensity(rangspe)
+	# angspe = FieldAngularSpectrum_gaussian(sx_t_X, sx_t_X, 50E-6, λ[ai], 1., 1., ref_1)
+	(rangspe2,tangspe2) = Jolab.lightinteraction_recursive(fp_tilt, angspe)
+	# (rangspe2,tangspe2) = Jolab.lightinteraction(fp_tilt, angspe)
+	# i_t[ai] = intensity(rangspe2)
 
-	angspe = FieldAngularSpectrum_gaussian(sx_t_X, sx_t_X, 50E-6, λ[ai], 1., 1., ref_1)
-	# (rangspe,tangspe) = Jolab.lightinteraction_recursive(fptilt, angspe)
-	# (rangspe,tangspe) = Jolab.lightinteraction(fptilt, angspe)
-	i_t[ai] = intensity(rangspe)
-	# @show ai
-	break
+	@show ai
+	# break
 end

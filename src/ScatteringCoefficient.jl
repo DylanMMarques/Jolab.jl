@@ -48,20 +48,20 @@ end
 
 function coefficient_matrixform(coefs::ScatteringConvolutionCoefficientScalar{T}, nsx_XY::AbstractArray{<:Real}, nsy_XY::AbstractArray{<:Real}) where {T}
 	nsr_XY = .√(nsx_XY.^2 .+ nsy_XY'.^2)
-	x_X = FFTW.fftfreq(size(nsx_XY,1), 1 / (nsx_XY[2] - nsx_XY[1]))
-	y_Y = FFTW.fftfreq(size(nsy_XY,1), 1 / (nsy_XY[1,2] - nsy_XY[1]))
+	x_X = FFTW.fftfreq(size(nsx_XY,1), 1 / (nsx_XY[2] - nsx_XY[1])) * coefs.λ
+	y_Y = FFTW.fftfreq(size(nsy_XY,1), 1 / (nsy_XY[1,2] - nsy_XY[1])) * coefs.λ
 	ir₁₂_XY = coefs.ir₁₂.(nsr_XY)
 	sr₁₂_XY = coefs.sr₁₂.(nsr_XY)
-	Δr₁₂_XY = coefs.Δr₁₂.(x_X, y_Y')
+	Δr₁₂_XY = coefs.Δr₁₂.(x_X, y_Y') * (x_X[2]-x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2
 	it₁₂_XY = coefs.it₁₂.(nsr_XY)
 	st₁₂_XY = coefs.st₁₂.(nsr_XY)
-	Δt₁₂_XY = coefs.Δt₁₂.(x_X, y_Y')
+	Δt₁₂_XY = coefs.Δt₁₂.(x_X, y_Y') * (x_X[2]-x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2
 	ir₂₁_XY = coefs.ir₂₁.(nsr_XY)
 	sr₂₁_XY = coefs.sr₂₁.(nsr_XY)
-	Δr₂₁_XY = coefs.Δr₂₁.(x_X, y_Y')
+	Δr₂₁_XY = coefs.Δr₂₁.(x_X, y_Y') * (x_X[2]-x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2
 	it₂₁_XY = coefs.it₂₁.(nsr_XY)
 	st₂₁_XY = coefs.st₂₁.(nsr_XY)
-	Δt₂₁_XY = coefs.Δt₂₁.(x_X, y_Y')
+	Δt₂₁_XY = coefs.Δt₂₁.(x_X, y_Y') * (x_X[2]-x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2
 	ScatteringConvolutionCoefficientScalar{T, Array{Complex{T},2}, Array{Complex{T},2}}(ir₁₂_XY, sr₁₂_XY, Δr₁₂_XY, it₁₂_XY, st₁₂_XY, Δt₁₂_XY, ir₂₁_XY, sr₂₁_XY, Δr₂₁_XY, ir₂₁_XY, st₂₁_XY, Δt₂₁_XY, coefs.λ, coefs.n₁, coefs.ref₁, coefs.n₂, coefs.ref₂)
 end
 
@@ -76,16 +76,16 @@ function coefficient_itpform(coef::ScatteringConvolutionCoefficientScalar{T}, ns
 	nsr = range(nsrmin, nsrmax, length = round(Int, max(length(nsx), length(nsy)) / √2))
 	ir₁₂ = extrapolation(coef.ir₁₂, nsr)
 	sr₁₂ = extrapolation(coef.sr₁₂, nsr)
-	Δr₁₂ = extrapolation(coef.Δr₁₂, nsx, nsy)
+	Δr₁₂ = extrapolation(coef.Δr₁₂, nsx, nsy) #WRONG
 	it₁₂ = extrapolation(coef.it₁₂, nsr)
 	st₁₂ = extrapolation(coef.st₁₂, nsr)
-	Δt₁₂ = extrapolation(coef.Δt₁₂, nsx, nsy)
+	Δt₁₂ = extrapolation(coef.Δt₁₂, nsx, nsy) #WRONG?
 	ir₂₁ = extrapolation(coef.ir₂₁, nsr)
 	sr₂₁ = extrapolation(coef.sr₂₁, nsr)
-	Δr₂₁ = extrapolation(coef.Δr₂₁, nsx, nsy)
+	Δr₂₁ = extrapolation(coef.Δr₂₁, nsx, nsy) # WRONG
 	it₂₁ = extrapolation(coef.it₂₁, nsr)
 	st₂₁ = extrapolation(coef.st₂₁, nsr)
-	Δt₂₁ = extrapolation(coef.Δt₂₁, nsx, nsy)
+	Δt₂₁ = extrapolation(coef.Δt₂₁, nsx, nsy) #WRONG
 	return ScatteringConvolutionCoefficientScalar{T}(ir₁₂, sr₁₂, Δr₁₂, it₁₂, st₁₂, Δt₁₂, ir₂₁, sr₂₁, Δr₂₁, ir₂₁, st₂₁, Δt₂₁, coef.λ, coef.n₁, coef.ref₁, coef.n₂, coef.ref₂);
 end
 
@@ -179,30 +179,32 @@ function lightinteraction!(ebackward_SXY::AbstractArray{Complex{T}, 3}, eforward
 	if dir > 0
 		vec(ebackward_XY) .= vec(ei_SXY) .* vec(coef.ir₁₂)
 		vec(eforward_XY) .= vec(ei_SXY) .* vec(coef.it₁₂)
-		mul!(tmp_XY, fftPlan, ebackward_XY)
-		tmp_XY .*= coef.Δr₁₂
-		ldiv!(ebackward_XY, fftPlan, tmp_XY)
-		mul!(tmp_XY, fftPlan, eforward_XY)
+		ldiv!(tmp_XY, fftPlan, ebackward_XY)
+		vec(tmp_XY) .*= vec(coef.Δr₁₂)
+		mul!(ebackward_XY, fftPlan, tmp_XY)
+		ldiv!(tmp_XY, fftPlan, eforward_XY)
 		vec(tmp_XY) .*= vec(coef.Δt₁₂)
-		ldiv!(eforward_XY, fftPlan, tmp_XY)
+		mul!(eforward_XY, fftPlan, tmp_XY)
 		vec(ebackward_XY) .*= vec(coef.sr₁₂)
 		vec(eforward_XY) .*= vec(coef.st₁₂)
 	else
 		vec(ebackward_XY) .= vec(ei_SXY) .* vec(coef.it₂₁)
 		vec(eforward_XY) .= vec(ei_SXY) .* vec(coef.ir₂₁)
-		mul!(tmp_XY, fftPlan, ebackward_XY)
+		ldiv!(tmp_XY, fftPlan, ebackward_XY)
 		vec(tmp_XY) .*= vec(coef.Δt₂₁)
-		ldiv!(ebackward_XY, fftPlan, tmp_XY)
-		mul!(tmp_XY, fftPlan, eforward_XY)
+		mul!(ebackward_XY, fftPlan, tmp_XY)
+		ldiv!(tmp_XY, fftPlan, eforward_XY)
 		vec(tmp_XY) .*= vec(coef.Δr₂₁)
-		ldiv!(eforward_XY, fftPlan, tmp_XY)
+		mul!(eforward_XY, fftPlan, tmp_XY)
 		vec(eforward_XY) .*= vec(coef.sr₂₁)
 		vec(ebackward_XY) .*= vec(coef.st₂₁)
 	end
 end
 
 function lightinteraction!(ebackward_SXY::AbstractArray{Complex{T}, 3}, eforward_SXY::AbstractArray{Complex{T}, 3}, coef::PropagationScatteringConvolutionCoefficientScalar, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number, 2}, ei_SXY::AbstractArray{<:Number, 3}, dir::Integer, tmpₚ_3 = MVector{3,Complex{T}}(undef)::AbstractVector{Complex{T}}, fftPlan=plan_fft(reshape(ebackward_SXY, size(ebackward_SXY)[2:3]))::AbstractFFTs.Plan{Complex{T}}, tmp_SXY=copy(ebackward_SXY)::AbstractArray{Complex{T},3}, tmp2_SXY=copy(eforward_SXY)::AbstractArray{Complex{T},3}, tmpₛ_3 = MVector{3, Complex{T}}(undef)::AbstractVector{Complex{T}}) where T<:Real
-	#lightinteraction!(ebackward_SXY, eforward_SXY, coef.scatConvCoef, nsx_XY, nsy_XY, ei_SXY, dir, fftPlan, tmp_SXY);
+	lightinteraction!(ebackward_SXY, eforward_SXY, coef.scatConvCoef, nsx_XY, nsy_XY, ei_SXY, dir, fftPlan, tmp_SXY);
+	ebackward_SXY .*= 4π^2
+	eforward_SXY .*= 4π^2
 	lightinteraction!(tmp_SXY, tmp2_SXY, coef.propCoef, nsx_XY, nsy_XY, ei_SXY, dir, tmpₛ_3, tmpₚ_3)
 	ebackward_SXY .+= tmp_SXY
 	eforward_SXY .+= tmp2_SXY
@@ -220,31 +222,35 @@ function lightinteraction_recursivegridded!(ebackward_SXY::AbstractArray{Complex
 	eSaveBackward_SXY = Array{Complex{T},3}(undef, sizeS, sizeX, sizeY)
 	eSaveForward_SXY = Array{Complex{T},3}(undef, sizeS, sizeX, sizeY)
 	nsz_XYL = Array{Complex{T},3}(undef, sizeX, sizeY, sizeL)
-	intForward_L = zeros(T, sizeL)
-	intBackward_L = zeros(T, sizeL)
+	intForward_L = @MVector zeros(T, sizeL)
+	intBackward_L = @MVector zeros(T, sizeL)
 	tmpnₛ_3 = MVector{3, Complex{T}}(undef)
 	tmpnₚ_3 = MVector{3, Complex{T}}(undef)
 
-	if dir > 0
-		view(eForwardLayers_SXYL,:,:,:,1) .= ei_SXY;
-		intForward_L[1] = intensity(ei_SXY) * coefs[1].n₁
-		rtol = intForward_L[1] * thresold^2
-	else
-		view(eBackwardLayers_SXYL,:,:,:,sizeL) .= ei_SXY;
-		intBackward_L[sizeL] = intensity(ei_SXY) * coefs[end].n₂
-		rtol = iBackward_L[sizeL] * thresold^2
-	end
-
+	needFFT = false
 	for i in eachindex(coefs)
 		view(nsz_XYL,:,:,i) .= .√(coefs[i].n₁^2 .- nsx_XY.^2 .- nsy_XY.^2);
 		if (coefs[i] isa AbstractScatteringConvolutionCoefficient || coefs[i] isa AbstractPropagationScatteringConvolutionCoefficient)
-			fftPlan = plan_fft(view(ebackward_SXY,1,:,:)) # Pre calculates the fourrier transform
-			inv(fftPlan) # Pre calculates the inverse fourrier transform
-			tmp_SXY = Array{Complex{T}, 3}(undef, sizeS, sizeX, sizeY) # Initialize temporary arrays to avoid allocations inside loop
-			tmp2_SXY = Array{Complex{T}, 3}(undef, sizeS, sizeX, sizeY) # Initialize temporary arrays to avoid allocations inside loop
-			break
+			needFFT = true
 		end
 	end
+	if needFFT
+		fftPlan = plan_fft(view(ebackward_SXY,1,:,:)) # Pre calculates the fourrier transform
+		inv(fftPlan) # Pre calculates the inverse fourrier transform
+		tmp_SXY = Array{Complex{T}, 3}(undef, sizeS, sizeX, sizeY) # Initialize temporary arrays to avoid allocations inside loop
+		tmp2_SXY = Array{Complex{T}, 3}(undef, sizeS, sizeX, sizeY) # Initialize temporary arrays to avoid allocations inside loop
+	end
+
+	if dir > 0
+		view(eForwardLayers_SXYL,:,:,:,1) .= ei_SXY;
+		intForward_L[1] = intensity(ei_SXY[1,:,:] .* .√(nsz_XYL[:,:,1]))
+		rtol = intForward_L[1] * thresold^2
+	else
+		view(eBackwardLayers_SXYL,:,:,:,sizeL) .= ei_SXY;
+		intBackward_L[sizeL] = intensity(ei_SXY[1,:,:] .* √(nsz_XYL[:,:,sizeL]))
+		rtol = iBackward_L[sizeL] * thresold^2
+	end
+	view(nsz_XYL,:,:,sizeL) .= .√(coefs[sizeL-1].n₂^2 .- nsx_XY.^2 .- nsy_XY.^2)
 
 	i = 1
 	mls = 1
@@ -254,9 +260,12 @@ function lightinteraction_recursivegridded!(ebackward_SXY::AbstractArray{Complex
 		# Select the next field to consider
 		(maxBack, argBack) = findmax(view(intBackward_L, 2:sizeL)) # Removes the first as it is the field going out
 		(maxForw, argForw) = findmax(view(intForward_L, 1:sizeL-1)) # Removes the last as it is the field going out
-		@show [intBackward_L; intForward_L]
-		@show (sum(intBackward_L[2:sizeL]) + sum(intForward_L[1:sizeL-1])) / rtol * thresold^2
-
+		# @show isForward
+		# @show intBackward_L
+		# @show intForward_L
+		# @show (sum(intBackward_L) + sum(intForward_L)) / rtol * thresold^2
+		# readline()
+		# (maxForw + maxBack) / rtol * thresold^2 > 10 && error("Energy is being created.")
 		isForward = maxForw > maxBack
 		if isForward
 			maxForw < rtol && break
@@ -268,7 +277,6 @@ function lightinteraction_recursivegridded!(ebackward_SXY::AbstractArray{Complex
 			mls = argBack + 1 # need to add +1 because length start from 2
 			e_SXY = @view eBackwardLayers_SXYL[:,:,:,mls]
 			nsz_XY = @view nsz_XYL[:,:,mls]
-			nsz_XY .*= -1
 		end
 
 		if isForward
@@ -283,12 +291,14 @@ function lightinteraction_recursivegridded!(ebackward_SXY::AbstractArray{Complex
 				error("Coefficient type not known")
 			end
 			view(eBackwardLayers_SXYL,:,:,:,mls) .+= eSaveBackward_SXY
-			intBackward_L[mls] = intensity(view(eBackwardLayers_SXYL,:,:,:,mls)) * real(coefs[mls].n₁)
+			intBackward_L[mls] = intensity(view(eBackwardLayers_SXYL,1,:,:,mls) .* .√(view(nsz_XYL,:,:,mls)))
 			view(eForwardLayers_SXYL,:,:,:,mls+1) .+= eSaveForward_SXY
-			intForward_L[mls+1] = intensity(view(eForwardLayers_SXYL,:,:,:,mls+1))  * real(coefs[mls].n₂)
+			intForward_L[mls+1] = intensity(view(eForwardLayers_SXYL,1,:,:,mls+1) .* .√(view(nsz_XYL,:,:,mls+1)))
 			intForward_L[mls] = zero(T)
 		else
+			nsz_XY .*= -1
 			(mls < sizeL) && changereferential!(nsx_XY, nsy_XY, nsz_XY, e_SXY, λ, coefs[mls].ref₁, coefs[mls-1].ref₂)
+			nsz_XY .*= -1
 			if coefs[mls-1] isa AbstractScatteringConvolutionCoefficient
 				lightinteraction!(eSaveBackward_SXY, eSaveForward_SXY, coefs[mls-1], nsx_XY, nsy_XY, e_SXY, -1, fftPlan, tmp_SXY, tmp2_SXY)
 			elseif coefs[mls-1] isa AbstractPropagationCoefficient
@@ -298,15 +308,15 @@ function lightinteraction_recursivegridded!(ebackward_SXY::AbstractArray{Complex
 			else
 				error("Coefficient type not known")
 			end
-			view(eBackwardLayers_SXYL,:,:,:,mls-1) .+= eSaveBackward_SXY
-			intBackward_L[mls-1] = intensity(view(eBackwardLayers_SXYL,:,:,:,mls-1)) * real(coefs[mls-1].n₁)
-			view(eForwardLayers_SXYL,:,:,:,mls) .+= eSaveForward_SXY
-			intForward_L[mls] = intensity(view(eForwardLayers_SXYL,:,:,:,mls)) * real(coefs[mls-1].n₂)
+			vec(view(eBackwardLayers_SXYL,:,:,:,mls-1)) .+= vec(eSaveBackward_SXY)
+			intBackward_L[mls-1] = intensity(view(eBackwardLayers_SXYL,1,:,:,mls-1) .* .√(view(nsz_XYL,:,:,mls-1)))
+			vec(view(eForwardLayers_SXYL,:,:,:,mls)) .+= vec(eSaveForward_SXY)
+			intForward_L[mls] = intensity(view(eForwardLayers_SXYL,1,:,:,mls) .* .√(view(nsz_XYL,:,:,mls)))
 			intBackward_L[mls] = zero(T)
-			nsz_XY .*= -1 # Reset the nsz_XY to the positive direction
 		end
 		e_SXY .= zero(Complex{T})
 		i = i + 1;
+		i > 5000 && break
 	end
 	ebackward_SXY .= view(eBackwardLayers_SXYL,:,:,:,1)
 	eforward_SXY .= view(eForwardLayers_SXYL,:,:,:,sizeL)

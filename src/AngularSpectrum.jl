@@ -63,10 +63,10 @@ function translatereferential!(e_SXY::AbstractArray{<:Number, 3}, nsx_XY::Abstra
 
 	# Can't use based on referential as the rotation is inverted
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, refold.θ, refold.ϕ);
-	k = 2π / λ;
+	k = im * 2π / λ;
 	tmpe_SXY = reshape(e_SXY, size(e_SXY, 1), :);
 	@inbounds @simd for i in eachindex(nsx_XY)
-		tmpphase = exp(im * k * (nsx_XY[i] * refΔx + nsy_XY[i] * refΔy + nsz_XY[i] * refΔz))
+		tmpphase = exp(k * (nsx_XY[i] * refΔx + nsy_XY[i] * refΔy + nsz_XY[i] * refΔz))
 		for iS in 1:size(e_SXY,1)
 				tmpe_SXY[iS, i] *= tmpphase;
 		end

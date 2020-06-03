@@ -20,7 +20,6 @@ To install Jolab, a user need to run:
 ] add https://github.com/DylanMMarques/Jolab.jl
 ```
 
-
 The package is developed at the Department of Medical Physics and Biomedical Engineering of UCL (University College London) by Dylan M. Marques, James A. Guggenheim, and Peter R. T. Munro.
 
 Please feel free to get in touch to report bugs, comments and feedback (dylan.marques.17@ucl.ac.uk)

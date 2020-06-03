@@ -124,3 +124,8 @@ function extrapolation(fun::JolabFunction2D{X,Y}, x::AbstractRange, y::AbstractR
     f(x1,y1) = itp(x1,y1)
     return JolabFunction2D{X,Y}(f)
 end
+
+function Base.:*(fun::JolabFunction1D{X,Y}, a::Real) where {X,Y}
+    b(x) = fun.f(x) * a
+    return JolabFunction1D{X,Y}(b)
+end

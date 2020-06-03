@@ -24,10 +24,11 @@ function tss₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVector
 	sz₁ = √(complex(1 - (nsr / n_A[sizeA-1])^2))
 	ri = reflectioncoefficientinterfaces(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
 	ti = transmissioncoefficientinterfaces(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
+	aux = im * 2π / λ
 	@inbounds for iA in (sizeA-2):-1:1
 		sz₂ = sz₁
 		sz₁ = √(complex(1 - (nsr / n_A[iA])^2))
-		propagationTerm = exp(im * 2 * π * n_A[iA+1] / λ * sz₂ * h_A[iA])
+		propagationTerm = exp(aux * n_A[iA+1] * sz₂ * h_A[iA])
 		rinterface = reflectioncoefficientinterfaces(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		tinterface = transmissioncoefficientinterfaces(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
@@ -42,10 +43,11 @@ function rss₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVector
 	sz₂ = √(complex(1 - (nsr / n_A[sizeA])^2))
 	sz₁ = √(complex(1 - (nsr / n_A[sizeA-1])^2))
 	ri = reflectioncoefficientinterfaces(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
+	aux = im * 2π / λ
 	@inbounds for iA in (sizeA-2):-1:1
 		sz₂ = sz₁;
 		sz₁ = √(complex(1 - (nsr / n_A[iA])^2))
-		propagationTerm = exp(im * 2 * π * n_A[iA+1] / λ * sz₂ * h_A[iA])
+		propagationTerm = exp(aux * n_A[iA+1] * sz₂ * h_A[iA])
 		rinterface = reflectioncoefficientinterfaces(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		ri = (rinterface + ri * propagationTerm^2) / (1 + rinterface * ri * propagationTerm^2)
 	end
@@ -59,10 +61,11 @@ function tpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVector
 	sz₁ = √(complex(1 - (nsr / n_A[sizeA-1])^2))
 	ri = reflectioncoefficientinterfacep(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
 	ti = transmissioncoefficientinterfacep(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
+	aux = im * 2π / λ
 	@inbounds for iA in (sizeA-2):-1:1
 		sz₂ = sz₁;
 		sz₁ = √(complex(1 - (nsr / n_A[iA])^2))
-		propagationTerm = exp(im * 2 * π * n_A[iA+1] / λ * sz₂ * h_A[iA])
+		propagationTerm = exp(aux * n_A[iA+1] * sz₂ * h_A[iA])
 		rinterface = reflectioncoefficientinterfacep(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		tinterface = transmissioncoefficientinterfacep(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
@@ -77,10 +80,11 @@ function rpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVector
 	sz₂ = √(complex(1 - (nsr / n_A[sizeA])^2))
 	sz₁ = √(complex(1 - (nsr / n_A[sizeA-1])^2))
 	ri = reflectioncoefficientinterfacep(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
+	aux = im * 2π / λ
 	@inbounds for iA in (sizeA-2):-1:1
-		sz₂ = sz₁;
+		sz₂ = sz₁
 		sz₁ = √(complex(1 - (nsr / n_A[iA])^2))
-		propagationTerm = exp(im * 2 * π * n_A[iA+1] / λ * sz₂ * h_A[iA])
+		propagationTerm = exp(aux * n_A[iA+1] * sz₂ * h_A[iA])
 		rinterface = reflectioncoefficientinterfacep(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		ri = (rinterface + ri * propagationTerm^2) / (1 + rinterface * ri * propagationTerm^2)
 	end
@@ -88,8 +92,8 @@ function rpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVector
 end
 
 function PropagationCoefficientScalar(n_A::AbstractVector{<:Number}, h_A::AbstractVector{T}, λ::Real, ref::ReferenceFrame) where {T<:Real}
-	inv_n_A = @view n_A[end:-1:1];
-	inv_h_A = @view h_A[end:-1:1];
+	inv_n_A = @view n_A[end:-1:1]
+	inv_h_A = @view h_A[end:-1:1]
 
 	r12(nsr) = rss₁₂(nsr, n_A, h_A, λ)
 	t12(nsr) = tss₁₂(nsr, n_A, h_A, λ)

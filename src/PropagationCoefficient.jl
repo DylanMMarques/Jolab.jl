@@ -35,11 +35,18 @@ struct PropagationCoefficientVectorial{T,X} <: AbstractPropagationCoefficient{T,
 end
 
 function coefficient_matrixform(coef::PropagationCoefficientScalar{T}, nsx_XY::AbstractArray{<:Real}, nsy_XY::AbstractArray{<:Real,2}) where {T}
-	nsr_XY = .√(nsx_XY.^2 .+ nsy_XY.^2)
-	r₁₂_XY = coef.r₁₂.(nsr_XY)
-	t₁₂_XY = coef.t₁₂.(nsr_XY)
-	r₂₁_XY = coef.r₂₁.(nsr_XY)
-	t₂₁_XY = coef.t₂₁.(nsr_XY)
+	r₁₂_XY = Array{Complex{T}, 2}(undef, size(nsx_XY))
+	t₁₂_XY = Array{Complex{T}, 2}(undef, size(nsx_XY))
+	r₂₁_XY = Array{Complex{T}, 2}(undef, size(nsx_XY))
+	t₂₁_XY = Array{Complex{T}, 2}(undef, size(nsx_XY))
+	size(nsx_XY) == size(nsy_XY) || error("Wrong sizes")
+	@inbounds Threads.@threads for i in eachindex(nsx_XY)
+		nsr = √(nsx_XY[i]^2 + nsy_XY[i]^2)
+		r₁₂_XY[i] = coef.r₁₂(nsr)
+		t₁₂_XY[i] = coef.t₁₂(nsr)
+		r₂₁_XY[i] = coef.r₂₁(nsr)
+		t₂₁_XY[i] = coef.t₂₁(nsr)
+	end
 	return PropagationCoefficientScalar{T,Array{Complex{T},2}}(r₁₂_XY, t₁₂_XY, r₂₁_XY, t₂₁_XY, coef.λ, coef.n₁, coef.ref₁, coef.n₂, coef.ref₂)
 end
 
@@ -254,7 +261,7 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 	@inbounds @simd for i in eachindex(ei_SXY)
 		incidentbeamintensity += abs2(ei_SXY[i]);
 	end
-	incidentbeamintensity *= thresold^2;
+	thresold *= thresold
 
 	n = dir > 0 ? coefs[1].n₁ : coefs[end].n₂;
 	@inbounds @simd for iXY in eachindex(nsx_XY)
@@ -291,7 +298,8 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 		@simd for i in eachindex(Eᵢ_SXY)
 			roundtripintensity += abs2(Eᵢ_SXY[i]);
 		end
-		roundtripintensity < incidentbeamintensity && continue
+		roundtripintensity < incidentbeamintensity * thresold && continue
+		roundtripintensity > incidentbeamintensity && (println("Error on the simulation. Power increased on recursive algorithm"); break)
 
 		saveTableMemFull = (iWrapSaveMem == iWrapReadMem - 2 || iWrapSaveMem == iWrapReadMem - 1);
 		isForward = real(nszᵢ_XY[Integer(sizeX * sizeY / 2)]) > 0;
@@ -384,7 +392,7 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 			booltoFileBackward = false
 			iSaveFile += 1;
 		end
-		i = i+1;
+		i += 1
 	end
 end
 
