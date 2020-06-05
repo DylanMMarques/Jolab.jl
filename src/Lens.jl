@@ -35,7 +35,7 @@ function lightinteraction(lens::Lens, angspe::AbstractFieldAngularSpectrum{T}) w
 end
 
 function lightinteractionvectorial(lens::Lens, angspe::FieldAngularSpectrum)
-	@show("This must be remade")
+	@show("This must be remade. Do not trust result results")
 	e_SXY = Array{Complex{Float64}, 3}(undef, size(angspe.e_SXY));
 	(abs(imag(angspe.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
 	sx_X = angspe.nsx_X;
@@ -69,20 +69,19 @@ function lightinteractionscalar(lens::Lens, angspe::AbstractFieldAngularSpectrum
 	x_X = sx_X * lens.f(angspe.λ)
 	y_Y = sy_Y * lens.f(angspe.λ)
 
-	k = 2 * π * angspe.n / angspe.λ;
+	k = 2 * π * angspe.n / angspe.λ
 	e_SXY = Array{Complex{T}, 3}(undef, 1, length(sx_X), length(sy_Y))
-	@inbounds @simd for iY in eachindex(sy_Y)
-		for iX in eachindex(sx_X)
-			θ = acos(√(complex(1 - sx_X[iX]^2 - sy_Y[iY]^2)))
-			if abs(imag(θ)) > @tol
+	@inbounds Threads.@threads for iY in eachindex(sy_Y)
+		@simd for iX in eachindex(sx_X)
+			cosθ2 = 1 - sx_X[iX]^2 - sy_Y[iY]^2 # cosθ2 is cosθ^2
+			if cosθ < 0 # Evasnecent waves
 				e_SXY[1,iX,iY] = zero(Complex{T})
-			else
-				e_SXY[1,iX,iY] = im / lens.f(angspe.λ) * k * 2π / √(cos(θ)) * angspe.e_SXY[1,iX,iY]
-				(sin(real(θ)) > lens.na) && (e_SXY[1,iX,iY] = zero(Complex{T}))
+			else # Plane waves
+				(1 - cosθ2 > lens.na) && (e_SXY[1,iX,iY] = zero(Complex{T}); continue)
+				e_SXY[1,iX,iY] = im / lens.f(angspe.λ) * k * 2π / cosθ2^(1/4) * angspe.e_SXY[1,iX,iY]
 			end
 		end
 	end
-
 	return (x_X, y_Y, e_SXY)
 end
 
@@ -105,29 +104,31 @@ end
 
 function lightinteractionscalar(lens::Lens, space::AbstractFieldSpace{T}) where T
 	(abs(imag(space.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
-	sx_X = -space.x_X / lens.f(space.λ);
-	sy_Y = -space.y_Y / lens.f(space.λ);
+	f = lens.f(space.λ)
+	sx_X = -space.x_X / f
+	sy_Y = -space.y_Y / f
 
-	k = 2 * π * space.n / space.λ;
+	k = 2 * π * space.n / space.λ
 	e_SXY = Array{Complex{T},3}(undef, 1, length(space.x_X), length(space.y_Y))
-	@inbounds @simd for iY in eachindex(space.y_Y)
-		for iX in eachindex(space.x_X)
-			θ = acos(√(complex(lens.f(space.λ)^2 - space.x_X[iX]^2 - space.y_Y[iY]^2)) / lens.f(space.λ));
-			if abs(imag(θ)) < @tol
-				e_SXY[1,iX,iY] = -im * lens.f(space.λ) / k / 2 / π * √(cos(θ)) * space.e_SXY[1,iX,iY];
-				(real(sin(θ)) > lens.na) && (e_SXY[1,iX,iY] = zero(Complex{T}))
-			else
+	@inbounds Threads.@threads for iY in eachindex(space.y_Y)
+		@simd for iX in eachindex(space.x_X)
+			cosθ2 = (f^2 - space.x_X[iX]^2 - space.y_Y[iY]^2)
+			if cosθ < 0
 				e_SXY[1,iX,iY] = zero(Complex{T})
+			else
+				cosθ = √(cosθ) / f
+				(1 - cosθ^2 < lens.na) && (e_SXY[1,iX,iY] = zero(Complex{T}); continue)
+				e_SXY[1,iX,iY] = -im * f / k / 2 / π * √(cosθ) * space.e_SXY[1,iX,iY];
 			end
 		end
 	end
-	nsx_X = sx_X * real(space.n)
-	nsy_Y = sy_Y * real(space.n)
-	return (nsx_X, nsy_Y, e_SXY)
+	sx_X *= real(space.n) # is nsx
+	sy_Y *= real(space.n) # is nsy
+	return (sx_X, sy_Y, e_SXY)
 end
 
 function lightinteractionvectorial(lens::Lens, space::FieldSpace)
-	# error("This must be remade")
+	@show "This must be remade. Do not trust results"
 	e_SXY = Array{Complex{Float64}, 3}(undef, size(space.e_SXY));
 	x_X = space.x_X;
 	y_Y = reshape(space.y_Y, 1, :);
