@@ -139,18 +139,18 @@ function circularstepindex_modefield!(e_SXY::AbstractArray{<:Number,3}, r::Real,
     size(e_SXY, 3) == length(y_Y) || error("Wrong sizes");
     size(e_SXY, 1) == 1 || error("Wrong sizes")
 
-    α_1 = α1(na, ncore, λ, β);
-    α_2 = α2(na, ncore, λ, β);
+    α_1 = α1(na, ncore, λ, β)
+    α_2 = α2(na, ncore, λ, β)
 
-    iXY = 1;
+    iXY = 1
     @inbounds Threads.@threads for iY in eachindex(y_Y)
         @simd for iX in eachindex(x_X)
-            r_var = √(x_X[iX]^2 + y_Y[iY]^2);
-            ϕ = atan(y_Y[iY], x_X[iX]);
+            r_var = √(x_X[iX]^2 + y_Y[iY]^2)
+            ϕ = atan(y_Y[iY], x_X[iX])
             if (r_var < r)
-                e_SXY[1,iX,iY] = weigth * C * besselj(m, α_1 * r_var) * exp(im * (m * ϕ + β * z));
+                e_SXY[1,iX,iY] = weigth * C * besselj(m, α_1 * r_var) * exp(im * (m * ϕ + β * z))
             else
-                e_SXY[1,iX,iY] = weigth * D * besselk(m, α_2 * r_var) * exp(im * (m * ϕ + β * z));
+                e_SXY[1,iX,iY] = weigth * D * besselk(m, α_2 * r_var) * exp(im * (m * ϕ + β * z))
             end
         end
     end
