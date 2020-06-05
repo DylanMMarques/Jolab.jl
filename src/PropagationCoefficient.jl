@@ -302,7 +302,7 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 		roundtripintensity > incidentbeamintensity && (println("Error on the simulation. Power increased on recursive algorithm"); break)
 
 		saveTableMemFull = (iWrapSaveMem == iWrapReadMem - 2 || iWrapSaveMem == iWrapReadMem - 1);
-		isForward = real(nszᵢ_XY[Integer(sizeX * sizeY / 2)]) > 0;
+		isForward = real(nszᵢ_XY[Integer(round(sizeX * sizeY / 2))]) > 0;
 		if (mlsᵢ == 1 && isForward) || (mlsᵢ == 2 && !isForward)
 			ESaveBackward_SXY = EOutMLSBackward_SXY;
 			nsxSaveBackward_XY = nsxOutMLSBackward_XY;
