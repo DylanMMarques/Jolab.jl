@@ -1,4 +1,4 @@
-struct Mirror{T} <: AbstractPropagationComponent{T}
+	struct Mirror{T} <: AbstractPropagationComponent{T}
     R::JolabFunction1D{T,T}
     n₁::JolabFunction1D{T,Complex{T}}
     n₂::JolabFunction1D{T,Complex{T}}

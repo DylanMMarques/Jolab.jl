@@ -1,7 +1,3 @@
----
-title : Non Parallel
-options:
----
 ```julia
 # THIS IS NOT READY. DO NOT USE
 using Jolab;
@@ -15,6 +11,8 @@ mls1 = MultilayerStructure([1.; 2.; 3.; 1.], [100E-9; 100E-9], ref_1)
 
 ref_2 = ReferenceFrame(0., 0., 20E-6 + 200E-9, 0.02, 0.)
 mls2 = MultilayerStructure([1.; 2.; 3.; 1.], [100E-9; 100E-9], ref_2)
+
+mls = MultilayerStructure([1.; 2; 3; 1; 2; 3; 1], [100E-9; 100E-9; 20E-6; 100E-9; 100E-9], ref_2)
 
 mls = [mls1, mls2]
 

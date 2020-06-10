@@ -72,7 +72,7 @@ function lightinteractionscalar(lens::Lens, angspe::AbstractFieldAngularSpectrum
 	k = 2 * π * angspe.n / angspe.λ
 	e_SXY = Array{Complex{T}, 3}(undef, 1, length(sx_X), length(sy_Y))
 	@inbounds Threads.@threads for iY in eachindex(sy_Y)
-		@simd for iX in eachindex(sx_X)
+		for iX in eachindex(sx_X)
 			cosθ2 = 1 - sx_X[iX]^2 - sy_Y[iY]^2 # cosθ2 is cosθ^2
 			if cosθ < 0 # Evasnecent waves
 				e_SXY[1,iX,iY] = zero(Complex{T})
@@ -111,7 +111,7 @@ function lightinteractionscalar(lens::Lens, space::AbstractFieldSpace{T}) where 
 	k = 2 * π * space.n / space.λ
 	e_SXY = Array{Complex{T},3}(undef, 1, length(space.x_X), length(space.y_Y))
 	@inbounds Threads.@threads for iY in eachindex(space.y_Y)
-		@simd for iX in eachindex(space.x_X)
+		for iX in eachindex(space.x_X)
 			cosθ2 = (f^2 - space.x_X[iX]^2 - space.y_Y[iY]^2)
 			if cosθ < 0
 				e_SXY[1,iX,iY] = zero(Complex{T})

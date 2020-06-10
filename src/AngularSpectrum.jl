@@ -167,7 +167,7 @@ end
 @inline function polarizeddirections!(nₚ::AbstractVector{T}, nₛ::AbstractVector{T}, nsx::Real, nsy::Real, dir::Integer, n::Number) where {T<:Number}
 	sr = √(nsx^2 + nsy^2) / n
 	if abs2(sr) < 1E-20
-		@show "this has to be chekect(polarizeddirections! of ANgularspectrum)"
+		@show "this has to be chekect(polarizeddirections! of Angularspectrum)"
 		nₚ[1], nₚ[2], nₚ[3] = dir * one(T), zero(T), zero(T)
 		nₛ[1], nₛ[2], nₛ[3] = zero(T), -one(T), zero(T)
 	else
