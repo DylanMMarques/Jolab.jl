@@ -40,10 +40,10 @@ function matrix(rmls::RoughInterface{T}, nsx::AbstractRange{<:Real}, nsy::Abstra
 
 	fftz_itp = LinearInterpolation((nsxfft, nsyfft), fftz)
 
-	r12 = zeros(ComplexF64, sizeX, sizeY, sizeX, sizeY)
-	t12 = zeros(ComplexF64, sizeX, sizeY, sizeX, sizeY)
-	r21 = zeros(ComplexF64, sizeX, sizeY, sizeX, sizeY)
-	t21 = zeros(ComplexF64, sizeX, sizeY, sizeX, sizeY)
+	r12 = zeros(Complex{T}, sizeX, sizeY, sizeX, sizeY)
+	t12 = zeros(Complex{T}, sizeX, sizeY, sizeX, sizeY)
+	r21 = zeros(Complex{T}, sizeX, sizeY, sizeX, sizeY)
+	t21 = zeros(Complex{T}, sizeX, sizeY, sizeX, sizeY)
 	cons = (nsx[2]- nsx[1]) * (nsy[2] - nsy[1]) * k^2
 	@inbounds Threads.@threads for iX1 in 1:sizeX
 		@simd for iY1 in 1:sizeY
@@ -79,8 +79,7 @@ function matrix(rmls::RoughInterface{T}, nsx::AbstractRange{<:Real}, nsy::Abstra
 	t12 = reshape(t12, sizeX * sizeY, sizeX * sizeY)
 	r21 = reshape(r21, sizeX * sizeY, sizeX * sizeY)
 	t21 = reshape(t21, sizeX * sizeY, sizeX * sizeY)
-	return (r12, t12, r21, t21)
-	return (r12, t12)
+	return PropagationCoefficientScalar{T,Array{Complex{T},2}}(r12, t12, r21, t21, λ, n1, rmls.ref, n2, rmls.ref)
 end
 
 function PropagationScatteringConvolutionCoefficientScalar(rmls::RoughInterface{T}, λ::Real) where T

@@ -92,6 +92,21 @@ function checkmergeble(coefs::AbstractArray{<:AbstractPropagationCoefficient})
 	return true
 end
 
+function checkmergeble(coefs::AbstractArray{<:AbstractPropagationCoefficient{T, A}}) where {T <: Real, A <: AbstractArray{T}}
+	@inbounds for i in 1:length(coefs)-1
+		(coefs[i].λ - coefs[i+1].λ < @tol) || return false;
+		checkorientation(coefs[i].ref₁, coefs[i+1].ref₁) || return false
+		(coefs[i+1].ref₁.z - coefs[i].ref₂.z > -@tol) || return false
+		checkinline(coefs[i].ref₁, coefs[i+1].ref₁) || return false
+		(abs(coefs[i+1].n₁ - coefs[i].n₂) < @tol) || return false
+		size(coefs[i]) == size(coefs[i+1]) || return false
+	end
+	@inbounds for i in eachindex(coefs)
+		checkinline(coefs[i].ref₁, coefs[i].ref₂) || return false
+	end
+	return true
+end
+
 function r₁₂(nsr::Real, coefs::AbstractVector{PropagationCoefficientScalar{T,X}}) where {T,X}
  	k = 2π / coefs[1].λ;
 
@@ -594,4 +609,24 @@ function rextrema(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
 		end
 	end
 	return (√min, √max)
+end
+
+function mergeorientated_propagationcoefficient(coefs::AbstractVector{<:PropagationCoefficientScalar{T, A}}, nsx_XY::AbstractArray{<:Real}, nsy_XY::AbstractArray{<:Real}) where {T<:Real, A <: AbstractArray{T}}
+	checkmergeble(coefs) || error("Coefficients cannot be merged")
+	sizeA = length(coefs)
+	r12 = coefs[sizeA].r₁₂
+	t12 = coefs[sizeA].t₁₂
+	nsz_XY = Array{Complex{T}, 1}(undef, length(nsx_XY))
+	propMatrix = Diagonal(Vector{Complex{T}}(undef, length(nsx_XY)))
+
+	for i in length(coefs)-1:-1:1
+		nsz_XY .= .√(coefs[i].n₂^2 .- nsx_XY.^2 .- nsy_XY.^2)
+		propagationmatrix!(propMatrix, nsx_XY, nsy_XY, nsz_XY, coefs[1].λ, coefs[i].ref₂, coefs[i+1].ref₁)
+		lmul!(r12, propMatrix)
+		rmul!(propMatrix, r12)
+		# r12 is r23 inside the equation
+		r12 = coefs[i].r₁₂ + coefs[i].t₂₁ * inv(I - r12 * coefs[i].r₂₁) * r12 * coefs[i].t₁₂
+		@show typeof(r12)
+	end
+	return r12
 end

@@ -74,10 +74,10 @@ function lightinteractionscalar(lens::Lens, angspe::AbstractFieldAngularSpectrum
 	@inbounds Threads.@threads for iY in eachindex(sy_Y)
 		for iX in eachindex(sx_X)
 			cosθ2 = 1 - sx_X[iX]^2 - sy_Y[iY]^2 # cosθ2 is cosθ^2
-			if cosθ < 0 # Evasnecent waves
+			if cosθ2 < 0 # Evasnecent waves
 				e_SXY[1,iX,iY] = zero(Complex{T})
 			else # Plane waves
-				(1 - cosθ2 > lens.na) && (e_SXY[1,iX,iY] = zero(Complex{T}); continue)
+				(1 - cosθ2 > lens.na^2) && (e_SXY[1,iX,iY] = zero(Complex{T}); continue)
 				e_SXY[1,iX,iY] = im / lens.f(angspe.λ) * k * 2π / cosθ2^(1/4) * angspe.e_SXY[1,iX,iY]
 			end
 		end
@@ -113,12 +113,12 @@ function lightinteractionscalar(lens::Lens, space::AbstractFieldSpace{T}) where 
 	@inbounds Threads.@threads for iY in eachindex(space.y_Y)
 		for iX in eachindex(space.x_X)
 			cosθ2 = (f^2 - space.x_X[iX]^2 - space.y_Y[iY]^2)
-			if cosθ < 0
+			if cosθ2 < 0
 				e_SXY[1,iX,iY] = zero(Complex{T})
 			else
-				cosθ = √(cosθ) / f
-				(1 - cosθ^2 < lens.na) && (e_SXY[1,iX,iY] = zero(Complex{T}); continue)
-				e_SXY[1,iX,iY] = -im * f / k / 2 / π * √(cosθ) * space.e_SXY[1,iX,iY];
+				cosθ2 = √(cosθ2) / f
+				(1 - cosθ2 > lens.na^2) || (e_SXY[1,iX,iY] = zero(Complex{T}); continue)
+				e_SXY[1,iX,iY] = -im * f / k / 2 / π * √(cosθ2) * space.e_SXY[1,iX,iY];
 			end
 		end
 	end

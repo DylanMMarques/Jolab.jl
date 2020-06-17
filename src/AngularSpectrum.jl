@@ -56,6 +56,21 @@ function changereferential!(nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::Abstract
 	checkorientation(refold, refnew) || rotatereferential!(nsx_XY, nsy_XY, nsz_XY, e_SXY, refold, refnew)
 end
 
+function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number,2}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
+	checkorientation(refnew, refold) || error("Cannot calculate propagation matrix as the referential are not oriented")
+	refΔx = refnew.x - refold.x;
+	refΔy = refnew.y - refold.y;
+	refΔz = refnew.z - refold.z;
+
+	# Can't use based on referential as the rotation is inverted
+	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, refold.θ, refold.ϕ);
+	k = im * 2π / λ;
+	@inbounds @simd for i in eachindex(nsx_XY)
+		tmpphase = exp(k * (nsx_XY[i] * refΔx + nsy_XY[i] * refΔy + nsz_XY[i] * refΔz))
+		tmpe_SXY[i, i] = tmpphase;
+	end
+end
+
 function translatereferential!(e_SXY::AbstractArray{<:Number, 3}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number,2}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
 	refΔx = refnew.x - refold.x;
 	refΔy = refnew.y - refold.y;
