@@ -56,8 +56,9 @@ function changereferential!(nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::Abstract
 	checkorientation(refold, refnew) || rotatereferential!(nsx_XY, nsy_XY, nsz_XY, e_SXY, refold, refnew)
 end
 
-function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number,2}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
+function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_XY::AbstractArray{<:Number}, nsy_XY::AbstractArray{<:Number}, nsz_XY::AbstractArray{<:Number}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
 	checkorientation(refnew, refold) || error("Cannot calculate propagation matrix as the referential are not oriented")
+	length(nsz_XY) == length(nsy_XY) == length(nsx_XY) == size(propMatrix, 1) || error("wrong sizes")
 	refΔx = refnew.x - refold.x;
 	refΔy = refnew.y - refold.y;
 	refΔz = refnew.z - refold.z;
@@ -67,7 +68,7 @@ function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_XY::Abst
 	k = im * 2π / λ;
 	@inbounds @simd for i in eachindex(nsx_XY)
 		tmpphase = exp(k * (nsx_XY[i] * refΔx + nsy_XY[i] * refΔy + nsz_XY[i] * refΔz))
-		tmpe_SXY[i, i] = tmpphase;
+		propMatrix[i, i] = tmpphase;
 	end
 end
 

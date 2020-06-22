@@ -11,10 +11,18 @@ function ScatteringConvolutionCoefficientScalar(rmls::RoughInterface{T}, λ::Rea
 	k = convert(T, 2π / λ)
 	n1 = rmls.n1(λ)
 	n2 = rmls.n2(λ)
+
+	sz1(x) = √(1 - (x / n1)^2)
+	sz2(x) = √(1 - (x / n2)^2)
+	r12(x) = reflectioncoefficientinterfaces(n1, sz1(x), n2, sz2(x))
+	t21(x) = transmissioncoefficientinterfaces(n2, sz2(x), n1, sz1(x))
+	t12(x) = transmissioncoefficientinterfaces(n1, sz1(x), n2, sz2(x))
+
 	#MISS Multiply by dX dY / 4 π^2
-	ir12(x) = im * k^2 / 2 * (n2^2 - n1^2)
-	sr12(x) = 1 / √(n1^2 - x^2)
+	ir12(x) = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12(x))
+	sr12(x) = (1 + r12(x)) / n1 / sz1(x) 
 	Δr12 = rmls.Δz
+
 	it12(x) = im * k^2 / 2 * (n2^2 - n1^2)
 	st12(x) = 1 / √(n2^2 - x^2)
 	Δt12 = rmls.Δz
@@ -27,7 +35,15 @@ function ScatteringConvolutionCoefficientScalar(rmls::RoughInterface{T}, λ::Rea
 	ScatteringConvolutionCoefficientScalar{T}(ir12, sr12, Δr12, it12, st12, Δt12, ir21, sr21, Δr21, ir21, st21, Δt21, λ, n1, rmls.ref, n2, rmls.ref);
 end
 
-function matrix(rmls::RoughInterface{T}, nsx::AbstractRange{<:Real}, nsy::AbstractRange{<:Real}, λ::Real) where T
+function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T
+	x = fftshift(FFTW.fftfreq(length(nsx), 1 / (nsx[2] - nsx[1]))) * λ
+	y = fftshift(FFTW.fftfreq(length(nsy), 1 / (nsy[2] - nsy[1]))) * λ
+	z = rmls.Δz.(x, y')
+	(nsxfft, nsyfft, fftz) = fourriertransformfft(x, y, z, λ)
+	return fftz
+end
+
+function coefficientscallar(rmls::RoughInterface{T}, nsx::AbstractRange{<:Real}, nsy::AbstractRange{<:Real}, λ::Real) where T
 	sizeX = length(nsx)
 	sizeY = length(nsy)
 	k = convert(T, 2π / λ)
@@ -66,10 +82,10 @@ function matrix(rmls::RoughInterface{T}, nsx::AbstractRange{<:Real}, nsy::Abstra
 						t21[iX2, iY2, iX1, iY1] = im * k / 2 / n1 / sz1_s * (n1^2 - n2^2) * aux * (1 - ri12) * ts12 * cons
 					end
 					if (iX1 == iX2 && iY1 == iY2)
-						r12[iX2, iY2, iX1, iY1] += ri12
-						t12[iX2, iY2, iX1, iY1] += ts12
-						r21[iX1, iY1, iX2, iY2] -= ri12
-						t21[iX1, iY1, iX2, iY2] += ts21
+						# r12[iX2, iY2, iX1, iY1] += ri12
+						# t12[iX2, iY2, iX1, iY1] += ts12
+						# r21[iX2, iY2, iX1, iY1] -= ri12
+						# t21[iX2, iY2, iX1, iY1] += ts21
 					end
 				end
 			end

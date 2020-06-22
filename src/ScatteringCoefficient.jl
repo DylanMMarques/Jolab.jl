@@ -47,12 +47,15 @@ function ScatteringConvolutionCoefficientScalar{T}(ir₁₂, sr₁₂, Δr₁₂
 end
 
 function coefficient_matrixform(coefs::ScatteringConvolutionCoefficientScalar{T}, nsx_XY::AbstractArray{<:Real}, nsy_XY::AbstractArray{<:Real}) where {T}
-	nsr_XY = .√(nsx_XY.^2 .+ nsy_XY'.^2)
+	nsr_XY = .√(nsx_XY.^2 .+ nsy_XY.^2)
+	k = 2π / coefs.λ
 	x_X = FFTW.fftfreq(size(nsx_XY,1), 1 / (nsx_XY[2] - nsx_XY[1])) * coefs.λ
 	y_Y = FFTW.fftfreq(size(nsy_XY,1), 1 / (nsy_XY[1,2] - nsy_XY[1])) * coefs.λ
+	sizeX = length(x_X)
+	sizeY = length(y_Y)
 	ir₁₂_XY = coefs.ir₁₂.(nsr_XY)
 	sr₁₂_XY = coefs.sr₁₂.(nsr_XY)
-	Δr₁₂_XY = coefs.Δr₁₂.(x_X, y_Y') * (x_X[2]-x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2
+	Δr₁₂_XY = coefs.Δr₁₂.(x_X, y_Y') * (x_X[2]-x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2 * sizeX * sizeY * (nsx_XY[2] - nsx_XY[1]) * (nsy_XY[1,2] - nsy_XY[1]) * k^2
 	it₁₂_XY = coefs.it₁₂.(nsr_XY)
 	st₁₂_XY = coefs.st₁₂.(nsr_XY)
 	Δt₁₂_XY = coefs.Δt₁₂.(x_X, y_Y') * (x_X[2]-x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2
