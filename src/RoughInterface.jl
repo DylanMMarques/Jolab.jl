@@ -7,32 +7,51 @@ mutable struct RoughInterface{T<:Real} <: AbstractOpticalComponent{T}
 end
 RoughInterface(n1, n2, Δz, ref) = RoughInterface{Float64}(n1, n2, Δz, ref)
 
-function ScatteringConvolutionCoefficientScalar(rmls::RoughInterface{T}, λ::Real) where T
+function ScatteringConvolutionCoefficientScalar_maxtrixform(rmls::RoughInterface{T}, nsx_X::AbstractRange{<:Real}, nsy_Y::AbstractRange{<:Real}, λ::Real) where T
 	k = convert(T, 2π / λ)
 	n1 = rmls.n1(λ)
 	n2 = rmls.n2(λ)
+	(sizeX, sizeY) = (length(nsx_X), length(nsy_Y))
 
-	sz1(x) = √(1 - (x / n1)^2)
-	sz2(x) = √(1 - (x / n2)^2)
-	r12(x) = reflectioncoefficientinterfaces(n1, sz1(x), n2, sz2(x))
-	t21(x) = transmissioncoefficientinterfaces(n2, sz2(x), n1, sz1(x))
-	t12(x) = transmissioncoefficientinterfaces(n1, sz1(x), n2, sz2(x))
+	ir12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	sr12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	Δr12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	it12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	st12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	ir21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	sr21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	it21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	st21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
 
-	#MISS Multiply by dX dY / 4 π^2
-	ir12(x) = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12(x))
-	sr12(x) = (1 + r12(x)) / n1 / sz1(x) 
-	Δr12 = rmls.Δz
+	x_X = FFTW.fftfreq(sizeX, 1 / (nsx_X[2] - nsx_X[1])) * λ
+	y_Y = FFTW.fftfreq(sizeY, 1 / (nsy_Y[2] - nsy_Y[1])) * λ
 
-	it12(x) = im * k^2 / 2 * (n2^2 - n1^2)
-	st12(x) = 1 / √(n2^2 - x^2)
-	Δt12 = rmls.Δz
-	ir21(x) = im * k^2 / 2 * (n1^2 - n2^2)
-	sr21(x) = 1 / √(n2^2 - x^2)
-	Δr21 = rmls.Δz
-	it21(x) = im * k^2 / 2 * (n1^2 - n2^2)
-	st21(x) = 1 / √(n1^2 - x^2)
-	Δt21 = rmls.Δz
-	ScatteringConvolutionCoefficientScalar{T}(ir12, sr12, Δr12, it12, st12, Δt12, ir21, sr21, Δr21, ir21, st21, Δt21, λ, n1, rmls.ref, n2, rmls.ref);
+	#Constant to convert fft values to fourrier transform to apply the convolution theorem
+	fftconst = (x_X[2] - x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2 * sizeX * sizeY * (nsx_X[2] - nsx_X[1]) * (nsy_Y[2] - nsy_Y[1]) * k^2
+	@inbounds Threads.@threads for iY in eachindex(nsy_Y)
+		@simd for iX in eachindex(nsx_X)
+			nsr² = nsx_X[iX]^2 + nsy_Y[iY]^2
+			sz1 = √(1 - nsr² / n1^2)
+			sz2 = √(1 - nsr² / n2^2)
+			r12 = reflectioncoefficientinterfaces(n1, sz1, n2, sz2)
+			t21 = transmissioncoefficientinterfaces(n2, sz2, n1, sz1)
+			t12 = transmissioncoefficientinterfaces(n1, sz1, n2, sz2)
+
+			ir12[iX,iY] = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12)
+			sr12[iX,iY] = (1 + r12) / n1 / sz1
+			Δr12[iX,iY] = rmls.Δz(x_X[iX], y_Y[iY]) * fftconst
+
+			it12[iX,iY] = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12)
+			st12[iX,iY] = t21 / n2 / sz2
+
+			ir21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 - r12)
+			sr21[iX,iY] = (1 - r12) / n2 / sz2
+
+			it21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 - r12)
+			st21[iX,iY] = t12 / n1 / sz1
+		end
+	end
+	return ScatteringConvolutionCoefficientScalar{T, Array{Complex{T},2}, Array{Complex{T},2}}(ir12, sr12, Δr12, it12, st12, Δr12, ir21, sr21, Δr12, ir21, st21, Δr12, λ, n1, rmls.ref, n2, rmls.ref);
 end
 
 function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T
@@ -82,10 +101,10 @@ function coefficientscallar(rmls::RoughInterface{T}, nsx::AbstractRange{<:Real},
 						t21[iX2, iY2, iX1, iY1] = im * k / 2 / n1 / sz1_s * (n1^2 - n2^2) * aux * (1 - ri12) * ts12 * cons
 					end
 					if (iX1 == iX2 && iY1 == iY2)
-						# r12[iX2, iY2, iX1, iY1] += ri12
-						# t12[iX2, iY2, iX1, iY1] += ts12
-						# r21[iX2, iY2, iX1, iY1] -= ri12
-						# t21[iX2, iY2, iX1, iY1] += ts21
+						r12[iX2, iY2, iX1, iY1] += ri12
+						t12[iX2, iY2, iX1, iY1] += ts12
+						r21[iX2, iY2, iX1, iY1] -= ri12
+						t21[iX2, iY2, iX1, iY1] += ts21
 					end
 				end
 			end
@@ -101,6 +120,12 @@ end
 function PropagationScatteringConvolutionCoefficientScalar(rmls::RoughInterface{T}, λ::Real) where T
 	propCoef = PropagationCoefficientScalar([rmls.n1(λ), rmls.n2(λ)], zeros(T,0), λ, rmls.ref)
 	scatConvCoef = ScatteringConvolutionCoefficientScalar(rmls, λ)
+	return PropagationScatteringConvolutionCoefficientScalar{T}(propCoef, scatConvCoef);
+end
+
+function PropagationScatteringConvolutionCoefficientScalar_matrixform(rmls::RoughInterface{T}, nsx_X::AbstractRange{<:Real}, nsy_Y::AbstractRange{<:Real}, λ::Real) where T
+	propCoef = PropagationCoefficientScalar_matrixform([rmls.n1(λ), rmls.n2(λ)], zeros(T,0), λ, rmls.ref)
+	scatConvCoef = ScatteringConvolutionCoefficientScalar_matrixform(rmls, λ)
 	return PropagationScatteringConvolutionCoefficientScalar{T}(propCoef, scatConvCoef);
 end
 

@@ -112,58 +112,59 @@ function lightinteraction!(ebackward_SXY::AbstractArray{Complex{T}, 3}, eforward
 	x_X = FFTW.fftfreq(sizeX, nsx_X[2] - nsx_X[1])
 	y_Y = FFTW.fftfreq(sizeY, nsy_Y[2] - nsy_Y[1])
 	if dir > 0
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
 				ebackward_XY[iX,iY] = ei_SXY[1,iX,iY] * coef.ir₁₂(nsr)
 				eforward_XY[iX,iY] = ei_SXY[1,iX,iY] * coef.it₁₂(nsr)
 			end
 		end
 		mul!(tmp_XY, fftPlan, ebackward_XY)
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
+				ebackward_XY[iX,iY] = ei_SXY[1,iX,iY] * coef.ir₁₂(nsr)
 				tmp_XY[iX,iY] *= coef.Δr₁₂(x_X[iX], y_Y[iY])
 			end
 		end
 		ldiv!(ebackward_XY, fftPlan, tmp_XY)
 
 		mul!(tmp_XY, fftPlan, eforward_XY)
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
 				tmp_XY[iX,iY] *= coef.Δt₁₂(x_X[iX], y_Y[iY])
 			end
 		end
 		ldiv!(eforward_XY, fftPlan, tmp2_XY)
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
 				nsr = √(nsx_X[iX]^2 + nsy_Y[iY]^2)
 				ebackward_XY[iX,iY] *= coef.sr₁₂(nsr)
 				eforward_XY[iX,iY] *= coef.st₁₂(nsr)
 			end
 		end
 	else
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
 				nsr = √(nsx_X[iX]^2 + nsy_Y[iY]^2)
 				ebackward_XY[iX,iY] = ei_SXY[1,iX,iY] * coef.it₂₁(nsr)
 				eforward_XY[iX,iY] = ei_SXY[1,iX,iY] * coef.ir₂₁(nsr)
 			end
 		end
 		mul!(tmp_XY, fftPlan, ebackward_XY)
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
 				tmp_XY[iX,iY] *= coef.Δt₂₁(x_X[iX], y_Y[iY])
 			end
 		end
 		ldiv!(ebackward_XY, fftPlan, tmp_XY)
 		mul!(tmp_XY, fftPlan, eforward_XY)
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
 				tmp_XY[iX,iY] *= coef.Δr₂₁(x_X[iX], y_Y[iY])
 			end
 		end
 		ldiv!(eforward_XY, fftPlan, tmp_XY)
-		@inbounds @simd for iX in 1:sizeX
-			for iY in 1:sizeY
+		@inbounds for iY in eachindex(nsy_Y)
+			@simd for iX in eachindex(nsx_X)
 				nsr = √(nsx_X[iX]^2 + nsy_Y[iY]^2)
 				eforward_XY[iX,iY] *= coef.sr₂₁(nsr)
 				ebackward_XY[iX,iY] *= coef.st₂₁(nsr)
@@ -172,35 +173,54 @@ function lightinteraction!(ebackward_SXY::AbstractArray{Complex{T}, 3}, eforward
 	end
 end
 
-function lightinteraction!(ebackward_SXY::AbstractArray{Complex{T}, 3}, eforward_SXY::AbstractArray{Complex{T}, 3}, coef::ScatteringConvolutionCoefficientScalar{A,X1,X2}, nsx_XY::AbstractArray{<:Number}, nsy_XY::AbstractArray{<:Number}, ei_SXY::AbstractArray{<:Number, 3}, dir::Integer, fftPlan=plan_fft(reshape(ebackward_SXY, size(ebackward_SXY)[2:3]))::AbstractFFTs.Plan{Complex{T}}, tmp_SXY=copy(ebackward_SXY)::AbstractArray{Complex{T},3}) where {T<:Real, A, X1<:AbstractArray, X2<:AbstractArray}
+function lightinteraction!(ebackward_SXY::AbstractArray{Complex{T}, 3}, eforward_SXY::AbstractArray{Complex{T}, 3}, coef::ScatteringConvolutionCoefficientScalar{A,X1,X2}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number, 2}, ei_SXY::AbstractArray{<:Number, 3}, dir::Integer, fftPlan=plan_fft(reshape(ebackward_SXY, size(ebackward_SXY)[2:3]))::AbstractFFTs.Plan{Complex{T}}, tmp_SXY=copy(ebackward_SXY)::AbstractArray{Complex{T},3}) where {T<:Real, A, X1<:AbstractArray, X2<:AbstractArray}
 	(sizeS, sizeX, sizeY) = size(ebackward_SXY)
 	size(eforward_SXY, 1) == sizeS == 1 || error("Field must be scallar to apply this theory")
 
 	ebackward_XY = reshape(ebackward_SXY, sizeX, sizeY)
 	eforward_XY = reshape(eforward_SXY, sizeX, sizeY)
 	tmp_XY = reshape(tmp_SXY, sizeX, sizeY)
+	iterator = eachindex(ebackward_XY)
 	if dir > 0
-		vec(ebackward_XY) .= vec(ei_SXY) .* vec(coef.ir₁₂)
-		vec(eforward_XY) .= vec(ei_SXY) .* vec(coef.it₁₂)
+		@inbounds @simd for i in iterator
+			ebackward_XY[i] = ei_SXY[i] * coef.ir₁₂[i]
+			eforward_XY[i] = ei_SXY[i] * coef.it₁₂[i]
+		end
 		ldiv!(tmp_XY, fftPlan, ebackward_XY)
-		vec(tmp_XY) .*= vec(coef.Δr₁₂)
+		@inbounds @simd for i in iterator
+			tmp_XY[i] *= coef.Δr₁₂[i]
+		end
 		mul!(ebackward_XY, fftPlan, tmp_XY)
+
 		ldiv!(tmp_XY, fftPlan, eforward_XY)
-		vec(tmp_XY) .*= vec(coef.Δt₁₂)
+		@inbounds @simd for i in iterator
+		 tmp_XY[i] *= coef.Δt₁₂[i]
+		end
 		mul!(eforward_XY, fftPlan, tmp_XY)
-		vec(ebackward_XY) .*= vec(coef.sr₁₂)
-		vec(eforward_XY) .*= vec(coef.st₁₂)
+		@inbounds @simd for i in iterator
+			ebackward_XY[i] *= coef.sr₁₂[i]
+			eforward_XY[i] *= coef.st₁₂[i]
+		end
 	else
-		vec(ebackward_XY) .= vec(ei_SXY) .* vec(coef.it₂₁)
-		vec(eforward_XY) .= vec(ei_SXY) .* vec(coef.ir₂₁)
+		@inbounds @simd for i in iterator
+			ebackward_XY[i] = ei_SXY[i] * coef.it₂₁[i]
+			eforward_XY[i] = ei_SXY[i] * coef.ir₂₁[i]
+		end
 		ldiv!(tmp_XY, fftPlan, ebackward_XY)
-		vec(tmp_XY) .*= vec(coef.Δt₂₁)
+		@inbounds @simd for i in iterator
+			tmp_XY[i] *= coef.Δt₂₁[i]
+		end
 		mul!(ebackward_XY, fftPlan, tmp_XY)
+
 		ldiv!(tmp_XY, fftPlan, eforward_XY)
-		vec(tmp_XY) .*= vec(coef.Δr₂₁)
+		@inbounds @simd for i in iterator
+			tmp_XY[i] *= coef.Δr₂₁[i]
+		end
 		mul!(eforward_XY, fftPlan, tmp_XY)
-		vec(eforward_XY) .*= vec(coef.sr₂₁)
-		vec(ebackward_XY) .*= vec(coef.st₂₁)
+		@inbounds @simd for i in iterator
+			ebackward_XY[i] *= coef.st₂₁[i]
+			eforward_XY[i] *= coef.sr₂₁[i]
+		end
 	end
 end
 
