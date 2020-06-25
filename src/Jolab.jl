@@ -63,5 +63,8 @@ module Jolab
 	include("interpolation.jl")
 	include("CircularStepIndexFibre.jl")
 	include("SpatialLightModulator.jl")
+	include("ScaterringMatrix.jl")
+	include("RecursiveAlgorithms.jl")
+	include("AbstractOpticalComponent.jl")
 	include("PlotsRecipes.jl")
 end

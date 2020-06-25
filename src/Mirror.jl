@@ -7,34 +7,40 @@
 end
 Mirror(R, n₁, n₂, ref) = Mirror{Float64}(R,n₁,n₂,ref)
 
-function PropagationCoefficientScalar(mirror::Mirror{T}, λ::Real) where T
-    tλ = complex(√(1 - mirror.R(λ)));
-    rλ = complex(√mirror.R(λ));
-    r₁₂ = JolabFunction1D{T,Complex{T}}(rλ)
-    r₂₁ = JolabFunction1D{T,Complex{T}}(-rλ)
-    t₁₂ = JolabFunction1D{T,Complex{T}}(tλ)
-    t₂₁ = JolabFunction1D{T,Complex{T}}(tλ)
-	return PropagationCoefficientScalar{T}(rλ, tλ, -rλ, tλ, λ, mirror.n₁(λ), mirror.ref, mirror.n₂(λ), mirror.ref)
+function coefficient_geral(mirror::Mirror{T}, field::AbstractFieldSpace) where {T<:Real}
+	sizeXY = length(field.x_X) * length(field.y_Y)
+    tλ = complex(√(1 - mirror.R(field.λ)));
+    rλ = complex(√mirror.R(field.λ));
+	r12 = Diagonal(ones(Complex{T}, sizeXY))
+	t12 = Diagonal(ones(Complex{T}, sizeXY))
+	r21 = Diagonal(ones(Complex{T}, sizeXY))
+	t21 = Diagonal(ones(Complex{T}, sizeXY))
+	rmul!(r12.diag, rλ)
+	rmul!(t12.diag, tλ)
+	rmul!(r21.diag, -rλ)
+	rmul!(t21.diag, tλ)
+
+	fieldl = FieldSpace{T}(field.x_X, field.y_Y, field.e_SXY, field.λ, mirror.n₁(field.λ), -1, mirror.ref)
+	fieldr = FieldSpace{T}(field.x_X, field.y_Y, field.e_SXY, field.λ, mirror.n₂(field.λ), 1, mirror.ref)
+	return ScaterringMatrix{T, ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-function PropagationCoefficientVectorial(mirror::Mirror{T}, λ::Real) where T
-    tλ = complex(√(1 - mirror.R(λ)));
-    rλ = complex(√mirror.R(λ));
-    r₁₂ = JolabFunction1D{T,Complex{T}}(rλ)
-    r₂₁ = JolabFunction1D{T,Complex{T}}(-rλ)
-    t₁₂ = JolabFunction1D{T,Complex{T}}(tλ)
-    t₂₁ = JolabFunction1D{T,Complex{T}}(tλ)
-    return PropagationCoefficientVectorial{T}(-r₁₂, r₁₂, t₁₂, t₁₂, -r₂₁, r₂₁, t₂₁, t₂₁, λ, mirror.n₁(λ), mirror.ref, mirror.n₂(λ), mirror.ref)
+function coefficient_geral(mirror::Mirror{T}, field::AbstractFieldAngularSpectrum) where {T<:Real}
+	sizeXY = length(field.nsx_X) * length(field.nsy_Y)
+    tλ = complex(√(1 - mirror.R(field.λ)));
+    rλ = complex(√mirror.R(field.λ));
+	r12 = Diagonal(ones(Complex{T}, sizeXY))
+	t12 = Diagonal(ones(Complex{T}, sizeXY))
+	r21 = Diagonal(ones(Complex{T}, sizeXY))
+	t21 = Diagonal(ones(Complex{T}, sizeXY))
+	rmul!(r12.diag, -rλ)
+	rmul!(t12.diag, tλ)
+	rmul!(r21.diag, rλ)
+	rmul!(t21.diag, tλ)
+
+	fieldl = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, mirror.n₁(field.λ), -1, mirror.ref)
+	fieldr = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, mirror.n₂(field.λ), 1, mirror.ref)
+	return ScaterringMatrix{T, typeof(r12), typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-coefficientscallar(mirror::Mirror, λ) = PropagationCoefficientScalar(mirror, λ)
-
-function lightinteraction(mirror::Mirror, angspe::AbstractFieldAngularSpectrum)
-	vectorial = size(angspe.e_SXY, 1) == 3;
-	if vectorial
-		coef = propagationcoefficientsvectorial(mirror, angspe.λ)
-	else
-		coef = propagationcoefficientscalar(mirror, angspe.λ)
-	end
-	(angspeforward, angspebackward) = lightinteraction(coef, angspe)
-end
+@inline coefficient_specific(mirror::Mirror, field::AbstractFieldMonochromatic) = coefficient_geral(mirror, field)

@@ -129,4 +129,4 @@ function PropagationScatteringConvolutionCoefficientScalar_matrixform(rmls::Roug
 	return PropagationScatteringConvolutionCoefficientScalar{T}(propCoef, scatConvCoef);
 end
 
-coefficientscallar(rmls::RoughInterface, λ) = PropagationScatteringConvolutionCoefficientScalar(rmls, λ)
+coefficientscalar(rmls::RoughInterface, λ) = PropagationScatteringConvolutionCoefficientScalar(rmls, λ)

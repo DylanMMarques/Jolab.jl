@@ -71,13 +71,11 @@ The optical setup and the simulation parameters were defined on the previous sec
 for i in eachindex(λ)
     field = FieldAngularSpectrum_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
 
-    field = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
-    field = lightinteraction(objective, field) # Field in the focal plane of the objective
+    (tmp, field) = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
+    (tmp, field) = lightinteraction(objective, field) # Field in the focal plane of the objective
     (fieldr, fieldt) = lightinteraction(fp, field) # Reflected field by the Fabry Perot etalon
-    # @show fieldr.ref
-
-    fieldr = lightinteraction(objective, fieldr) # Reflected field in the back focal plane of the collimator/objective
-    fieldr = lightinteraction(collimator, fieldr) # Reflected field in the focal plane of the collimator, i.e., the tip of the fibre
+    (fieldr, tmp) = lightinteraction(objective, fieldr) # Reflected field in the back focal plane of the collimator/objective
+    (fieldr, tmp) = lightinteraction(collimator, fieldr) # Reflected field in the focal plane of the collimator, i.e., the tip of the fibre
 
     itf[i] = signal(fibre, fieldr); # Calculate the signal measured using a fibre based detection system
 end

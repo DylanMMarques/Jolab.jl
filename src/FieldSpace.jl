@@ -89,3 +89,7 @@ function intensity(fieldspace::FieldSpace)
 	size(fieldspace.e_SXY, 1) == 3 ? (e_SXY = dotdim(fieldspace.e_SXY, fieldspace.e_SXY, 1)) : e_SXY = abs2.(fieldspace.e_SXY[1,:,:])
 	return real(fieldspace.n) * ∫∫(e_SXY, fieldspace.x_X, fieldspace.y_Y);
 end
+
+function propagationmatrix(fieldl::L, fieldr::L) where {L <: AbstractFieldSpace}
+	error("A field in space cannot be propagated")
+end

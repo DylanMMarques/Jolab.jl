@@ -68,7 +68,49 @@ function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_XY::Abst
 	k = im * 2π / λ;
 	@inbounds @simd for i in eachindex(nsx_XY)
 		tmpphase = exp(k * (nsx_XY[i] * refΔx + nsy_XY[i] * refΔy + nsz_XY[i] * refΔz))
-		propMatrix[i, i] = tmpphase;
+		propMatrix.diag[i] = tmpphase;
+	end
+end
+
+function propagationmatrix(fieldl::AbstractFieldAngularSpectrum{T}, fieldr::AbstractFieldAngularSpectrum{T}) where T
+	checkorientation(fieldl.ref, fieldr.ref) || error("Cannot calculate propagation matrix as the referential are not oriented")
+	refΔx = fieldr.ref.x - fieldl.ref.x;
+	refΔy = fieldr.ref.y - fieldl.ref.y;
+	refΔz = fieldr.ref.z - fieldl.ref.z;
+
+	# Can't use based on referential as the rotation is inverted
+	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, fieldl.ref.θ, fieldl.ref.ϕ);
+	imk = im * 2π / fieldl.λ;
+	propMatrix = Diagonal(Vector{Complex{T}}(undef, length(fieldl.nsx_X) * length(fieldl.nsy_Y)))
+	i = 1
+	@inbounds for iY in eachindex(fieldl.nsy_Y)
+		for iX in eachindex(fieldl.nsx_X)
+			nsz = √(complex(fieldl.n^2 - fieldl.nsx_X[iX]^2 - fieldl.nsy_Y[iY]^2))
+			tmpphase = exp(imk * (fieldl.nsx_X[iX] * refΔx + fieldl.nsy_Y[iY] * refΔy + nsz * refΔz))
+			propMatrix.diag[i] = tmpphase;
+			i += 1
+		end
+	end
+	return propMatrix
+end
+
+function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_X::AbstractVector{<:Number}, nsy_Y::AbstractVector{<:Number}, nsz_XY::AbstractArray{<:Number}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
+	checkorientation(refnew, refold) || error("Cannot calculate propagation matrix as the referential are not oriented")
+	length(nsx_X) * length(nsy_Y) == size(propMatrix,1) == length(nsz_XY) || error("Wrong sizes")
+	refΔx = refnew.x - refold.x;
+	refΔy = refnew.y - refold.y;
+	refΔz = refnew.z - refold.z;
+
+	# Can't use based on referential as the rotation is inverted
+	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, refold.θ, refold.ϕ);
+	k = im * 2π / λ;
+	i = 1
+	@inbounds @simd for iY in eachindex(nsy_Y)
+		@simd for iX in eachindex(nsx_X)
+			tmpphase = exp(k * (nsx_X[iX] * refΔx + nsy_Y[iY] * refΔy + nsz_XY[iX,iY] * refΔz))
+			propMatrix.diag[i] = tmpphase;
+			i += 1
+		end
 	end
 end
 

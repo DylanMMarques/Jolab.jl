@@ -46,12 +46,16 @@ plot(field, fill=true, c = :amp, type = :abs) # plot the incident field upon the
 ```
 We have defined all the necessary parameters to perform the simulation. The next line of code calculates the light coupling inside the fibre.
 ```julia
+coef = Jolab.coefficient_geral(fibre, field)
+(tmp, fieldmodes1) = lightinteraction(coef, field);
+
 fieldmodes = lightinteraction(fibre, field);
 ```
 fieldmodes is a struct FieldModes which describes a field based into the modes of the multi mode fibre. This allows to propagate the light inside the fibre until the second tip. In order to calculate the field that goes out of the fibre (in the order side) we need to use the function lightinteraction again with the spatial coordinates where the field will be evaluated. The field propagation is performed automatically.
 
 ```julia
 field_tip2 = lightinteraction(fibre, fieldmodes, x, y); # Calculates the field that goes out of the fibre.
+stop
 plot(field_tip2, c = :amp, fill = true, type = :abs) # Plot hte field outside the fibre
 ```
 We can be see that field_tip2 is defined on the other side of the tip (look at the referential field_tip2.ref).

@@ -14,7 +14,7 @@ FieldModes(modesamplitude, modes, dir, ref) where T = FieldModes{Float64}(modesa
 Base.eltype(modes::AbstractModes{T}) where T = T
 
 function changereferential!(modeweigth_M::AbstractVector{<:Number}, β_M::AbstractVector{<:Number}, dir::Integer, refold::ReferenceFrame, refnew::ReferenceFrame)
-	!checkorientation(refold,refnew) && error("Rotation on a FieldMode cannot be done")
+	checkorientation(refold,refnew) || error("Rotation on a FieldMode cannot be done")
 	checkinline(refold, refnew) && translatereferential!(modeweigth_M, β_M, dir, refold, refnew)
 end
 

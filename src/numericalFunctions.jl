@@ -121,7 +121,7 @@ function inversefourriertransformfft(nsx_X::AbstractRange{<:Real}, nsy_Y::Abstra
 
 	z_SXY = Array{Complex{T},3}(undef, sizeS, sizeX, sizeY);
 	if padding > 0
-		tmp_fz_XY = zeros(T, sizeX + 2 * padding, sizeY + 2 * padding)
+		tmp_fz_XY = zeros(Complex{T}, sizeX + 2 * padding, sizeY + 2 * padding)
 	else
 		tmp_fz_XY = @view fz_SXY[1,:,:];
 	end
@@ -305,4 +305,25 @@ function checkrange(x_X::AbstractVector{<:Number})
 		(abs(Δx - (x_X[i] - x_X[i-1])) < @tol) || return false
 	end
 	return true
+end
+
+function rextrema(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
+	min = x[1]^2 + y[1]^2
+	max = x[1]^2 + y[1]^2
+	@inbounds @simd for xi in x
+		for yi in y
+			r = xi^2 + yi^2
+			(min > r) && (min = r)
+			(max < r) && (max = r)
+		end
+	end
+	return (√min, √max)
+end
+
+@inline function intensity(e_SXY::AbstractArray{Complex{T}}) where {T<:Number}
+	val = zero(T)
+	@inbounds @simd for i in eachindex(e_SXY)
+		val += abs2(e_SXY[i])
+	end
+	return val
 end
