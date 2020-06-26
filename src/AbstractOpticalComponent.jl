@@ -14,8 +14,8 @@ function lightinteraction(comps::AbstractVector{<:AbstractOpticalComponent{T}}, 
     else
         sizeA = length(comps)
         for i in eachindex(comps)
-            coef[sizeA - i] = coefficient_geral(comps[sizeA-i], fieldaux)
-            fieldaux = coef[sizeA-i].fieldl
+            coef[sizeA - i + 1] = coefficient_geral(comps[sizeA-i + 1], fieldaux)
+            fieldaux = coef[sizeA-i+1].fieldl
         end
     end
     coef = mergeorientated_propagationcoefficient(coef)

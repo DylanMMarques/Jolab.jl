@@ -68,6 +68,7 @@ sy = range(-.2, .2, length = 100); # Directions of the plane waves considered. I
 The optical setup and the simulation parameters were defined on the previous section. The code bellow propagates the light by the optical setup and calculates the intensity detected on the detector.
 
 ```julia
+setup = [collimator, objective, mirror1, mirror2]
 for i in eachindex(λ)
     field = FieldAngularSpectrum_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
 

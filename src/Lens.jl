@@ -24,6 +24,12 @@ end
 
 function coefficient_geral(lens::Lens{T}, fieldi::FieldAngularSpectrum) where T
 	(abs(imag(fieldi.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
+	checkorientation(fieldi.ref, lens.ref) || error("Cannot calculate coefficient with change of referential orientation. Use lightinteraction(lens,...) instead")
+
+	ref = (fieldi.dir > 0 ? ref1(lens, fieldi.λ) : ref2(lens, fieldi.λ))
+	needProp = checkposition(fieldi.ref, ref)
+	needProp && (propM = propagationmatrix(fieldi, ref))
+	fieldi.dir > 0 || conj!(propM.diag)
 
 	sizeXY = length(fieldi.nsx_X) * length(fieldi.nsy_Y)
 	sx_X = fieldi.nsx_X / real(fieldi.n)
@@ -57,20 +63,32 @@ function coefficient_geral(lens::Lens{T}, fieldi::FieldAngularSpectrum) where T
 		end
 	end
 	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
+		if needProp
+			rmul!(t12, propM)
+			lmul!(propM, t21)
+		end
+		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, fieldi.ref)
 		fieldr = FieldSpace{T}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, 1, ref2(lens, fieldi.λ))
 	else
 		aux = t12
 		t12 = t21
 		t21 = aux
+		if needProp
+			lmul!(propM, t12)
+			rmul!(t21, propM)
+		end
 		fieldl = FieldSpace{T}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, ref2(lens, fieldi.λ))
+		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
 	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
 end
 
-function coefficient_geral(lens::Lens{T}, fieldi::FieldSpace) where T
-	(abs(imag(fieldi.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
+function coefficient_geral(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}
+	(abs(imag(field.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
+	checkorientation(field.ref, lens.ref) || error("Cannot calculate coefficient with change of referential orientation. Use lightinteraction(lens,...) instead")
+
+	ref = (field.dir > 0 ? ref1(lens, field.λ) : ref2(lens, field.λ))
+	fieldi = changereferential(field, ref)
 
 	sizeXY = length(fieldi.x_X) * length(fieldi.y_Y)
 	f = lens.f(fieldi.λ)
@@ -101,14 +119,14 @@ function coefficient_geral(lens::Lens{T}, fieldi::FieldSpace) where T
 		end
 	end
 	if fieldi.dir > 0
-		fieldl = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
+		fieldl = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, field.ref)
 		fieldr = FieldAngularSpectrum{T}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, 1, ref2(lens, fieldi.λ))
 	else
 		aux = t12
 		t12 = t21
 		t21 = aux
 		fieldl = FieldAngularSpectrum{T}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
-		fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, ref2(lens, fieldi.λ))
+		fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
 	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
 end

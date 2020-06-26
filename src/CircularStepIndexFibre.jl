@@ -142,7 +142,6 @@ function circularstepindex_modefield!(e_SXY::AbstractArray{<:Number,3}, r::Real,
     α_1 = α1(na, ncore, λ, β)
     α_2 = α2(na, ncore, λ, β)
 
-    iXY = 1
     @inbounds Threads.@threads for iY in eachindex(y_Y)
         @simd for iX in eachindex(x_X)
             r_var = √(x_X[iX]^2 + y_Y[iY]^2)
@@ -210,9 +209,10 @@ function lightinteraction(fibre::CircularStepIndexFibre{T}, fieldspace::FieldSpa
         findmodes!(fibre, fieldspace.λ)
         modeArg = length(fibre.modes)
     end
+    modes = getmodes(fibre, fieldspace.λ)
 
-    modesamplitude = circularstepindex_calculatecoupling(fibre.modes[modeArg], fieldspace.e_SXY, fieldspace.x_X, fieldspace.y_Y);
-    modesfield = FieldModes{T}(modesamplitude, fibre.modes[modeArg], fieldspace.dir, fieldspace.ref);
+    modesamplitude = circularstepindex_calculatecoupling(modes, fieldspace.e_SXY, fieldspace.x_X, fieldspace.y_Y);
+    modesfield = FieldModes{T}(modesamplitude, modes, fieldspace.dir, fieldspace.ref);
 end
 
 function lightinteraction(fibre::CircularStepIndexFibre{A}, fieldmodes::FieldModes{T}, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}) where {T<:Real,A}
@@ -246,46 +246,49 @@ function propagationmatrix(fieldl::L, fieldr::L) where {L <: FieldModes{T, M} wh
 end
 
 function getmodes(fibre::CircularStepIndexFibre, λ::Real)
-    modeArg = -1
     @inbounds for i in eachindex(fibre.modes)
-        (abs(fibre.modes[i].λ -λ) < @tol) && return fibre.modes[i]
+        isapprox(fibre.modes[i].λ, λ, atol = @tol) && return fibre.modes[i]
     end
-    if modeArg == -1
-        findmodes!(fibre, λ)
-        modeArg = length(fibre.modes)
-    end
+    findmodes!(fibre, λ)
     return fibre.modes[end]
 end
 
-function coefficient_geral(fibre::CircularStepIndexFibre{T}, fieldi::FieldSpace{X,Y}) where {T,X,Y}
+function coefficient_geral(fibre::CircularStepIndexFibre{T}, field::FieldSpace{X,Y}) where {T,X,Y}
+    fieldi = changereferential(field, field.dir > 0 ? ref1(fibre) : ref2(fibre))
     modes = getmodes(fibre, fieldi.λ)
-    sizeM = numberofmodes(modes)
 
+    sizeM = numberofmodes(modes)
     (sizeX, sizeY) = (length(fieldi.x_X), length(fieldi.y_Y))
     fieldi.dir > 0 || error("to")
 
     t12 = Matrix{Complex{T}}(undef, sizeM, sizeX * sizeY)
     t23 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeM)
 
-    fibrelength = (fibre.ref₂.z - fibre.ref₁.z) / cos(fibre.ref₁.θ) * 0
+    fibrelength = (fibre.ref₂.z - fibre.ref₁.z) / cos(fibre.ref₁.θ)
 
     Δx = ΔIntegrationTrap(fieldi.x_X)
-    @show modes.r
     Δy = ΔIntegrationTrap(fieldi.y_Y)
-    for iM in 1:sizeM
+    xmean = sum(fieldi.x_X) / sizeX
+    ymean = sum(fieldi.y_Y) / sizeY
+    @inbounds Threads.@threads for iM in 1:sizeM
         α_1 = α1(modes.na, modes.ncore, modes.λ, modes.β[iM])
         α_2 = α2(modes.na, modes.ncore, modes.λ, modes.β[iM])
-
+        phaseTerm = exp(im * modes.β[iM] * fibrelength)
         i = 1
         for iY in eachindex(fieldi.y_Y)
             for iX in eachindex(fieldi.x_X)
                 r_var = √(fieldi.x_X[iX]^2 + fieldi.y_Y[iY]^2)
                 ϕ = atan(fieldi.y_Y[iY], fieldi.x_X[iX])
                 if (r_var < modes.r)
-                    t12[iM,i] = conj(Δx[iX] * Δy[iY] * modes.C[iM] * besselj(modes.m[iM], α_1 * r_var) * exp(im * modes.m[iM] * ϕ)) * exp(im * modes.β[iM] * fibrelength)
+                    t12[iM,i] = conj(Δx[iX] * Δy[iY] * modes.C[iM] * besselj(modes.m[iM], α_1 * r_var) * exp(im * modes.m[iM] * ϕ)) * phaseTerm
+                else
+                    t12[iM,i] = conj(Δx[iX] * Δy[iY] * modes.D[iM] * besselk(modes.m[iM], α_2 * r_var) * exp(im * modes.m[iM] * ϕ)) * phaseTerm
+                end
+                r_var = √((fieldi.x_X[iX] - xmean)^2 + (fieldi.y_Y[iY] - ymean)^2)
+                ϕ = atan(fieldi.y_Y[iY] - ymean, fieldi.x_X[iX] - xmean)
+                if (r_var < modes.r)
                     t23[i,iM] = modes.C[iM] * besselj(modes.m[iM], α_1 * r_var) * exp(im * modes.m[iM] * ϕ)
                 else
-                    t12[iM,i] = conj(Δx[iX] * Δy[iY] * modes.D[iM] * besselk(modes.m[iM], α_2 * r_var) * exp(im * modes.m[iM] * ϕ)) * exp(im * modes.β[iM] * fibrelength)
                     t23[i,iM] = modes.D[iM] * besselk(modes.m[iM], α_2 * r_var) * exp(im * modes.m[iM] * ϕ)
                 end
                 i += 1
@@ -293,11 +296,14 @@ function coefficient_geral(fibre::CircularStepIndexFibre{T}, fieldi::FieldSpace{
         end
     end
     t13 = t23 * t12
-    @show t12[1]
-    @show (t12 * vec(fieldi.e_SXY))[1:10]
-
-    fieldl = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fibre.n₁(fieldi.λ), -1, ref1(fibre))
-    fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fibre.n₂(fieldi.λ), 1, ref2(fibre))
+    if field.dir > 0
+        fieldl = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, field.n, -1, field.ref)
+        fieldr = FieldSpace{T}(copy(fieldi.x_X) .- xmean, copy(fieldi.y_Y) .- ymean, fieldi.e_SXY, fieldi.λ, fibre.n₂(fieldi.λ), 1, ref2(fibre))
+    else
+        fieldl = FieldSpace{T}(copy(fieldi.x_X) .- xmean, copy(fieldi.y_Y) .- ymean, fieldi.e_SXY, fieldi.λ, fibre.n₁(fieldi.λ), -1, ref1(fibre))
+        fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, field.ref, 1, field.ref)
+    end
     r = zeros(Complex{T}, sizeX * sizeY, sizeX * sizeY)
+
     return ScaterringMatrix{T,Matrix{Complex{T}}, typeof(fieldl), typeof(fieldr)}(r, t13, r, t13, fieldl, fieldr)
 end

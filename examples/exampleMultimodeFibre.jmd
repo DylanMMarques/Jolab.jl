@@ -40,21 +40,24 @@ To calculate the light coupling inside the fibre we first need to define the fie
 x = range(-50E-6, 50E-6, length = 100); # x spatial coordinates where the field and modes are evaluated in meters. Make sure that the sampling of the field and modes is good enough within the region of interest, i.e. where the field is incident
 y = range(-50E-6, 50E-6, length = 100); # y spatial coordinates where the field and modes are evaluated in meters. Make sure that the sampling of the field and modes is good enough within the region of interest, i.e. where the field is incident
 σ = 50E-6; # Beam waist of the Gaussian beam defined by 1/e^2 of the Gaussian intensity profile
-ref_field = ReferenceFrame(50E-6,0,0); # ReferenceFrame of the field with the position x,y,z in meters. The beams is offset by 50 μm to the center of the fibre
+ref_field = ReferenceFrame(50E-6,0,0,0,0); # ReferenceFrame of the field with the position x,y,z in meters. The beams is offset by 50 μm to the center of the fibre
 field = FieldSpace_gaussian(x, y, σ, λ, nambient(λ), 1, ref_field); # Initialization of the field
 plot(field, fill=true, c = :amp, type = :abs) # plot the incident field upon the fibre
 ```
 We have defined all the necessary parameters to perform the simulation. The next line of code calculates the light coupling inside the fibre.
 ```julia
-coef = Jolab.coefficient_geral(fibre, field)
-(tmp, fieldmodes1) = lightinteraction(coef, field);
-
+@time begin
+  coef = Jolab.coefficient_geral(fibre, deepcopy(field))
+  (tmp, fieldmodes1) = lightinteraction(coef, deepcopy(field));
+end
+@time begin
 fieldmodes = lightinteraction(fibre, field);
+field_tip2 = lightinteraction(fibre, fieldmodes, x, y); # Calculates the field that goes out of the fibre.
+end
 ```
 fieldmodes is a struct FieldModes which describes a field based into the modes of the multi mode fibre. This allows to propagate the light inside the fibre until the second tip. In order to calculate the field that goes out of the fibre (in the order side) we need to use the function lightinteraction again with the spatial coordinates where the field will be evaluated. The field propagation is performed automatically.
 
 ```julia
-field_tip2 = lightinteraction(fibre, fieldmodes, x, y); # Calculates the field that goes out of the fibre.
 stop
 plot(field_tip2, c = :amp, fill = true, type = :abs) # Plot hte field outside the fibre
 ```
