@@ -72,11 +72,16 @@ setup = [collimator, objective, mirror1, mirror2]
 for i in eachindex(λ)
     field = FieldAngularSpectrum_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
 
-    (tmp, field) = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
-    (tmp, field) = lightinteraction(objective, field) # Field in the focal plane of the objective
-    (fieldr, fieldt) = lightinteraction(fp, field) # Reflected field by the Fabry Perot etalon
-    (fieldr, tmp) = lightinteraction(objective, fieldr) # Reflected field in the back focal plane of the collimator/objective
-    (fieldr, tmp) = lightinteraction(collimator, fieldr) # Reflected field in the focal plane of the collimator, i.e., the tip of the fibre
+    # (tmp, field) = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
+    # (tmp, field) = lightinteraction(objective, field) # Field in the focal plane of the objective
+    # (fieldr, fieldt) = lightinteraction(fp, field) # Reflected field by the Fabry Perot etalon
+    # (fieldr, tmp) = lightinteraction(objective, fieldr) # Reflected field in the back focal plane of the collimator/objective
+    # (fieldr, tmp) = lightinteraction(collimator, fieldr) # Reflected field in the focal plane of the collimator, i.e., the tip of the fibre
+
+    (fieldr, fieldt) = lightinteraction(setup, field)
+
+    coef = Jolab.coefficient_general(setup, field)
+    (fieldr, fieldt) = lightinteraction(coef, field)
 
     itf[i] = signal(fibre, fieldr); # Calculate the signal measured using a fibre based detection system
 end

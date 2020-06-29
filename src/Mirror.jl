@@ -7,7 +7,7 @@
 end
 Mirror(R, n₁, n₂, ref) = Mirror{Float64}(R,n₁,n₂,ref)
 
-function coefficient_geral(mirror::Mirror{T}, field::AbstractFieldSpace) where {T<:Real}
+function coefficient_general(mirror::Mirror{T}, field::AbstractFieldSpace) where {T<:Real}
 	isapprox(field.n, field.dir > 0 ? mirror.n₁(field.λ) : mirror.n₂(field.λ), atol = @tol) || error("Field medium and mirror are different")
 	checkinplane(field.ref, mirror.ref) || error("cannot do this")
 
@@ -30,7 +30,7 @@ end
 
 errorToDo() = error("Update in next versions")
 
-function coefficient_geral(mirror::Mirror{T}, field::AbstractFieldAngularSpectrum) where {T<:Real}
+function coefficient_general(mirror::Mirror{T}, field::AbstractFieldAngularSpectrum) where {T<:Real}
 	isapprox(field.n, field.dir > 0 ? mirror.n₁(field.λ) : mirror.n₂(field.λ), atol = @tol) || error("Field medium and mirror are different")
 	checkorientation(field.ref, mirror.ref) || errorToDo()
 
@@ -72,4 +72,4 @@ function coefficient_geral(mirror::Mirror{T}, field::AbstractFieldAngularSpectru
 	return ScaterringMatrix{T, typeof(r12), typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-@inline coefficient_specific(mirror::Mirror, field::AbstractFieldMonochromatic) = coefficient_geral(mirror, field)
+@inline coefficient_specific(mirror::Mirror, field::AbstractFieldMonochromatic) = coefficient_general(mirror, field)

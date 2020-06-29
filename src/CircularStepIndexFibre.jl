@@ -253,7 +253,7 @@ function getmodes(fibre::CircularStepIndexFibre, λ::Real)
     return fibre.modes[end]
 end
 
-function coefficient_geral(fibre::CircularStepIndexFibre{T}, field::FieldSpace{X,Y}) where {T,X,Y}
+function coefficient_general(fibre::CircularStepIndexFibre{T}, field::FieldSpace{X,Y}) where {T,X,Y}
     fieldi = changereferential(field, field.dir > 0 ? ref1(fibre) : ref2(fibre))
     modes = getmodes(fibre, fieldi.λ)
 

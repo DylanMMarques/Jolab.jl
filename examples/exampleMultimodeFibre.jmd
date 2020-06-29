@@ -47,7 +47,7 @@ plot(field, fill=true, c = :amp, type = :abs) # plot the incident field upon the
 We have defined all the necessary parameters to perform the simulation. The next line of code calculates the light coupling inside the fibre.
 ```julia
 @time begin
-  coef = Jolab.coefficient_geral(fibre, deepcopy(field))
+  coef = Jolab.coefficient_general(fibre, deepcopy(field))
   (tmp, fieldmodes1) = lightinteraction(coef, deepcopy(field));
 end
 @time begin

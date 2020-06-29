@@ -58,7 +58,7 @@ function rtpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVecto
 	return (ri, ti)
 end
 
-function coefficient_geral(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum) where {T<:Real}
+function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum) where {T<:Real}
 	isapprox(fieldi.n, fieldi.dir > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and mirror are different")
 	checkorientation(fieldi.ref, mls.ref) || errorToDo()
 
@@ -110,7 +110,7 @@ function coefficient_geral(mls::MultilayerStructure{T}, fieldi::FieldAngularSpec
 	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-@inline coefficient_specific(mls::MultilayerStructure, fieldi::AbstractFieldAngularSpectrum) = coefficient_geral(mls, fieldi)
+@inline coefficient_specific(mls::MultilayerStructure, fieldi::AbstractFieldAngularSpectrum) = coefficient_general(mls, fieldi)
 
 @inline function ref2(mls::MultilayerStructure)
 	totalh = sum(mls.h_A);

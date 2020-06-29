@@ -22,7 +22,7 @@ function ref2(lens::Lens{T}, λ::Real) where T
 	return ReferenceFrame{T}(x, y, z, lens.ref.θ, lens.ref.ϕ)
 end
 
-function coefficient_geral(lens::Lens{T}, fieldi::FieldAngularSpectrum) where T
+function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where T
 	(abs(imag(fieldi.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
 	checkorientation(fieldi.ref, lens.ref) || error("Cannot calculate coefficient with change of referential orientation. Use lightinteraction(lens,...) instead")
 
@@ -83,7 +83,7 @@ function coefficient_geral(lens::Lens{T}, fieldi::FieldAngularSpectrum) where T
 	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
 end
 
-function coefficient_geral(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}
+function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}
 	(abs(imag(field.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
 	checkorientation(field.ref, lens.ref) || error("Cannot calculate coefficient with change of referential orientation. Use lightinteraction(lens,...) instead")
 
@@ -131,7 +131,7 @@ function coefficient_geral(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}
 	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
 end
 
-@inline coefficient_specific(lens::Lens, field::AbstractFieldMonochromatic) = coefficient_geral(lens, field)
+@inline coefficient_specific(lens::Lens, field::AbstractFieldMonochromatic) = coefficient_general(lens, field)
 
 # function lightinteractionvectorial(lens::Lens, angspe::FieldAngularSpectrum)
 # 	@show("This must be remade. Do not trust result results")

@@ -62,7 +62,7 @@ function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRang
 	return fftz
 end
 
-function coefficient_geral(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{A,X}) where {T, A, X<:AbstractRange}
+function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{A,X}) where {T, A, X<:AbstractRange}
 	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Field medium and mirror are different")
 	checkorientation(fieldi.ref, rmls.ref) || errorToDo()
 
