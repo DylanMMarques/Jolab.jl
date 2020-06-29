@@ -1,4 +1,4 @@
-	struct Mirror{T} <: AbstractPropagationComponent{T}
+struct Mirror{T} <: AbstractPropagationComponent{T}
     R::JolabFunction1D{T,T}
     n₁::JolabFunction1D{T,Complex{T}}
     n₂::JolabFunction1D{T,Complex{T}}
@@ -25,7 +25,7 @@ function coefficient_general(mirror::Mirror{T}, field::AbstractFieldSpace) where
 
 	fieldl = FieldSpace{T}(field.x_X, field.y_Y, field.e_SXY, field.λ, mirror.n₁(field.λ), -1, mirror.ref)
 	fieldr = FieldSpace{T}(field.x_X, field.y_Y, field.e_SXY, field.λ, mirror.n₂(field.λ), 1, mirror.ref)
-	return ScaterringMatrix{T, ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}}}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, ScatteringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
 errorToDo() = error("Update in next versions")
@@ -69,7 +69,5 @@ function coefficient_general(mirror::Mirror{T}, field::AbstractFieldAngularSpect
 		fieldl = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, mirror.n₁(field.λ), -1, mirror.ref)
 		fieldr = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, mirror.n₂(field.λ), 1, field.ref)
 	end
-	return ScaterringMatrix{T, typeof(r12), typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, typeof(r12), typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
 end
-
-@inline coefficient_specific(mirror::Mirror, field::AbstractFieldMonochromatic) = coefficient_general(mirror, field)

@@ -29,8 +29,8 @@ end
 CircularStepIndexFibre(r, na, ncore, n₁, ref₁, n₂, length) = CircularStepIndexFibre{Float64}(r, na, ncore, n₁, ref₁, n₂, length)
 
 function rotatestructure!(fib::CircularStepIndexFibre, ref_ref::ReferenceFrame, θ::Real, ϕ::Real)
-    rotatereferential!(ref_ref, fib.ref₁, θ, ϕ)
-    rotatereferential!(ref_ref, fib.ref₂, θ, ϕ)
+    rotatereferenceframe!(ref_ref, fib.ref₁, θ, ϕ)
+    rotatereferenceframe!(ref_ref, fib.ref₂, θ, ϕ)
 end
 
 α1(na, ncore, λ, β) = √((2π / λ * ncore)^2 - β^2)
@@ -196,10 +196,10 @@ function calculatefieldspace(fieldmodes::FieldModes{T}, x_X::AbstractVector{<:Re
     e_SXY = reshape(e_SXY, 1, length(x_X), length(y_Y))
 end
 
-function lightinteraction(fibre::CircularStepIndexFibre{T}, fieldspace::FieldSpace) where T
+function lightinteraction_interface(fibre::CircularStepIndexFibre{T}, fieldspace::FieldSpace) where T
     reffib = fieldspace.dir > 0 ? fibre.ref₁ : fibre.ref₂
 
-    changereferential!(fieldspace, reffib);
+    changereferenceframe!(fieldspace, reffib);
 
     modeArg = -1
     @inbounds for i in eachindex(fibre.modes)
@@ -215,10 +215,10 @@ function lightinteraction(fibre::CircularStepIndexFibre{T}, fieldspace::FieldSpa
     modesfield = FieldModes{T}(modesamplitude, modes, fieldspace.dir, fieldspace.ref);
 end
 
-function lightinteraction(fibre::CircularStepIndexFibre{A}, fieldmodes::FieldModes{T}, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}) where {T<:Real,A}
+function lightinteraction_interface(fibre::CircularStepIndexFibre{A}, fieldmodes::FieldModes{T}, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}) where {T<:Real,A}
     fieldmodes.dir > 0 ? ref = fibre.ref₂ : ref = fibre.ref₁
 
-    changereferential!(fieldmodes, ref);
+    changereferenceframe!(fieldmodes, ref);
     e_SXY = calculatefieldspace(fieldmodes, x_X, y_Y);
 
     n = fieldmodes.dir > 0 ? fibre.n₂(fieldmodes.modes.λ) : fibre.n₁(fieldmodes.modes.λ)
@@ -254,7 +254,7 @@ function getmodes(fibre::CircularStepIndexFibre, λ::Real)
 end
 
 function coefficient_general(fibre::CircularStepIndexFibre{T}, field::FieldSpace{X,Y}) where {T,X,Y}
-    fieldi = changereferential(field, field.dir > 0 ? ref1(fibre) : ref2(fibre))
+    fieldi = changereferenceframe(field, field.dir > 0 ? ref1(fibre) : ref2(fibre))
     modes = getmodes(fibre, fieldi.λ)
 
     sizeM = numberofmodes(modes)
@@ -305,5 +305,5 @@ function coefficient_general(fibre::CircularStepIndexFibre{T}, field::FieldSpace
     end
     r = zeros(Complex{T}, sizeX * sizeY, sizeX * sizeY)
 
-    return ScaterringMatrix{T,Matrix{Complex{T}}, typeof(fieldl), typeof(fieldr)}(r, t13, r, t13, fieldl, fieldr)
+    return ScatteringMatrix{T,Matrix{Complex{T}}, typeof(fieldl), typeof(fieldr)}(r, t13, r, t13, fieldl, fieldr)
 end

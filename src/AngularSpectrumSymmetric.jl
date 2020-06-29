@@ -9,7 +9,7 @@ mutable struct FieldAngularSpectrumSymmetric{T,X<:AbstractArray{T}} <: AbstractF
 	function FieldAngularSpectrumSymmetric{T}(sx_X::X, e_SXY, λ, n, dir, ref) where {T,X}
 		length(sx_X) != size(e_SXY, 2) ? error("The length of sx_X must be the same as the size of e_SXY in the second dimension.") : nothing;
 		size(e_SXY, 3) != 1 ? error("The length of e_SXY must be 1 in the third dimension.") : nothing;
-		abs(ref.x) > 1E-10 || abs(ref.y) > 1E-10 || abs(ref.θ) > 1E-5 || abs(ref.ϕ) > 1E-5 ? error("The referential of a symetric field must be with x, y, θ and ϕ equal to 0") : nothing;
+		abs(ref.x) > 1E-10 || abs(ref.y) > 1E-10 || abs(ref.θ) > 1E-5 || abs(ref.ϕ) > 1E-5 ? error("The referenceframe of a symetric field must be with x, y, θ and ϕ equal to 0") : nothing;
 		size(e_SXY, 1) != 1 ? error("The size of e_SXY of a symmetric field must be 1 (scallar field).") : nothing;
 		return new{T,X}(sx_X, [0.], e_SXY, λ, n, dir >= 0 ? 1 : -1, ref);
 	end
@@ -24,21 +24,16 @@ function FieldAngularSpectrumSymmetric_gaussian(sx_X::AbstractVector{<:Number}, 
 	return FieldAngularSpectrumSymmetric(sx_X, e_SXY, λ, n, dir, ref);
 end
 
-function changereferential!(angspe::FieldAngularSpectrumSymmetric, refnew::ReferenceFrame)
+function changereferenceframe!(angspe::FieldAngularSpectrumSymmetric, refnew::ReferenceFrame)
 	#Needs checking after doing the 2D interpolation on C
 	abs(angspe.ref.x - refnew.x) > 1E-10 || abs(angspe.ref.y - refnew.y) > 1E-10 || abs(angspe.ref.θ - refnew.θ) > 1E-5 || abs(angspe.ref.ϕ - refnew.ϕ) > 1E-5 ? error("FieldAngularSpectrumSymmetric cannot be translate in x or y or rotated") : nothing
 
 	if !checkposition(angspe.ref, refnew)
-	 	translatereferential!(angspe, refnew);
+	 	translatereferenceframe!(angspe, refnew);
 	end
 end
-function changereferential(angspe::FieldAngularSpectrumSymmetric, refnew::ReferenceFrame)::FieldAngularSpectrumSymmetric
-	angspeaux = deepcopy(angspe);
-	changereferential!(angspeaux, refnew);
-	return angspeaux;
-end
 
-function translatereferential!(angspe::FieldAngularSpectrumSymmetric, refnew::ReferenceFrame)
+function translatereferenceframe!(angspe::FieldAngularSpectrumSymmetric, refnew::ReferenceFrame)
 	refΔz = refnew.z - angspe.ref.z;
 
 	k = 2 * π / angspe.λ;

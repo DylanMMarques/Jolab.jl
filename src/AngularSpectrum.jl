@@ -51,19 +51,19 @@ function angspeto3Dspace(angspe::FieldAngularSpectrum, x_X::AbstractVector{<:Rea
 	return e_SXYZ;
 end
 
-function changereferential!(nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number}, e_SXY::AbstractArray{<:Number, 3}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
-	checkposition(refold, refnew) || translatereferential!(e_SXY, nsx_XY, nsy_XY, nsz_XY, λ, refold, refnew)
-	checkorientation(refold, refnew) || rotatereferential!(nsx_XY, nsy_XY, nsz_XY, e_SXY, refold, refnew)
+function changereferenceframe!(nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number}, e_SXY::AbstractArray{<:Number, 3}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
+	checkposition(refold, refnew) || translatereferenceframe!(e_SXY, nsx_XY, nsy_XY, nsz_XY, λ, refold, refnew)
+	checkorientation(refold, refnew) || rotatereferenceframe!(nsx_XY, nsy_XY, nsz_XY, e_SXY, refold, refnew)
 end
 
 function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_XY::AbstractArray{<:Number}, nsy_XY::AbstractArray{<:Number}, nsz_XY::AbstractArray{<:Number}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
-	checkorientation(refnew, refold) || error("Cannot calculate propagation matrix as the referential are not oriented")
+	checkorientation(refnew, refold) || error("Cannot calculate propagation matrix as the referenceframe are not oriented")
 	length(nsz_XY) == length(nsy_XY) == length(nsx_XY) == size(propMatrix, 1) || error("wrong sizes")
 	refΔx = refnew.x - refold.x;
 	refΔy = refnew.y - refold.y;
 	refΔz = refnew.z - refold.z;
 
-	# Can't use based on referential as the rotation is inverted
+	# Can't use based on referenceframe as the rotation is inverted
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, refold.θ, refold.ϕ);
 	k = im * 2π / λ;
 	@inbounds @simd for i in eachindex(nsx_XY)
@@ -73,12 +73,12 @@ function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_XY::Abst
 end
 
 function propagationmatrix(fieldl::AbstractFieldAngularSpectrum{T}, ref::ReferenceFrame) where T
-	checkorientation(fieldl.ref, ref) || error("Cannot calculate propagation matrix as the referential are not oriented")
+	checkorientation(fieldl.ref, ref) || error("Cannot calculate propagation matrix as the referenceframe are not oriented")
 	refΔx = ref.x - fieldl.ref.x;
 	refΔy = ref.y - fieldl.ref.y;
 	refΔz = ref.z - fieldl.ref.z;
 
-	# Can't use based on referential as the rotation is inverted
+	# Can't use based on referenceframe as the rotation is inverted
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, fieldl.ref.θ, fieldl.ref.ϕ);
 	imk = im * 2π / fieldl.λ;
 	propMatrix = Diagonal(Vector{Complex{T}}(undef, length(fieldl.nsx_X) * length(fieldl.nsy_Y)))
@@ -97,13 +97,13 @@ end
 @inline propagationmatrix(fieldl::AbstractFieldAngularSpectrum, fieldr::AbstractFieldAngularSpectrum) = propagationmatrix(fieldl, fieldr.ref)
 
 function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_X::AbstractVector{<:Number}, nsy_Y::AbstractVector{<:Number}, nsz_XY::AbstractArray{<:Number}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
-	checkorientation(refnew, refold) || error("Cannot calculate propagation matrix as the referential are not oriented")
+	checkorientation(refnew, refold) || error("Cannot calculate propagation matrix as the referenceframe are not oriented")
 	length(nsx_X) * length(nsy_Y) == size(propMatrix,1) == length(nsz_XY) || error("Wrong sizes")
 	refΔx = refnew.x - refold.x;
 	refΔy = refnew.y - refold.y;
 	refΔz = refnew.z - refold.z;
 
-	# Can't use based on referential as the rotation is inverted
+	# Can't use based on referenceframe as the rotation is inverted
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, refold.θ, refold.ϕ);
 	k = im * 2π / λ;
 	i = 1
@@ -116,12 +116,12 @@ function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_X::Abstr
 	end
 end
 
-function translatereferential!(e_SXY::AbstractArray{<:Number, 3}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number,2}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
+function translatereferenceframe!(e_SXY::AbstractArray{<:Number, 3}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number,2}, λ::Real, refold::ReferenceFrame, refnew::ReferenceFrame)
 	refΔx = refnew.x - refold.x;
 	refΔy = refnew.y - refold.y;
 	refΔz = refnew.z - refold.z;
 
-	# Can't use based on referential as the rotation is inverted
+	# Can't use based on referenceframe as the rotation is inverted
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, refold.θ, refold.ϕ);
 	k = im * 2π / λ;
 	tmpe_SXY = reshape(e_SXY, size(e_SXY, 1), :);
@@ -133,45 +133,39 @@ function translatereferential!(e_SXY::AbstractArray{<:Number, 3}, nsx_XY::Abstra
 	end
 end
 
-function rotatereferential!(nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number,2}, e_SXY::AbstractArray{<:Number,3}, refold::ReferenceFrame, refnew::ReferenceFrame)
-	# Rotate the coordinates to the referential (0, 0)
+function rotatereferenceframe!(nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, nsz_XY::AbstractArray{<:Number,2}, e_SXY::AbstractArray{<:Number,3}, refold::ReferenceFrame, refnew::ReferenceFrame)
+	# Rotate the coordinates to the referenceframe (0, 0)
 	(sum(imag.(nsz_XY)) > @tol) && error("You can't rotate the field in a media that absorves light")
 	rotatecoordinatesfromto!(nsx_XY, nsy_XY, nsz_XY, refold, refnew)
-	# Rotate the direction respective to the referential refnew
+	# Rotate the direction respective to the referenceframe refnew
 	if size(e_SXY) == 3 #if vectorial need to rotate the field as well
 		ex = @view e_SXY[1,:,:]; ey = @view e_SXY[2,:,:]; ez = @view e_SXY[3,:,:];
 		rotatecoordinatatesfromto!(ex, ey, ez, refold, refnew);
 	end
 end
 
-function changereferential!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
+function changereferenceframe!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
 	#Needs checking after doing the 2D interpolation
-	checkposition(angspe.ref, refnew) || translatereferential!(angspe, refnew);
-	checkorientation(angspe.ref, refnew) || rotatereferential!(angspe, refnew);
+	checkposition(angspe.ref, refnew) || translatereferenceframe!(angspe, refnew);
+	checkorientation(angspe.ref, refnew) || rotatereferenceframe!(angspe, refnew);
 end
 
-function changereferential(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
-	angspeaux = deepcopy(angspe);
-	changereferential!(angspeaux, refnew);
-	return angspeaux;
-end
-
-function translatereferential!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
+function translatereferenceframe!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
 	nsx_XY = repeat(angspe.nsx_X, 1, length(angspe.nsy_Y))
 	nsy_XY = repeat(reshape(angspe.nsy_Y, 1, :), length(angspe.nsx_X), 1)
 	nsz_XY = angspe.dir .* .√(angspe.n^2 .- angspe.nsx_X.^2 .- (angspe.nsy_Y').^2)
-	translatereferential!(angspe.e_SXY, nsx_XY, nsy_XY, nsz_XY, angspe.λ, angspe.ref, refnew)
+	translatereferenceframe!(angspe.e_SXY, nsx_XY, nsy_XY, nsz_XY, angspe.λ, angspe.ref, refnew)
 	angspe.ref.x = refnew.x;
 	angspe.ref.y = refnew.y;
 	angspe.ref.z = refnew.z;
 end
 
-function rotatereferential!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
+function rotatereferenceframe!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
 	(sizeX, sizeY) = size(angspe.e_SXY)[2:3]
 	nsx_XY = repeat(angspe.nsx_X, 1, length(angspe.nsy_Y))
 	nsy_XY = repeat(reshape(angspe.nsy_Y, 1, :), length(angspe.nsx_X), 1)
 	nsz_XY = angspe.dir .* .√(angspe.n^2 .- angspe.nsx_X.^2 .- (angspe.nsy_Y').^2)
-	rotatereferential!(nsx_XY, nsy_XY, nsz_XY, angspe.e_SXY, angspe.ref, refnew)
+	rotatereferenceframe!(nsx_XY, nsy_XY, nsz_XY, angspe.e_SXY, angspe.ref, refnew)
 
 	if (nsx_XY[2] - nsx_XY[1]) > 0
 		angspe.nsx_X = range(minimum(view(nsx_XY,1,:)), stop = maximum(view(nsx_XY,sizeX,:)), length = sizeX)
@@ -313,7 +307,7 @@ function intensity(angspe::FieldAngularSpectrum)::Float64
 	return 4 * π^2 * angspe.n * ∫∫(e_SXY, kx_X, ky_Y);
 end
 
-function centerangspereferential!(angspe::FieldAngularSpectrum)
+function centerangspereferenceframe!(angspe::FieldAngularSpectrum)
 	(tmp, arg) = findmax(abs.(vec(angspe.e_SXY)))
 	arg = CartesianIndices(angspe.e_SXY)[arg]
 	nsx = angspe.nsx_X[arg[2]];
@@ -326,5 +320,14 @@ function centerangspereferential!(angspe::FieldAngularSpectrum)
 	ϕ = atan(real(Δy), real(Δx))
 	# θ > π/2 && 	(θ = π - θ; ϕ = ϕ + π)
 	ref = ReferenceFrame(angspe.ref.x, angspe.ref.y, angspe.ref.z, θ, ϕ)
-	changereferential!(angspe, ref)
+	changereferenceframe!(angspe, ref)
+end
+
+function samedefinitions(fieldl::L, fieldr::L) where L <: FieldAngularSpectrum
+	isapprox(fieldl.nsx_X, fieldr.nsx_X, atol = @tol) || return false
+	isapprox(fieldl.nsy_Y, fieldr.nsx_X, atol = @tol) || return false
+	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
+	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
+	checkorientation(fieldl.ref, fieldr.ref) || return false
+	return true
 end

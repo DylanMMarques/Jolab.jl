@@ -107,17 +107,13 @@ function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSp
 		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, first(n_A), -1, mls.ref)
 		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, last(n_A), 1, fieldi.ref)
 	end
-	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
 end
-
-@inline coefficient_specific(mls::MultilayerStructure, fieldi::AbstractFieldAngularSpectrum) = coefficient_general(mls, fieldi)
 
 @inline function ref2(mls::MultilayerStructure)
 	totalh = sum(mls.h_A);
 	return mls.ref + ReferenceFrame(sin(mls.ref.θ) * cos(mls.ref.ϕ) * totalh, sin(mls.ref.θ) * sin(mls.ref.ϕ) * totalh, cos(mls.ref.θ) * totalh, mls.ref.θ, mls.ref.ϕ);
 end
-
-@inline ref1(mls::MultilayerStructure) = mls.ref
 
 function lightinteraction_recursive(components::AbstractVector{T}, angspe::AbstractFieldAngularSpectrum; nsxOut = angspe.nsx_X::AbstractVector{<:Real}, nsyOut = angspe.nsy_Y::AbstractVector{<:Real}, thresold = 1E-4, sizeM=100::Integer) where T
 	vectorial = (size(angspe.e_SXY, 1) == 3)

@@ -48,21 +48,15 @@ function FieldAngularSpectrum_fromspacefft(fieldspace::FieldSpace{T,X}; padding=
 	return FieldAngularSpectrum{T}(nsx_X, nsy_Y, e_SXY, fieldspace.λ, fieldspace.n, fieldspace.dir, fieldspace.ref);
 end
 
-function changereferential!(fieldspace::FieldSpace, refnew::ReferenceFrame)
+function changereferenceframe!(fieldspace::FieldSpace, refnew::ReferenceFrame)
 	if fieldspace.ref != refnew
-		(fieldspace.x_X, fieldspace.y_Y) = translatereferential!(fieldspace.x_X, fieldspace.y_Y, fieldspace.ref, refnew);
+		(fieldspace.x_X, fieldspace.y_Y) = translatereferenceframe!(fieldspace.x_X, fieldspace.y_Y, fieldspace.ref, refnew);
 		fieldspace.ref = refnew;
 	end
 end
 
-function changereferential(fieldspace::FieldSpace, refnew::ReferenceFrame)
-	tmp_field = deepcopy(fieldspace)
-	changereferential!(tmp_field, refnew)
-	return tmp_field
-end
-
-function translatereferential!(x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, refold::ReferenceFrame, refnew::ReferenceFrame)
-	(checkorientation(refold, refnew) && checkinplane(refold, refnew)) || error("Both referential must be in plane")
+function translatereferenceframe!(x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, refold::ReferenceFrame, refnew::ReferenceFrame)
+	(checkorientation(refold, refnew) && checkinplane(refold, refnew)) || error("Both referenceframe must be in plane")
 	refΔx = refnew.x - refold.x;
 	refΔy = refnew.y - refold.y;
 	refΔz = refnew.z - refold.z;
@@ -73,8 +67,8 @@ function translatereferential!(x_X::AbstractVector{<:Real}, y_Y::AbstractVector{
 	return (x_X, y_Y)
 end
 
-function translatereferential!(x_X::AbstractRange{<:Real}, y_Y::AbstractRange{<:Real}, refold::ReferenceFrame, refnew::ReferenceFrame)
-	(checkorientation(refold, refnew) && checkinplane(refold, refnew)) || error("Both referential must be in plane")
+function translatereferenceframe!(x_X::AbstractRange{<:Real}, y_Y::AbstractRange{<:Real}, refold::ReferenceFrame, refnew::ReferenceFrame)
+	(checkorientation(refold, refnew) && checkinplane(refold, refnew)) || error("Both referenceframe must be in plane")
 	refΔx = refnew.x - refold.x;
 	refΔy = refnew.y - refold.y;
 	refΔz = refnew.z - refold.z;
@@ -92,4 +86,13 @@ end
 
 function propagationmatrix(fieldl::L, fieldr::L) where {L <: AbstractFieldSpace}
 	error("A field in space cannot be propagated")
+end
+
+function samedefinitions(fieldl::L, fieldr::L) where L <: FieldSpace
+	isapprox(fieldl.x_X, fieldr.x_X, atol = @tol) || return false
+	isapprox(fieldl.y_Y, fieldr.x_X, atol = @tol) || return false
+	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
+	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
+	checkorientation(fieldl.ref, fieldr.ref) || return false
+	return true
 end

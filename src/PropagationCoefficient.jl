@@ -66,7 +66,7 @@ function lightinteraction(coefs::AbstractVector{<:AbstractPropagationCoefficient
 	nsz_XY = angspe.dir * .√(angspe.n^2 .- nsx_XY.^2 .- nsy_XY.^2)
 
 	refcoef = angspe.dir > 0 ? coefs[1].ref₁ : coefs[2].ref₂
-	changereferential!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
+	changereferenceframe!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
 	checkorientation(angspe.ref, refcoef) || error("Cannot do that yet. Resampling of nsx must be done: TODO")
 
 	coef = mergeorientated_propagationcoefficient(coefs);
@@ -168,7 +168,7 @@ function lightinteraction(coef::AbstractPropagationCoefficient, angspe::Abstract
 	nsz_XY = angspe.dir .* .√(angspe.n^2 .- nsx_XY.^2 .- nsy_XY.^2)
 
 	refcoef = angspe.dir > 0 ? coef.ref₁ : coef.ref₂
-	changereferential!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
+	changereferenceframe!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
 
 	tmpnₛ = MVector{3,Complex{T}}(undef)
 	tmpnₚ = MVector{3,Complex{T}}(undef)

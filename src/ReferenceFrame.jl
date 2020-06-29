@@ -20,7 +20,7 @@ end
 function Base.:(+)(ref1::ReferenceFrame{A}, ref2::ReferenceFrame{B}) where {A,B}
 	T = promote_type(A,B)
 	checkorientation(ref1, ref2) && (return ReferenceFrame{T}(ref1.x .+ ref2.x, ref1.y .+ ref2.y, ref1.z .+ ref2.z, ref1.θ, ref1.ϕ))
-	error("Sum of referential is only valid for referentials with the same orientation (θ and ϕ)")
+	error("Sum of referenceframe is only valid for referenceframes with the same orientation (θ and ϕ)")
 end
 
 function checkorientation(ref1::ReferenceFrame, ref2::ReferenceFrame)::Bool
@@ -140,7 +140,7 @@ function planelineintersection(refPlane::ReferenceFrame, refLine::ReferenceFrame
 end
 
 
-function rotatereferential!(ref_ref::ReferenceFrame, ref::ReferenceFrame, θ::Real, ϕ::Real)
+function rotatereferenceframe!(ref_ref::ReferenceFrame, ref::ReferenceFrame, θ::Real, ϕ::Real)
 	(ref.x, ref.y, ref.z) = rotatecoordinatesto(ref.x - ref_ref.x, ref.y - ref_ref.y, ref.z - ref_ref.z, θ, ϕ)
 	ref.x += ref_ref.x
 	ref.y += ref_ref.y
@@ -151,36 +151,8 @@ function rotatereferential!(ref_ref::ReferenceFrame, ref::ReferenceFrame, θ::Re
 	ref.ϕ = atan(sy, sx)
 end
 
-function translatereferential!(ref::ReferenceFrame, x::Real, y::Real, z::Real)
+function translatereferenceframe!(ref::ReferenceFrame, x::Real, y::Real, z::Real)
 	ref.x += x
 	ref.y += y
 	ref.z += z
-end
-
-rotatestructure!(comp::AbstractOpticalComponent, ref_ref::ReferenceFrame, θ::Real, ϕ::Real) = rotatereferential!(ref_ref, comp.ref, θ, ϕ)
-function rotatestructure(comp::AbstractOpticalComponent, ref_ref::ReferenceFrame, θ::Real, ϕ::Real)
-	aux = deepcopy(comp)
-	rotatestructure!(aux, ref_ref, θ, ϕ)
-	return aux
-end
-translatestructure!(comp::AbstractOpticalComponent, x::Real, y::Real, z::Real) = translatereferential!(comp.ref, x, y, z)
-function translatestructure(comp::AbstractOpticalComponent, x::Real, y::Real, z::Real)
-	aux = deepcopy(comp)
-	translatestructure!(aux, x, y, z)
-	return aux
-end
-
-function rotatestructure(comps::AbstractVector{T}, ref_ref::ReferenceFrame, θ::Real, ϕ::Real) where T
-	out = Vector{T}(undef, length(comps))
-	@inbounds for i in eachindex(comps)
-		out[i] = rotatestructure(comps[i], ref_ref, θ, ϕ)
-	end
-	return out
-end
-function translatestructure(comps::AbstractVector{T}, x::Real, y::Real, z::Real) where T
-	out = Vector{T}(undef, length(comps))
-	@inbounds for i in eachindex(comps)
-		out[i] = translatestructure(comps[i], x, y, z)
-	end
-	return out
 end

@@ -12,7 +12,7 @@ mutable struct SpatialLightModulator{T} <: AbstractOpticalComponent{T}
 end
 
 function lightinteraction(slm::SpatialLightModulator{T}, fieldspace::FieldSpace) where T
-    tmp_fieldspace = changereferential(fieldspace, slm.ref)
+    tmp_fieldspace = changereferenceframe(fieldspace, slm.ref)
     slm_itp = extrapolate(interpolate((slm.x_X, slm.y_Y), slm.t_XY, Gridded(Constant())), one(T))
 
     sizeS = size(tmp_fieldspace.e_SXY,1)

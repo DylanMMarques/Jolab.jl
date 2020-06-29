@@ -303,7 +303,7 @@ function lightinteraction_recursivegridded!(ebackward_SXY::AbstractArray{Complex
 		end
 
 		if isForward
-			(mls > 1) && changereferential!(nsx_XY, nsy_XY, nsz_XY, e_SXY, λ, coefs[mls-1].ref₂, coefs[mls].ref₁)
+			(mls > 1) && changereferenceframe!(nsx_XY, nsy_XY, nsz_XY, e_SXY, λ, coefs[mls-1].ref₂, coefs[mls].ref₁)
 			if coefs[mls] isa AbstractScatteringConvolutionCoefficient
 				lightinteraction!(eSaveBackward_SXY, eSaveForward_SXY, coefs[mls], nsx_XY, nsy_XY, e_SXY, 1, fftPlan, tmp_SXY, tmp2_SXY)
 			elseif coefs[mls] isa AbstractPropagationCoefficient
@@ -320,7 +320,7 @@ function lightinteraction_recursivegridded!(ebackward_SXY::AbstractArray{Complex
 			intForward_L[mls] = zero(T)
 		else
 			nsz_XY .*= -1
-			(mls < sizeL) && changereferential!(nsx_XY, nsy_XY, nsz_XY, e_SXY, λ, coefs[mls].ref₁, coefs[mls-1].ref₂)
+			(mls < sizeL) && changereferenceframe!(nsx_XY, nsy_XY, nsz_XY, e_SXY, λ, coefs[mls].ref₁, coefs[mls-1].ref₂)
 			nsz_XY .*= -1
 			if coefs[mls-1] isa AbstractScatteringConvolutionCoefficient
 				lightinteraction!(eSaveBackward_SXY, eSaveForward_SXY, coefs[mls-1], nsx_XY, nsy_XY, e_SXY, -1, fftPlan, tmp_SXY, tmp2_SXY)
@@ -360,7 +360,7 @@ function lightinteraction_recursivegridded(coefs::AbstractVector{<:AbstractCoeff
 
 	refcoef = angspe.dir > 0 ? coefs[1].ref₁ : coefs[end].ref₂
 	checkorientation(refcoef, angspe.ref) || tobedone()
-	changereferential!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
+	changereferenceframe!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
 
 	coefs_matrix = [coefficient_matrixform(coefi, nsx_XY, nsy_XY) for coefi in coefs]
 

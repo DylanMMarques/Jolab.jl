@@ -11,7 +11,7 @@ module Jolab
 	import FunctionWrappers: FunctionWrapper
 	using Random
 
-	export FieldAngularSpectrum, FieldAngularSpectrum_fromspace, FieldAngularSpectrum_fromspacefft, FieldAngularSpectrum_gaussian, intensity, changereferential!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar, FieldAngularSpectrumSymmetric_gaussian, FieldAngularSpectrumSymmetric
+	export FieldAngularSpectrum, FieldAngularSpectrum_fromspace, FieldAngularSpectrum_fromspacefft, FieldAngularSpectrum_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar, FieldAngularSpectrumSymmetric_gaussian, FieldAngularSpectrumSymmetric
 	export FieldSpace, FieldSpace_gaussian, FieldSpace_uniform, FieldSpace_fromangspe, FieldSpace_fromangspefft, FieldSpaceSymmetric, FieldSpaceSymmetric_gaussian
 	export angspeto3Dspace
 	export PointDetector, signal
@@ -28,13 +28,6 @@ module Jolab
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
 
-	abstract type AbstractFieldMonochromatic{T<:Real} end
-	abstract type AbstractCoefficient{T<:Real} end
-	abstract type AbstractOpticalComponent{T<:Real} end
-	abstract type AbstractDetector{T<:Real} end
-	abstract type AbstractPropagationComponent{T<:Real} <: AbstractOpticalComponent{T} end
-	abstract type AbstractFieldAngularSpectrum{T} <: AbstractFieldMonochromatic{T} end
-	abstract type AbstractFieldSpace{T} <: AbstractFieldMonochromatic{T} end
 
 	macro tol(T=1.)
     	return convert(typeof(T), 1E-15)
@@ -43,9 +36,26 @@ module Jolab
 		error("Sorry, function not implemented yet.")
 	end
 
+	abstract type AbstractCoefficient{T<:Real} end
+	abstract type AbstractCoefficientCache{T<:Real} end
+	abstract type AbstractOpticalComponent{T<:Real} end
+	abstract type AbstractDetector{T<:Real} <: AbstractOpticalComponent{T} end
+
+	abstract type AbstractFieldMonochromatic{T<:Real} end
+	abstract type AbstractModes{T<:Real} end
+	abstract type AbstractPropagationComponent{T<:Real} <: AbstractOpticalComponent{T} end
+	abstract type AbstractFieldAngularSpectrum{T} <: AbstractFieldMonochromatic{T} end
+	abstract type AbstractFieldSpace{T} <: AbstractFieldMonochromatic{T} end
+
+	include("ReferenceFrame.jl")
+
+	include("AbstractFieldMonochromatic.jl")
+	include("AbstractCoefficient.jl")
+	include("AbstractOpticalComponent.jl")
+	include("AbstractDetector.jl")
+
 	include("numericalFunctions.jl");
 	include("JolabFunction.jl")
-	include("ReferenceFrame.jl")
 	include("RefractiveIndexDatabase.jl")
 	include("AngularSpectrum.jl");
 	include("AngularSpectrumSymmetric.jl");
@@ -63,8 +73,7 @@ module Jolab
 	include("interpolation.jl")
 	include("CircularStepIndexFibre.jl")
 	include("SpatialLightModulator.jl")
-	include("ScaterringMatrix.jl")
+	include("ScatteringMatrix.jl")
 	include("RecursiveAlgorithms.jl")
-	include("AbstractOpticalComponent.jl")
 	include("PlotsRecipes.jl")
 end

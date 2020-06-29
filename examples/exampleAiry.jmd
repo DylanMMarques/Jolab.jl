@@ -23,7 +23,7 @@ dir_fibre = 1 # Direction to which the fibre tip is pointing at (1 to forward an
 ref_fibre = ReferenceFrame(0, 0, 0) # Position of the fibre tip in meters (x,y,z)
 fibre = SingleModeFibre(mfd, n_fibre, dir_fibre, ref_fibre);
 ```
-We now define the first lens, labelled collimator, based on its focal length, numerical aperture and referential.
+We now define the first lens, labelled collimator, based on its focal length, numerical aperture and referenceframe.
 ```julia
 f_col = 15E-3 # focal length in meters of the collimator
 na_col = 1 # Numerical aperture of the collimator
@@ -72,16 +72,16 @@ setup = [collimator, objective, mirror1, mirror2]
 for i in eachindex(λ)
     field = FieldAngularSpectrum_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
 
-    # (tmp, field) = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
-    # (tmp, field) = lightinteraction(objective, field) # Field in the focal plane of the objective
-    # (fieldr, fieldt) = lightinteraction(fp, field) # Reflected field by the Fabry Perot etalon
-    # (fieldr, tmp) = lightinteraction(objective, fieldr) # Reflected field in the back focal plane of the collimator/objective
-    # (fieldr, tmp) = lightinteraction(collimator, fieldr) # Reflected field in the focal plane of the collimator, i.e., the tip of the fibre
+    (tmp, field) = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
+    (tmp, field) = lightinteraction(objective, field) # Field in the focal plane of the objective
+    (fieldr, fieldt) = lightinteraction(fp, field) # Reflected field by the Fabry Perot etalon
+    (fieldr, tmp) = lightinteraction(objective, fieldr) # Reflected field in the back focal plane of the collimator/objective
+    (fieldr, tmp) = lightinteraction(collimator, fieldr) # Reflected field in the focal plane of the collimator, i.e., the tip of the fibre
 
-    (fieldr, fieldt) = lightinteraction(setup, field)
-
-    coef = Jolab.coefficient_general(setup, field)
-    (fieldr, fieldt) = lightinteraction(coef, field)
+    # (fieldr, fieldt) = lightinteraction(setup, field)
+    #
+    # coef = Jolab.coefficient_general(setup, field)
+    # (fieldr, fieldt) = lightinteraction(coef, field)
 
     itf[i] = signal(fibre, fieldr); # Calculate the signal measured using a fibre based detection system
 end

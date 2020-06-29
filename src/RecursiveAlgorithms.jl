@@ -146,7 +146,7 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 			end
 		end
 		if isForward
-			mlsᵢ > 1 && changereferential!(nsxᵢ_XY, nsyᵢ_XY, nszᵢ_XY, Eᵢ_SXY, λ, coefs[mlsᵢ-1].ref₂, coefs[mlsᵢ].ref₁)
+			mlsᵢ > 1 && changereferenceframe!(nsxᵢ_XY, nsyᵢ_XY, nszᵢ_XY, Eᵢ_SXY, λ, coefs[mlsᵢ-1].ref₂, coefs[mlsᵢ].ref₁)
 			lightinteraction!(ESaveBackward_SXY, ESaveForward_SXY, coefs[mlsᵢ], nsxᵢ_XY, nsyᵢ_XY, Eᵢ_SXY, 1, tmpnₚ_3, tmpnₛ_3)
 			nsxSaveBackward_XY .= nsxᵢ_XY;
 			nsySaveBackward_XY .= nsyᵢ_XY;
@@ -156,7 +156,7 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 			nsySaveForward_XY .= nsyᵢ_XY;
 			nszSaveForward_XY .= .√(coefs[mlsᵢ].n₂.^2 .- nsxᵢ_XY.^2 .- nsyᵢ_XY.^2);
 		else
-			mlsᵢ< (numberInterfaces + 1) && changereferential!(nsxᵢ_XY, nsyᵢ_XY, nszᵢ_XY, Eᵢ_SXY, λ, coefs[mlsᵢ].ref₁, coefs[mlsᵢ-1].ref₂);
+			mlsᵢ< (numberInterfaces + 1) && changereferenceframe!(nsxᵢ_XY, nsyᵢ_XY, nszᵢ_XY, Eᵢ_SXY, λ, coefs[mlsᵢ].ref₁, coefs[mlsᵢ-1].ref₂);
 			lightinteraction!(ESaveBackward_SXY, ESaveForward_SXY, coefs[mlsᵢ-1], nsxᵢ_XY, nsyᵢ_XY, Eᵢ_SXY, -1, tmpnₚ_3, tmpnₛ_3)
 			nsxSaveForward_XY .= nsxᵢ_XY;
 			nsySaveForward_XY .= nsyᵢ_XY;
@@ -205,7 +205,7 @@ function lightinteraction_recursive(coefs::AbstractVector{<:AbstractPropagationC
 	nsz_XY = angspe.dir * .√(angspe.n^2 .- nsx_XY.^2 .- nsy_XY.^2)
 
 	refcoef = angspe.dir > 0 ? coefs[1].ref₁ : coefs[end].ref₂
-	changereferential!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
+	changereferenceframe!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
 
 	(nsrmin, nsrmax) = rextrema(angspe.nsx_X, angspe.nsy_Y);
 	(nsrminC, nsrmaxC) = rextrema(nsxOut, nsyOut);
@@ -223,7 +223,7 @@ end
 @inline function checkapplicability(coefs::AbstractVector{<:AbstractCoefficient})
 	@inbounds @simd for i in 2:length(coefs)
 		(abs(coefs[i-1].n₂ - coefs[i].n₁) < @tol) || error("Refractive index are different")
-		(coefs[i-1].ref₂.z - coefs[i].ref₁.z < @tol) || error("The order of the referential along the optical axis is incorrect")
+		(coefs[i-1].ref₂.z - coefs[i].ref₁.z < @tol) || error("The order of the referenceframe along the optical axis is incorrect")
 		(abs(coefs[i-1].λ - coefs[i].λ) < @tol) || error("The wavelength of the coefficients are different. Cannot be merged")
 	end
 	return true;

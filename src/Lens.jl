@@ -24,7 +24,7 @@ end
 
 function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where T
 	(abs(imag(fieldi.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
-	checkorientation(fieldi.ref, lens.ref) || error("Cannot calculate coefficient with change of referential orientation. Use lightinteraction(lens,...) instead")
+	checkorientation(fieldi.ref, lens.ref) || error("Cannot calculate coefficient with change of referenceframe orientation. Use lightinteraction(lens,...) instead")
 
 	ref = (fieldi.dir > 0 ? ref1(lens, fieldi.λ) : ref2(lens, fieldi.λ))
 	needProp = checkposition(fieldi.ref, ref)
@@ -80,15 +80,15 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where 
 		fieldl = FieldSpace{T}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
 		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
 end
 
 function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}
 	(abs(imag(field.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
-	checkorientation(field.ref, lens.ref) || error("Cannot calculate coefficient with change of referential orientation. Use lightinteraction(lens,...) instead")
+	checkorientation(field.ref, lens.ref) || error("Cannot calculate coefficient with change of referenceframe orientation. Use lightinteraction(lens,...) instead")
 
 	ref = (field.dir > 0 ? ref1(lens, field.λ) : ref2(lens, field.λ))
-	fieldi = changereferential(field, ref)
+	fieldi = changereferenceframe(field, ref)
 
 	sizeXY = length(fieldi.x_X) * length(fieldi.y_Y)
 	f = lens.f(fieldi.λ)
@@ -128,10 +128,8 @@ function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X
 		fieldl = FieldAngularSpectrum{T}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
 		fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	return ScaterringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
 end
-
-@inline coefficient_specific(lens::Lens, field::AbstractFieldMonochromatic) = coefficient_general(lens, field)
 
 # function lightinteractionvectorial(lens::Lens, angspe::FieldAngularSpectrum)
 # 	@show("This must be remade. Do not trust result results")

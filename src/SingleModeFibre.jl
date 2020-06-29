@@ -48,7 +48,7 @@ function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrum, tip::Integ
 	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1;)
 
 	dir == angspe.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
-	angsperef = changereferential(angspe, ref);
+	angsperef = changereferenceframe(angspe, ref);
 
 	k = 2 * π / angsperef.λ;
 	kx_X = reshape(k * angsperef.nsx_X, 1, :);
@@ -73,7 +73,7 @@ function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumSymmetric, t
 	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1;)
 
 	dir == angspe.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
-	angsperef = angspe#changereferential(angspe, ref);
+	angsperef = angspe#changereferenceframe(angspe, ref);
 
 	k = 2 * π * angsperef.n / angsperef.λ;
 	kx_X = adddims(k * angsperef.sx_X, (1,));
@@ -90,7 +90,7 @@ function signal(fibre::SingleModeFibre, fieldspace::FieldSpace, tip::Integer=1):
 	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1);
 	dir == fieldspace.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -fieldspace.dir)") : nothing
 
-	fieldspaceref = changereferential(fieldspace, ref);
+	fieldspaceref = changereferenceframe(fieldspace, ref);
 
 	x_X = adddims(fieldspaceref.x_X, (1,));
 	y_Y = adddims(fieldspaceref.y_Y, (1,2));
@@ -113,7 +113,7 @@ function signal(fibre::SingleModeFibre, fieldspace::FieldSpaceSymmetric, tip::In
 	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1);
 	dir == fieldspace.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -fieldspace.dir)") : nothing
 
-	fieldspaceref = changereferential(fieldspace, ref);
+	fieldspaceref = changereferenceframe(fieldspace, ref);
 
 	x_X = adddims(fieldspaceref.x_X, (1,));
 
