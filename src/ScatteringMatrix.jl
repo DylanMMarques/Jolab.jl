@@ -1,4 +1,4 @@
-struct ScatteringMatrix{T, X <: AbstractMatrix{Complex{T}}, L <: AbstractFieldMonochromatic{T}, R <: AbstractFieldMonochromatic{T}} <: AbstractCoefficient{T}
+struct ScatteringMatrix{T, L, R, X <: AbstractMatrix{Complex{T}}} <: AbstractCoefficient{T,L,R}
 	r₁₂::X
 	t₁₂::X
 	r₂₁::X
@@ -7,7 +7,7 @@ struct ScatteringMatrix{T, X <: AbstractMatrix{Complex{T}}, L <: AbstractFieldMo
 	fieldr::R
 end
 
-function checkapplicability(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,X,L,R}, fieldi::Union{L,R}) where {T,X,L,R}
+function checkapplicability(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T, L, R, X}, fieldi::Union{L,R}) where {T,X,L,R}
 	samedefinitions(fieldl, scatM.fieldl) || return false
 	samedefinitions(fieldr, scatM.fieldr) || return false
 	samedefinitions(fieldi, fieldi.dir > 0 ? scatM.fieldl : scatM.fieldr) || return false
@@ -53,7 +53,7 @@ function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where
 	return ScatteringMatrix{T, typeof(r12),typeof(coefs[1].fieldl), typeof(coefs[end].fieldr)}(r12, t12, r21, t21, coefs[1].fieldl, coefs[end].fieldr)
 end
 
-function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,X,L,R}, fieldi::Union{L,R}, cache) where {T,X,L,R}
+function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{L,R}, cache) where {T,X,L,R}
 	if fieldi.dir > 0
 		mul!(vec(fieldl.e_SXY), scatM.r₁₂, vec(fieldi.e_SXY))
 		mul!(vec(fieldr.e_SXY), scatM.t₁₂, vec(fieldi.e_SXY))
@@ -62,6 +62,3 @@ function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,X,L,R
 		mul!(vec(fieldl.e_SXY), scatM.t₂₁, vec(fieldi.e_SXY))
 	end
 end
-
-getfields_lr(scatM::ScatteringMatrix) = return (deepcopy(scatM.fieldl) , deepcopy(scatM.fieldr))
-getcache(coef::ScatteringMatrix) = return nothing

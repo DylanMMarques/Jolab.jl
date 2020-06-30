@@ -305,5 +305,5 @@ function coefficient_general(fibre::CircularStepIndexFibre{T}, field::FieldSpace
     end
     r = zeros(Complex{T}, sizeX * sizeY, sizeX * sizeY)
 
-    return ScatteringMatrix{T,Matrix{Complex{T}}, typeof(fieldl), typeof(fieldr)}(r, t13, r, t13, fieldl, fieldr)
+    return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Matrix{Complex{T}}}(r, t13, r, t13, fieldl, fieldr)
 end

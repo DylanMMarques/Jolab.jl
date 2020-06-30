@@ -1,11 +1,11 @@
-lightinteraction!(fieldl::AbstractFieldMonochromatic, fieldr::AbstractFieldMonochromatic, coef::AbstractCoefficient, fieldi::AbstractFieldMonochromatic, cache::AbstractCoefficientCache) = error("Cannot do this")
+Base.eltype(coef::AbstractCoefficient{T}) where T = T
 
-getcache(coef::AbstractCoefficient) = error("Cannot do this")
-getfields_lr(coef::AbstractCoefficient) = error("Cannot do this")
+lightinteraction!(fieldl::AbstractFieldMonochromatic, fieldr::AbstractFieldMonochromatic, coef::AbstractCoefficient, fieldi::AbstractFieldMonochromatic) = error("Cannot do this")
+
+getfields_lr(coef::AbstractCoefficient) = return (deepcopy(coef.fieldl), deepcopy(coef.fieldr))
 
 function lightinteraction(coef::AbstractCoefficient, fieldi::AbstractFieldMonochromatic)
 	(fieldl, fieldr) = getfields_lr(coef)
-	cache = getcache(coef)
 
 	samedefinitions(fieldi, fieldi.dir > 0 ? fieldl : fieldr)
 	changereferenceframe!(fieldi, fieldi.dir > 0 ? fieldl.ref : fieldr.ref)

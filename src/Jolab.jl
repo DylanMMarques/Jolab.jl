@@ -36,16 +36,17 @@ module Jolab
 		error("Sorry, function not implemented yet.")
 	end
 
-	abstract type AbstractCoefficient{T<:Real} end
+	abstract type AbstractFieldMonochromatic{T<:Real} end
+	abstract type AbstractFieldAngularSpectrum{T} <: AbstractFieldMonochromatic{T} end
+	abstract type AbstractFieldSpace{T} <: AbstractFieldMonochromatic{T} end
+
+	abstract type AbstractCoefficient{T<:Real, L<:AbstractFieldMonochromatic{T}, R<:AbstractFieldMonochromatic{T}} end
 	abstract type AbstractCoefficientCache{T<:Real} end
 	abstract type AbstractOpticalComponent{T<:Real} end
 	abstract type AbstractDetector{T<:Real} <: AbstractOpticalComponent{T} end
 
-	abstract type AbstractFieldMonochromatic{T<:Real} end
 	abstract type AbstractModes{T<:Real} end
 	abstract type AbstractPropagationComponent{T<:Real} <: AbstractOpticalComponent{T} end
-	abstract type AbstractFieldAngularSpectrum{T} <: AbstractFieldMonochromatic{T} end
-	abstract type AbstractFieldSpace{T} <: AbstractFieldMonochromatic{T} end
 
 	include("ReferenceFrame.jl")
 
@@ -64,6 +65,7 @@ module Jolab
 	include("FieldModes.jl")
 	include("PointDetector.jl")
 	include("PropagationCoefficient.jl")
+	include("ScatteringMatrix.jl")
 	include("ScatteringCoefficient.jl")
 	include("MultilayerStructure.jl")
 	include("RoughInterface.jl")
@@ -73,7 +75,6 @@ module Jolab
 	include("interpolation.jl")
 	include("CircularStepIndexFibre.jl")
 	include("SpatialLightModulator.jl")
-	include("ScatteringMatrix.jl")
 	include("RecursiveAlgorithms.jl")
 	include("PlotsRecipes.jl")
 end

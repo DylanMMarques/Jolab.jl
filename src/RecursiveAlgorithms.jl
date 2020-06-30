@@ -1,4 +1,4 @@
-function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforward_SCD::AbstractArray{<:T, 3}, coefs::AbstractVector{<:AbstractPropagationCoefficient}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, ei_SXY::AbstractArray{<:Number, 3}, λ::Real, dir::Integer, nsxOut::AbstractVector{<:Real}, nsyOut::AbstractVector{<:Real}, thresold::Real, sizeM::Integer) where T<:Number
+function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforward_SCD::AbstractArray{<:T, 3}, coefs::AbstractVector{<:AbstractCoefficient}, nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::AbstractArray{<:Number,2}, ei_SXY::AbstractArray{<:Number, 3}, λ::Real, dir::Integer, nsxOut::AbstractVector{<:Real}, nsyOut::AbstractVector{<:Real}, thresold::Real, sizeM::Integer) where T<:Number
 
 	numberInterfaces = length(coefs);
 	(numberInterfaces < 3) && (sizeM = 5)
@@ -191,7 +191,7 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 	end
 end
 
-function lightinteraction_recursive(coefs::AbstractVector{<:AbstractPropagationCoefficient}, angspe::AbstractFieldAngularSpectrum{T}, nsxOut::AbstractArray{<:Number}, nsyOut::AbstractArray{<:Number}; thresold = 1E-4::Real, sizeM = 100::Integer) where T
+function lightinteraction_recursive(coefs::AbstractVector{<:AbstractCoefficient}, angspe::AbstractFieldAngularSpectrum{T}, nsxOut::AbstractArray{<:Number}, nsyOut::AbstractArray{<:Number}; thresold = 1E-4::Real, sizeM = 100::Integer) where T
 	checkapplicability(coefs, angspe);
 	(sizeS, sizeX, sizeY) = size(angspe.e_SXY);
 	sizeC, sizeD  = length(nsxOut), length(nsyOut)
