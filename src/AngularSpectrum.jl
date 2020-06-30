@@ -6,12 +6,15 @@ mutable struct FieldAngularSpectrum{T,X<:AbstractVector{T}} <: AbstractFieldAngu
 	n::Complex{T}
 	dir::Int8
 	ref::ReferenceFrame{T}
-	function FieldAngularSpectrum{T}(nsx_X::X, nsy_Y::Y, e_SXY, λ, n, dir, ref) where {T,X,Y}
-		M = promote_type(X,Y)
+	function FieldAngularSpectrum{T,X}(nsx_X, nsy_Y, e_SXY, λ, n, dir, ref) where {T,X}
 		length(nsx_X) != size(e_SXY, 2) && error("The length of sx_X must be the same as the size of e_SXY in the second dimension.")
 		length(nsy_Y) != size(e_SXY, 3) && error("The length of sy_Y must be the same as the size of e_SXY in the third dimension.")
 		(size(e_SXY, 1) != 1 && size(e_SXY, 1) != 3) && error("The size of e_SXY must be 1 (scallar field) or 3 (vectorial field).")
-		return new{T,M}(nsx_X, nsy_Y, e_SXY, λ, n, dir >= 0 ? 1 : -1, ref);
+		return new{T,X}(nsx_X, nsy_Y, e_SXY, λ, n, dir >= 0 ? 1 : -1, ref);
+	end
+	function FieldAngularSpectrum{T}(nsx_X::X, nsy_Y::Y, e_SXY, λ, n, dir, ref) where {T,X,Y}
+		M = promote_type(X,Y)
+		return FieldAngularSpectrum{T,M}(nsx_X, nsy_Y, e_SXY, λ, n, dir, ref)
 	end
 end
 

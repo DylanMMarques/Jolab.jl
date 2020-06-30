@@ -53,7 +53,7 @@ function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where
 	return ScatteringMatrix{T, typeof(r12),typeof(coefs[1].fieldl), typeof(coefs[end].fieldr)}(r12, t12, r21, t21, coefs[1].fieldl, coefs[end].fieldr)
 end
 
-function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{L,R}, cache) where {T,X,L,R}
+function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{L,R}) where {T,X,L,R}
 	if fieldi.dir > 0
 		mul!(vec(fieldl.e_SXY), scatM.r₁₂, vec(fieldi.e_SXY))
 		mul!(vec(fieldr.e_SXY), scatM.t₁₂, vec(fieldi.e_SXY))

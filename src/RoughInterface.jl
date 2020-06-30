@@ -7,25 +7,28 @@ struct RoughInterface{T<:Real} <: AbstractOpticalComponent{T}
 end
 RoughInterface(n1, n2, Δz, ref) = RoughInterface{Float64}(n1, n2, Δz, ref)
 
-function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{A,X}) where {T, A, X<:AbstractRange}
-	k = convert(T, 2π / fieldi.λ)
+function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, A, X<:AbstractRange}
+	rmls.ref == fieldi.ref || tobedone()
+	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Refractive index missmatch")
+
+	k = 2π / fieldi.λ
 	n1 = rmls.n1(fieldi.λ)
 	n2 = rmls.n2(fieldi.λ)
 	(sizeX, sizeY) = (length(fieldi.nsx_X), length(fieldi.nsy_Y))
 
-	r12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	t12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	r21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	t21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	ir12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	sr12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	Δr12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	it12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	st12 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	ir21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	sr21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	it21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
-	st21 = Array{Complex{T}, 2}(undef, sizeX, sizeY)
+	r12 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	t12 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	r21 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	t21 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	ir12 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	sr12 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	it12 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	st12 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	ir21 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	sr21 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	it21 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	st21 = Matrix{Complex{T}}(undef, sizeX, sizeY)
+	Δ = Matrix{Complex{T}}(undef, sizeX, sizeY)
 
 	x_X = FFTW.fftfreq(sizeX, 1 / (fieldi.nsx_X[2] - fieldi.nsx_X[1])) * fieldi.λ
 	y_Y = FFTW.fftfreq(sizeY, 1 / (fieldi.nsy_Y[2] - fieldi.nsy_Y[1])) * fieldi.λ
@@ -44,7 +47,7 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 
 			ir12[iX,iY] = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12[iX,iY])
 			sr12[iX,iY] = (1 + r12[iX,iY]) / n1 / sz1
-			Δr12[iX,iY] = rmls.Δz(x_X[iX], y_Y[iY]) * fftconst
+			Δ[iX,iY] = rmls.Δz(x_X[iX], y_Y[iY]) * fftconst
 
 			it12[iX,iY] = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12[iX,iY])
 			st12[iX,iY] = t21[iX,iY] / n2 / sz2
@@ -67,7 +70,7 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 	planfft = plan_fft(tmp)  # precalculates the fft plan
 	inv(planfft) # precalculates the inverse fft plan
 
-	return RoughInterfaceConvolutionCoefficient{T, Array{Complex{T},2}, Array{Complex{T},2}}(r12,t12, r21, t21, ir12, sr12, Δr12, it12, st12, Δr12, ir21, sr21, Δr12, ir21, st21, Δr12, planfft, tmp, fieldl, fieldr)
+	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, ir21, st21, Δ, fieldl, fieldr, planfft, tmp)
 end
 
 function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T
@@ -157,5 +160,5 @@ function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectr
 		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, rmls.ref)
 		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), 1, fieldi.ref)
 	end
-	return ScatteringMatrix{T, typeof(r12), typeof(fieldl), typeof(fieldr)}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
