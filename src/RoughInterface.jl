@@ -8,7 +8,7 @@ end
 RoughInterface(n1, n2, Δz, ref) = RoughInterface{Float64}(n1, n2, Δz, ref)
 
 function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, A, X<:AbstractRange}
-	rmls.ref == fieldi.ref || tobedone()
+	checkorientation(rmls.ref, fieldi.ref) || tobedone()
 	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Refractive index missmatch")
 
 	k = 2π / fieldi.λ
@@ -57,6 +57,28 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 
 			it21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 - r12[iX,iY])
 			st21[iX,iY] = t12[iX,iY] / n1 / sz1
+		end
+	end
+
+	if !checkposition(fieldi.ref, rmls.ref)
+		propM = propagationmatrix(fieldi, rmls.ref)
+		if fieldi.dir > 0
+			vec(r12) .*= propM.diag .* propM.diag
+			vec(ir12) .*= propM.diag
+			vec(sr12) .*= propM.diag
+			vec(t12) .*= propM.diag
+			vec(it12) .*= propM.diag
+			vec(t21) .*= propM.diag
+			vec(st21) .*= propM.diag
+		else
+			conj!(propM.diag)
+			vec(r21) .*= propM.diag .* propM.diag
+			vec(ir21) .*= propM.diag
+			vec(sr21) .*= propM.diag
+			vec(t12) .*= propM.diag
+			vec(st12) .*= propM.diag
+			vec(t21) .*= propM.diag
+			vec(it21) .*= propM.diag
 		end
 	end
 	if fieldi.dir > 0

@@ -53,7 +53,7 @@ function lightinteraction!(fieldl::L, fieldr::R, coef::RoughInterfaceConvolution
 			coef.tmp[i] *= coef.Δ[i]
 		end
 		ldiv!(fieldle_SXY, coef.planfft, coef.tmp)
-		mul!(coef.tmp, coef.planfft, fieldr.e_SXY)
+		mul!(coef.tmp, coef.planfft, fieldre_SXY)
 		@inbounds @simd for i in eachindex(fieldi.e_SXY)
 			coef.tmp[i] *= coef.Δ[i]
 		end

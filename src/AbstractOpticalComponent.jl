@@ -23,9 +23,27 @@ function coefficient_general(comps::AbstractVector{<:AbstractOpticalComponent{T}
     coef = coefficient_general(coef)
 end
 
+function coefficient_specific(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic) where T
+    coefs = Vector{AbstractCoefficient{T}}(undef, length(comps))
+    fieldaux = fieldi
+    if fieldi.dir > 0
+        for i in eachindex(comps)
+            coefs[i] = coefficient_specific(comps[i], fieldaux)
+            (tmp, fieldaux) = getfields_lr(coefs[i])
+        end
+    else
+        sizeA = length(comps)
+        for i in eachindex(comps)
+            coefs[sizeA - i + 1] = coefficient_specific(comps[sizeA-i + 1], fieldaux)
+            (fieldaux, tmp) = getfields_lr(coefs[sizeA-i+1])
+        end
+    end
+	return coefs
+end
+
 function lightinteraction(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic) where T
-    coef = coefficient_general(comps, fieldi)
-    return lightinteraction(coef, fieldi)
+    coefs = coefficient_general(comps, fieldi)
+    return lightinteraction(coefs, fieldi)
 end
 
 rotatestructure!(comp::AbstractOpticalComponent, ref_ref::ReferenceFrame, θ::Real, ϕ::Real) = rotatereferenceframe!(ref_ref, comp.ref, θ, ϕ)

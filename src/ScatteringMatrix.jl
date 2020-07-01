@@ -50,7 +50,7 @@ function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where
 		t13 = t12 * aux * coefs[i].t₁₂
 		(r12, t12, r21, t21) = (r13, t13, r31, t31)
 	end
-	return ScatteringMatrix{T, typeof(r12),typeof(coefs[1].fieldl), typeof(coefs[end].fieldr)}(r12, t12, r21, t21, coefs[1].fieldl, coefs[end].fieldr)
+	return ScatteringMatrix{T, typeof(coefs[1].fieldl), typeof(coefs[end].fieldr), typeof(r12)}(r12, t12, r21, t21, coefs[1].fieldl, coefs[end].fieldr)
 end
 
 function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{L,R}) where {T,X,L,R}
