@@ -266,3 +266,11 @@ end
 	rm(fname * ".bin")
 	return mls
 end
+
+function lightinteraction_recursive(components::AbstractVector{T}, angspe::AbstractFieldAngularSpectrum; nsxOut = angspe.nsx_X::AbstractVector{<:Real}, nsyOut = angspe.nsy_Y::AbstractVector{<:Real}, thresold = 1E-4, sizeM=100::Integer) where T
+	vectorial = (size(angspe.e_SXY, 1) == 3)
+	vectorial && tobedone()
+
+	coefs = [coefficientscallar(compi, angspe.λ) for compi in components]
+	return lightinteraction_recursive(coefs, angspe, nsxOut, nsyOut, thresold = thresold, sizeM = sizeM);
+end

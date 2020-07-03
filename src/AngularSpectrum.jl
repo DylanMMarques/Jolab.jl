@@ -18,6 +18,15 @@ mutable struct FieldAngularSpectrum{T,X<:AbstractVector{T}} <: AbstractFieldAngu
 	end
 end
 
+function FieldAngularSpectrum_uniform(nsx_X, nsy_Y, λ, n, dir, ref)
+	T = Float64
+	e_SXY = ones(Complex{T}, 1, length(nsx_X), length(nsy_Y))
+	angspe = FieldAngularSpectrum{T}(nsx_X, nsy_Y, e_SXY, λ, n, dir, ref);
+	int = √(intensity(angspe))
+	vec(angspe.e_SXY) ./= int
+	return angspe
+end
+
 # FieldAngularSpectrum(nsx_X, nsy_Y, e_SXY, λ, n, dir, ref) = FieldAngularSpectrum{Float64}(nsx_X, nsy_Y, e_SXY, λ, n, dir, ref)
 function FieldAngularSpectrum_gaussian(nsx_X, nsy_Y, ω, λ, n, dir, ref)
 	T = Float64
@@ -89,8 +98,7 @@ function propagationmatrix(fieldl::AbstractFieldAngularSpectrum{T}, ref::Referen
 	@inbounds for iY in eachindex(fieldl.nsy_Y)
 		for iX in eachindex(fieldl.nsx_X)
 			nsz = √(complex(fieldl.n^2 - fieldl.nsx_X[iX]^2 - fieldl.nsy_Y[iY]^2))
-			tmpphase = exp(imk * (fieldl.nsx_X[iX] * refΔx + fieldl.nsy_Y[iY] * refΔy + nsz * refΔz))
-			propMatrix.diag[i] = tmpphase;
+			propMatrix.diag[i] = exp(imk * (fieldl.nsx_X[iX] * refΔx + fieldl.nsy_Y[iY] * refΔy + nsz * refΔz))
 			i += 1
 		end
 	end
@@ -110,10 +118,9 @@ function propagationmatrix!(propMatrix::AbstractArray{<:Number, 2}, nsx_X::Abstr
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, refold.θ, refold.ϕ);
 	k = im * 2π / λ;
 	i = 1
-	@inbounds @simd for iY in eachindex(nsy_Y)
-		@simd for iX in eachindex(nsx_X)
-			tmpphase = exp(k * (nsx_X[iX] * refΔx + nsy_Y[iY] * refΔy + nsz_XY[iX,iY] * refΔz))
-			propMatrix.diag[i] = tmpphase;
+	@inbounds for iY in eachindex(nsy_Y)
+		for iX in eachindex(nsx_X)
+			propMatrix.diag[i] = exp(k * (nsx_X[iX] * refΔx + nsy_Y[iY] * refΔy + nsz_XY[iX,iY] * refΔz))
 			i += 1
 		end
 	end

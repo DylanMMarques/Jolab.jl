@@ -19,6 +19,7 @@ struct RoughInterfaceConvolutionCoefficient{T,L,R,X<:AbstractArray{Complex{T}},F
 end
 
 function lightinteraction!(fieldl::L, fieldr::R, coef::RoughInterfaceConvolutionCoefficient{T,L,R}, fieldi::Union{L,R}) where {T,L,R}
+	samedefinitions(fieldi, fieldi.dir > 0 ? fieldl : fieldr) || tobedone()
 	fieldle_SXY = reshape(fieldl.e_SXY, size(fieldl.e_SXY)[2:3]) # to apply 2D FFT
 	fieldre_SXY = reshape(fieldr.e_SXY, size(fieldr.e_SXY)[2:3]) # to apply 2D FFT
 	if fieldi.dir > 0

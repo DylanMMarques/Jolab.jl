@@ -62,9 +62,6 @@ function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSp
 	isapprox(fieldi.n, fieldi.dir > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and mirror are different")
 	checkorientation(fieldi.ref, mls.ref) || errorToDo()
 
-	ref = (fieldi.dir > 0 ? ref1(mls) : ref2(mls))
-	needProp = checkposition(fieldi.ref, ref)
-	needProp && (propM = propagationmatrix(fieldi, ref))
 
 	n_A = [mls.n_A[i](fieldi.λ) for i in eachindex(mls.n_A)]
 	inv_n_A = n_A[end:-1:1]
@@ -76,15 +73,18 @@ function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSp
 	r21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	sizeX = length(fieldi.nsx_X)
+	sizeY = length(fieldi.nsy_Y)
+	cart = LinearIndices((sizeX, sizeY))
 	Threads.@threads for iY in eachindex(fieldi.nsy_Y)
 		for iX in eachindex(fieldi.nsx_X)
 			nsr = √(fieldi.nsx_X[iX]^2 + fieldi.nsy_Y[iY]^2)
-			i = iX + sizeX * (iY-1)
+			i = cart[iX, iY]
 			(r12.diag[i], t12.diag[i]) = rtss₁₂(nsr, n_A, mls.h_A, fieldi.λ)
 			(r21.diag[i], t21.diag[i]) = rtss₁₂(nsr, inv_n_A, inv_h_A, fieldi.λ)
 		end
 	end
 
+	ref = (fieldi.dir > 0 ? ref1(mls) : ref2(mls))
 	if !checkposition(fieldi.ref, ref)
 		propM = propagationmatrix(fieldi, ref)
 		if fieldi.dir > 0
@@ -113,12 +113,4 @@ end
 @inline function ref2(mls::MultilayerStructure)
 	totalh = sum(mls.h_A);
 	return mls.ref + ReferenceFrame(sin(mls.ref.θ) * cos(mls.ref.ϕ) * totalh, sin(mls.ref.θ) * sin(mls.ref.ϕ) * totalh, cos(mls.ref.θ) * totalh, mls.ref.θ, mls.ref.ϕ);
-end
-
-function lightinteraction_recursive(components::AbstractVector{T}, angspe::AbstractFieldAngularSpectrum; nsxOut = angspe.nsx_X::AbstractVector{<:Real}, nsyOut = angspe.nsy_Y::AbstractVector{<:Real}, thresold = 1E-4, sizeM=100::Integer) where T
-	vectorial = (size(angspe.e_SXY, 1) == 3)
-	vectorial && tobedone()
-
-	coefs = [coefficientscallar(compi, angspe.λ) for compi in components]
-	return lightinteraction_recursive(coefs, angspe, nsxOut, nsyOut, thresold = thresold, sizeM = sizeM);
 end

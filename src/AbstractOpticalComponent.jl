@@ -20,7 +20,7 @@ function coefficient_general(comps::AbstractVector{<:AbstractOpticalComponent{T}
             fieldaux = coef[sizeA-i+1].fieldl
         end
     end
-    coef = coefficient_general(coef)
+    return coefficient_general(coef)
 end
 
 function coefficient_specific(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic) where T

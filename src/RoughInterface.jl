@@ -52,10 +52,10 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 			it12[iX,iY] = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12[iX,iY])
 			st12[iX,iY] = t21[iX,iY] / n2 / sz2
 
-			ir21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 - r12[iX,iY])
-			sr21[iX,iY] = (1 - r12[iX,iY]) / n2 / sz2
+			ir21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 + r21[iX,iY])
+			sr21[iX,iY] = (1 + r21[iX,iY]) / n2 / sz2
 
-			it21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 - r12[iX,iY])
+			it21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 + r21[iX,iY])
 			st21[iX,iY] = t12[iX,iY] / n1 / sz1
 		end
 	end
@@ -92,7 +92,7 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 	planfft = plan_fft(tmp)  # precalculates the fft plan
 	inv(planfft) # precalculates the inverse fft plan
 
-	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, ir21, st21, Δ, fieldl, fieldr, planfft, tmp)
+	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp)
 end
 
 function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T
