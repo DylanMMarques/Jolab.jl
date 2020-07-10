@@ -41,10 +41,11 @@ function coefficient_general(mirror::Mirror{T}, field::AbstractFieldAngularSpect
 	t12 = Diagonal(ones(Complex{T}, sizeXY))
 	r21 = Diagonal(ones(Complex{T}, sizeXY))
 	t21 = Diagonal(ones(Complex{T}, sizeXY))
-	rmul!(r12.diag, -rλ)
+	rmul!(r12.diag, rλ)
 	rmul!(t12.diag, tλ)
-	rmul!(r21.diag, rλ)
+	rmul!(r21.diag, -rλ)
 	rmul!(t21.diag, tλ)
+	@show r12[1]
 
 	if !checkposition(field.ref, mirror.ref)
 		propM = propagationmatrix(field, mirror.ref)

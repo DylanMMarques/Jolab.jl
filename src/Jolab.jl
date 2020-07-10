@@ -40,7 +40,7 @@ module Jolab
 	abstract type AbstractFieldAngularSpectrum{T} <: AbstractFieldMonochromatic{T} end
 	abstract type AbstractFieldSpace{T} <: AbstractFieldMonochromatic{T} end
 
-	abstract type AbstractCoefficient{T<:Real, L<:AbstractFieldMonochromatic{T}, R<:AbstractFieldMonochromatic{T}} end
+	abstract type AbstractCoefficient{T<:Real, L<:Union{AbstractFieldMonochromatic{T}, Number}, R<:Union{AbstractFieldMonochromatic{T}, Number}} end
 	abstract type AbstractCoefficientCache{T<:Real} end
 	abstract type AbstractOpticalComponent{T<:Real} end
 	abstract type AbstractDetector{T<:Real} <: AbstractOpticalComponent{T} end

@@ -52,9 +52,10 @@ function FieldSpace_fromangspefft(angspe::FieldAngularSpectrum{T,X}; padding=0::
 end
 
 function angspeto3Dspace(angspe::FieldAngularSpectrum, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, z_Z::AbstractVector{<:Real})
+	@show "This is wrong, I think"
 	e_SXYZ = zeros(eltype(angspe.e_SXY), size(angspe.e_SXY, 1), length(x_X), length(y_Y), length(z_Z));
  	angspeWithZ = Array{eltype(angspe.e_SXY), 3}(undef, size(angspe.e_SXY));
-	kz_XY = (2π / angspe.λ) .* .√(angspe.n^2 .- reshape(angspe.nsx_X.^2, 1,:,1) .- reshape(angspe.nsy_Y.^2, 1, 1, :))
+	kz_XY = (2π / angspe.λ) .* angspe.dir .* .√(angspe.n^2 .- reshape(angspe.nsx_X.^2, 1,:,1) .- reshape(angspe.nsy_Y.^2, 1, 1, :))
 	@inbounds @simd for iZ in 1:length(z_Z)
 		angspeWithZ .= angspe.e_SXY .* exp.(im .* kz_XY .* z_Z[iZ]);
 		auxE = @view e_SXYZ[:,:,:,iZ];
@@ -314,7 +315,7 @@ function intensity(angspe::FieldAngularSpectrum)::Float64
 	ky_Y = k .* angspe.nsy_Y;
 
 	size(angspe.e_SXY, 1) == 3 ? e_SXY = dotdim(angspe.e_SXY, angspe.e_SXY, 1) : e_SXY = abs2.(angspe.e_SXY[1,:,:]);
-	return 4 * π^2 * angspe.n * ∫∫(e_SXY, kx_X, ky_Y);
+	return 4 * π^2 * real(angspe.n) * ∫∫(e_SXY, kx_X, ky_Y);
 end
 
 function centerangspereferenceframe!(angspe::FieldAngularSpectrum)

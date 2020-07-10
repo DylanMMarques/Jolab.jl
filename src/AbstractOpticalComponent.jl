@@ -3,29 +3,10 @@ function lightinteraction(comp::AbstractOpticalComponent{T}, fieldi::AbstractFie
     return lightinteraction(coef, fieldi)
 end
 
-coefficient_specific(comp::AbstractOpticalComponent, field::AbstractFieldMonochromatic) = coefficient_general(comp, field)
-
-function coefficient_general(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic) where T
-    coef = Vector{ScatteringMatrix{T}}(undef, length(comps))
-    fieldaux = fieldi
-    if fieldi.dir > 0
-        for i in eachindex(comps)
-            coef[i] = coefficient_general(comps[i], fieldaux)
-            fieldaux = coef[i].fieldr
-        end
-    else
-        sizeA = length(comps)
-        for i in eachindex(comps)
-            coef[sizeA - i + 1] = coefficient_general(comps[sizeA-i + 1], fieldaux)
-            fieldaux = coef[sizeA-i+1].fieldl
-        end
-    end
-    return coefficient_general(coef)
-end
-
 function coefficient_specific(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic) where T
     coefs = Vector{AbstractCoefficient{T}}(undef, length(comps))
     fieldaux = fieldi
+
     if fieldi.dir > 0
         for i in eachindex(comps)
             coefs[i] = coefficient_specific(comps[i], fieldaux)

@@ -59,9 +59,8 @@ function rtpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVecto
 end
 
 function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum) where {T<:Real}
-	isapprox(fieldi.n, fieldi.dir > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and mirror are different")
+	isapprox(fieldi.n, fieldi.dir > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and multilayer structure medium are different")
 	checkorientation(fieldi.ref, mls.ref) || errorToDo()
-
 
 	n_A = [mls.n_A[i](fieldi.λ) for i in eachindex(mls.n_A)]
 	inv_n_A = n_A[end:-1:1]
