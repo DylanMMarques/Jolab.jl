@@ -182,5 +182,5 @@ function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectr
 		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, rmls.ref)
 		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), 1, fieldi.ref)
 	end
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Matrix{Complex{T}}, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 end

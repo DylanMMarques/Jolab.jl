@@ -25,7 +25,7 @@ function coefficient_general(mirror::Mirror{T}, field::AbstractFieldSpace) where
 
 	fieldl = FieldSpace{T}(field.x_X, field.y_Y, field.e_SXY, field.λ, mirror.n₁(field.λ), -1, mirror.ref)
 	fieldr = FieldSpace{T}(field.x_X, field.y_Y, field.e_SXY, field.λ, mirror.n₂(field.λ), 1, mirror.ref)
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
 errorToDo() = error("Update in next versions")
@@ -69,5 +69,5 @@ function coefficient_general(mirror::Mirror{T}, field::AbstractFieldAngularSpect
 		fieldl = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, mirror.n₁(field.λ), -1, mirror.ref)
 		fieldr = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, mirror.n₂(field.λ), 1, field.ref)
 	end
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), typeof(r12)}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end

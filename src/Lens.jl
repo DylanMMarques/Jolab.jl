@@ -40,7 +40,6 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where 
 	y_Y = sy_Y * f
 
 	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
-	r12 = Diagonal(zeros(Complex{T}, sizeXY))
 	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	k = 2 * π * fieldi.n / fieldi.λ
 	i = 1
@@ -80,7 +79,8 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where 
 		fieldl = FieldSpace{T}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
 		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	return ScatteringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
+	r = Diagonal(zeros(Complex{T}, sizeXY))
+	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r, t12, r, t21, fieldl, fieldr)
 end
 
 function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}
@@ -96,7 +96,6 @@ function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X
 	sy_Y = -fieldi.y_Y / f
 
 	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
-	r12 = Diagonal(zeros(Complex{T}, sizeXY))
 	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	k = 2 * π * fieldi.n / fieldi.λ
 	i = 1
@@ -128,7 +127,8 @@ function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X
 		fieldl = FieldAngularSpectrum{T}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
 		fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	return ScatteringMatrix{T, Diagonal{Complex{T},Vector{Complex{T}}}, typeof(fieldl), typeof(fieldr)}(r12, t12, r12, t21, fieldl, fieldr)
+	r = Diagonal(zeros(Complex{T}, sizeXY))
+	return ScatteringMatrix{T,typeof(fieldl), typeof(fieldr), Diagonal{Complex{T}, Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r, t12, r, t21, fieldl, fieldr)
 end
 
 # function lightinteractionvectorial(lens::Lens, angspe::FieldAngularSpectrum)

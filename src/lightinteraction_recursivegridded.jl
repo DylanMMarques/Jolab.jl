@@ -38,7 +38,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	fieldi.dir > 0 ? int_r[1] = initial_int : int_l[sizeL] = initial_int
 
 	i = 1
-	while true
+	@inbounds while true
 		# Select the next field to consider
 		(max_l, arg_l) = findmax(view(int_l,2:sizeL)) # Removes the first as it is the field going out
 		(max_r, arg_r) = findmax(view(int_r,1:sizeL-1)) # Removes the last as it is the field going out
@@ -54,8 +54,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			vec(fields_r[mls+1].e_SXY) .+= vec(fields_aux_r[mls+1].e_SXY)
 			int_l[mls] = intensity_p(fields_l[mls])
 			int_r[mls+1] = intensity_p(fields_r[mls+1])
-			int_r[mls] = zero(T)
 			vec(fields_r[mls].e_SXY) .= zero(Complex{T})
+			int_r[mls] = zero(T)
 		else # field is going backward
 			max_l < rtol && break
 			mls = arg_l + 1 # need to add +1 because length start from 2
@@ -65,8 +65,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			vec(fields_r[mls].e_SXY) .+= vec(fields_aux_r[mls].e_SXY)
 			int_l[mls-1] = intensity_p(fields_l[mls-1])
 			int_r[mls] = intensity_p(fields_r[mls])
-			int_l[mls] = zero(T)
 			vec(fields_l[mls].e_SXY) .= zero(Complex{T})
+			int_l[mls] = zero(T)
 		end
 		sum(int_l) + sum(int_r) > 10initial_int && error("lightinteraction_recursivegridded is not converging. Change cval (increase is recommended).")
 		i += 1
