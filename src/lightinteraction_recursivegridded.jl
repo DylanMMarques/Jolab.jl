@@ -50,8 +50,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			mls = arg_r
 			fields_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
 			lightinteraction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], fields_r[mls])
-			fields_l[mls].e_SXY .+= fields_aux_l[mls].e_SXY
-			fields_r[mls+1].e_SXY .+= fields_aux_r[mls+1].e_SXY
+			vec(fields_l[mls].e_SXY) .+= vec(fields_aux_l[mls].e_SXY)
+			vec(fields_r[mls+1].e_SXY) .+= vec(fields_aux_r[mls+1].e_SXY)
 			int_l[mls] = intensity_p(fields_l[mls])
 			int_r[mls+1] = intensity_p(fields_r[mls+1])
 			int_r[mls] = zero(T)

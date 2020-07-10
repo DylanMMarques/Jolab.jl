@@ -45,7 +45,6 @@ function coefficient_general(mirror::Mirror{T}, field::AbstractFieldAngularSpect
 	rmul!(t12.diag, tλ)
 	rmul!(r21.diag, -rλ)
 	rmul!(t21.diag, tλ)
-	@show r12[1]
 
 	if !checkposition(field.ref, mirror.ref)
 		propM = propagationmatrix(field, mirror.ref)

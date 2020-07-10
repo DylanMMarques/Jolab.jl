@@ -32,7 +32,6 @@ function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where
 
 	for i in length(coefs)-1:-1:1
 		if coefs[i].fieldr.ref != coefs[i+1].fieldl.ref
-			@show "hello"
 			propMatrix = propagationmatrix(coefs[i].fieldr, coefs[i+1].fieldl)
 			# (r12, t12, r21, t21) are now (r23, t23, r23, t23) inside the equation
 			rmul!(r12, propMatrix)
