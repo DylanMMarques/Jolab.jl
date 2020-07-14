@@ -6,7 +6,7 @@ function intensity_p(field::Union{FieldAngularSpectrum{T}, FieldSpace{T}}) where
 	return int * real(field.n)
 end
 
-function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T}, fieldr::AbstractFieldMonochromatic{T}, coefs::AbstractVector{<:AbstractCoefficient{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = convert(T,1E-4)::Real, cval = convert(T,2)::Real) where {T<:Real}
+function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T}, fieldr::AbstractFieldMonochromatic{T}, coefs::AbstractVector{<:AbstractCoefficient{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = 1E-3one(T)::Real, cval = one(T)::Real) where {T<:Real}
 	# miss check if this can be done
 	sizeL = length(coefs) + 1;
 
@@ -14,6 +14,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	fields_l = Vector{AbstractFieldMonochromatic{T}}(undef, sizeL)
 	int_l = zeros(T, sizeL)
 	int_r = zeros(T, sizeL)
+	cval_l = ones(T, sizeL)
+	cval_r = ones(T, sizeL)
 
 	for i in 1:sizeL-1
 		(fields_l[i], tmp) = getfields_lr(coefs[i])
@@ -38,13 +40,23 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	fieldi.dir > 0 ? int_r[1] = initial_int : int_l[sizeL] = initial_int
 
 	i = 1
+	arg_l = 1
+	arg_r = 1
 	@inbounds while true
 		# Select the next field to consider
-		(max_l, arg_l) = findmax(view(int_l,2:sizeL)) # Removes the first as it is the field going out
-		(max_r, arg_r) = findmax(view(int_r,1:sizeL-1)) # Removes the last as it is the field going out
+		max_r = zero(T)
+		max_l = zero(T)
+		@simd for a in 1:sizeL-1
+			if max_r < cval_r[a] * int_r[a]
+				max_r = cval_r[a] * int_r[a]
+				arg_r = a
+			end
+			if max_l < cval_l[a+1] * int_l[a+1]
+				max_l = cval_l[a+1] * int_l[a+1]
+				arg_l = a
+			end
+		end
 
-		view(int_l, 2:sizeL) .*= cval
-		view(int_r, 1:sizeL-1) .*= cval
 		if max_r > max_l # Field is propagating forward
 			max_r < rtol && break
 			mls = arg_r
@@ -56,6 +68,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			int_r[mls+1] = intensity_p(fields_r[mls+1])
 			vec(fields_r[mls].e_SXY) .= zero(Complex{T})
 			int_r[mls] = zero(T)
+			cval_r[mls] = one(T)
 		else # field is going backward
 			max_l < rtol && break
 			mls = arg_l + 1 # need to add +1 because length start from 2
@@ -67,15 +80,23 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			int_r[mls] = intensity_p(fields_r[mls])
 			vec(fields_l[mls].e_SXY) .= zero(Complex{T})
 			int_l[mls] = zero(T)
+			cval_l[mls] = one(T)
 		end
 		sum(int_l) + sum(int_r) > 10initial_int && error("lightinteraction_recursivegridded is not converging. Change cval (increase is recommended).")
+		i > 50000 && error("Max number of iterations achieved")
 		i += 1
+
+		# @show cval_l
+		# @show cval_r
+		cval_l .*= cval
+		cval_r .*= cval
 	end
+	@show i
 	vec(fieldl.e_SXY) .= vec(fields_l[1].e_SXY)
 	vec(fieldr.e_SXY) .= vec(fields_r[sizeL].e_SXY)
 end
 
-function lightinteraction_recursivegridded(coefs::AbstractVector{<:AbstractCoefficient{T}}, field_inc::AbstractFieldMonochromatic{T}; rtol = 1E-4, cval = 2one(T)) where T
+function lightinteraction_recursivegridded(coefs::AbstractVector{<:AbstractCoefficient{T}}, field_inc::AbstractFieldMonochromatic{T}; rtol = 1E-3, cval = one(T)) where T
 	(fieldl, tmp) = getfields_lr(coefs[1])
 	(tmp, fieldr) = getfields_lr(coefs[end])
 
@@ -84,7 +105,7 @@ function lightinteraction_recursivegridded(coefs::AbstractVector{<:AbstractCoeff
 	return (fieldl, fieldr)
 end
 
-function lightinteraction_recursivegridded(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = 1E-4, cval = 2one(T)) where T
+function lightinteraction_recursivegridded(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = 1E-3, cval = one(T)) where T
 	coefs = coefficient_specific(comps, fieldi)
 	return lightinteraction_recursivegridded(coefs, fieldi, rtol = rtol, cval = cval)
 end

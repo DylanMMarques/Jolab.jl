@@ -1,6 +1,6 @@
-using Jolab
-using Test
+using Jolab, Test
 
 @testset "Jolab.jl" begin
-    include("multilayerstructure.jl")
+    @test include("multilayerstructure.jl")
+    @test include("roughinterface.jl")
 end
