@@ -9,6 +9,8 @@ end
 ReferenceFrame(x, y, z, θ = 0, ϕ = 0) = ReferenceFrame{Float64}(x, y, z, θ, ϕ)
 Base.eltype(ref::ReferenceFrame{T}) where T = T
 
+Base.copy(ref::ReferenceFrame{T}) where T = ReferenceFrame{T}(copy(ref.x), copy(ref.y), copy(ref.z), copy(ref.θ), copy(ref.ϕ))
+
 function Base.:(==)(ref1::ReferenceFrame, ref2::ReferenceFrame)::Bool
 	return (abs(ref1.x - ref2.x) < @tol) && (abs(ref1.y - ref2.y) < @tol) && (abs(ref1.z - ref2.z) < @tol) && (abs(ref1.θ - ref2.θ) < @tol) && (abs(ref1.ϕ - ref2.ϕ) < @tol);
 end

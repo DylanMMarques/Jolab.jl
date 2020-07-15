@@ -62,8 +62,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			mls = arg_r
 			fields_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
 			lightinteraction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], fields_r[mls])
-			vec(fields_l[mls].e_SXY) .+= vec(fields_aux_l[mls].e_SXY)
-			vec(fields_r[mls+1].e_SXY) .+= vec(fields_aux_r[mls+1].e_SXY)
+			add_inplace!(fields_l[mls], fields_aux_l[mls])
+			add_inplace!(fields_r[mls+1], fields_aux_r[mls+1])
 			int_l[mls] = intensity_p(fields_l[mls])
 			int_r[mls+1] = intensity_p(fields_r[mls+1])
 			vec(fields_r[mls].e_SXY) .= zero(Complex{T})
@@ -74,8 +74,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			mls = arg_l + 1 # need to add +1 because length start from 2
 			fields_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()
 			lightinteraction!(fields_aux_l[mls-1], fields_aux_r[mls], coefs[mls-1], fields_l[mls])
-			vec(fields_l[mls-1].e_SXY) .+= vec(fields_aux_l[mls-1].e_SXY)
-			vec(fields_r[mls].e_SXY) .+= vec(fields_aux_r[mls].e_SXY)
+			add_inplace!(fields_l[mls-1], fields_aux_l[mls-1])
+			add_inplace!(fields_r[mls], fields_aux_r[mls])
 			int_l[mls-1] = intensity_p(fields_l[mls-1])
 			int_r[mls] = intensity_p(fields_r[mls])
 			vec(fields_l[mls].e_SXY) .= zero(Complex{T})

@@ -318,7 +318,7 @@ function intensity(angspe::FieldAngularSpectrum)::Float64
 	return 4 * π^2 * real(angspe.n) * ∫∫(e_SXY, kx_X, ky_Y);
 end
 
-function centerangspereferenceframe!(angspe::FieldAngularSpectrum)
+function centerangspereferenceframe!(angspe::FieldAngularSpectrum{T}) where T
 	(tmp, arg) = findmax(abs.(vec(angspe.e_SXY)))
 	arg = CartesianIndices(angspe.e_SXY)[arg]
 	nsx = angspe.nsx_X[arg[2]];
@@ -330,7 +330,7 @@ function centerangspereferenceframe!(angspe::FieldAngularSpectrum)
 	θ = acos(real(Δz))
 	ϕ = atan(real(Δy), real(Δx))
 	# θ > π/2 && 	(θ = π - θ; ϕ = ϕ + π)
-	ref = ReferenceFrame(angspe.ref.x, angspe.ref.y, angspe.ref.z, θ, ϕ)
+	ref = ReferenceFrame{T}(angspe.ref.x, angspe.ref.y, angspe.ref.z, θ, ϕ)
 	changereferenceframe!(angspe, ref)
 end
 
@@ -339,6 +339,15 @@ function samedefinitions(fieldl::L, fieldr::L) where L <: FieldAngularSpectrum
 	isapprox(fieldl.nsy_Y, fieldr.nsx_X, atol = @tol) || return false
 	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
 	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
-	checkorientation(fieldl.ref, fieldr.ref) || return false
+	fieldl.ref == fieldr.ref || return false
 	return true
+end
+
+function add_inplace!(fielda::FieldAngularSpectrum{T}, fieldb::FieldAngularSpectrum{T}) where T
+	samedefinitions(fielda, fieldb) || error("Cannot sum the fields. Different definitions")
+	vec(fielda.e_SXY) .+= vec(fieldb.e_SXY)
+end
+
+function Base.:copy(field::FieldAngularSpectrum{T}) where T
+	return FieldAngularSpectrum{T}(copy(field.nsx_X), copy(field.nsy_Y), copy(field.e_SXY), copy(field.λ), copy(field.n), copy(field.dir), copy(field.ref))
 end

@@ -93,6 +93,15 @@ function samedefinitions(fieldl::L, fieldr::L) where L <: FieldSpace
 	isapprox(fieldl.y_Y, fieldr.x_X, atol = @tol) || return false
 	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
 	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
-	checkorientation(fieldl.ref, fieldr.ref) || return false
+	fieldl.ref == fieldr.ref || return false
 	return true
+end
+
+function add_inplace!(fielda::FieldSpace{T}, fieldb::FieldSpace{T}) where T
+	samedefinitions(fielda, fieldb) || error("Cannot sum the fields. Different definitions")
+	vec(fielda.e_SXY) .+= vec(fieldb.e_SXY)
+end
+
+function Base.:copy(field::FieldSpace{T}) where T
+	return FieldSpace{T}(copy(field.x_X), copy(field.y_Y), copy(field.e_SXY), copy(field.λ), copy(field.n), copy(field.dir), copy(field.ref))
 end

@@ -7,7 +7,7 @@ struct RoughInterface{T<:Real} <: AbstractOpticalComponent{T}
 end
 RoughInterface(n1, n2, Δz, ref) = RoughInterface{Float64}(n1, n2, Δz, ref)
 
-function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, A, X<:AbstractRange}
+function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
 	checkorientation(rmls.ref, fieldi.ref) || tobedone()
 	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Refractive index missmatch")
 
@@ -88,7 +88,7 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 		fieldl = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, rmls.ref)
 		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	tmp = Matrix{Complex{T}}(undef, sizeX, sizeY) # allocate matrix to avoid preallocation after
+	tmp = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
 	planfft = plan_fft(tmp)  # precalculates the fft plan
 	inv(planfft) # precalculates the inverse fft plan
 
@@ -103,13 +103,13 @@ function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRang
 	return fftz
 end
 
-function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{A,X}) where {T, A, X<:AbstractRange}
-	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Field medium and mirror are different")
+function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
+	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Field medium and rmls incident medium are different")
 	checkorientation(fieldi.ref, rmls.ref) || errorToDo()
 
 	sizeX = length(fieldi.nsx_X)
 	sizeY = length(fieldi.nsy_Y)
-	k = convert(T, 2π / fieldi.λ)
+	k = 2π / fieldi.λ
 	n1 = rmls.n1(fieldi.λ)
 	n2 = rmls.n2(fieldi.λ)
 	x = fftshift(FFTW.fftfreq(sizeX, 1 / (fieldi.nsx_X[2] - fieldi.nsx_X[1]))) * fieldi.λ

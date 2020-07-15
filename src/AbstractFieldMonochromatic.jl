@@ -7,3 +7,10 @@ function changereferenceframe(field::AbstractFieldMonochromatic, refnew::Referen
 	changereferenceframe!(tmp_field, refnew)
 	return tmp_field
 end
+
+function Base.:(+)(fielda::A, fieldb::A) where {A <: AbstractFieldMonochromatic}
+	fieldc = copy(fielda)
+	return add_inplace(fieldc, fieldb)
+end
+
+Base.:copy(field::FieldAngularSpectrum{T}) where T = deepcopy(field)
