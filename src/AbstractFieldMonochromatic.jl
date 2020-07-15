@@ -13,4 +13,4 @@ function Base.:(+)(fielda::A, fieldb::A) where {A <: AbstractFieldMonochromatic}
 	return add_inplace(fieldc, fieldb)
 end
 
-Base.:copy(field::FieldAngularSpectrum{T}) where T = deepcopy(field)
+Base.:copy(field::AbstractFieldMonochromatic) = deepcopy(field)
