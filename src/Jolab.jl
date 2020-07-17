@@ -21,7 +21,7 @@ module Jolab
 	export numberofmodes
 	export adddims
 	export Lens
-	export RoughInterface, lightinteraction_recursive
+	export RoughInterface, lightinteraction_recursive, lightinteraction_recursivegridded
 	export PropagationCoefficientScalar
 	export Mirror, rotatestructure, translatestructure
 	export SpatialLightModulator
