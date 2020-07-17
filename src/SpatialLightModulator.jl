@@ -11,21 +11,23 @@ mutable struct SpatialLightModulator{T} <: AbstractOpticalComponent{T}
     end
 end
 
-function lightinteraction(slm::SpatialLightModulator{T}, fieldspace::FieldSpace) where T
-    tmp_fieldspace = changereferenceframe(fieldspace, slm.ref)
-    slm_itp = extrapolate(interpolate((slm.x_X, slm.y_Y), slm.t_XY, Gridded(Constant())), one(T))
+function coefficient_general(slm::SpatialLightModulator{T}, field::FieldSpace{T}) where {T<:Real}
+	checkorientation(field.ref, slm.ref) || errorToDo()
+    fieldi = changereferenceframe(field, slm.ref)
 
-    sizeS = size(tmp_fieldspace.e_SXY,1)
-    tmp_e_SXY = reshape(tmp_fieldspace.e_SXY, sizeS, :)
-    iXY = 1
-    @inbounds for yi in tmp_fieldspace.y_Y
-        for xi in tmp_fieldspace.x_X
-            t = slm_itp(xi,yi)
-            for iS in 1:sizeS
-                tmp_e_SXY[iS,iXY] *= t
-            end
-            iXY +=1
-        end
-    end
-    return tmp_fieldspace
+    slm_itp = extrapolate(interpolate((slm.x_X, slm.y_Y), slm.t_XY, Gridded(Constant())), one(Complex{T}))
+
+	(sizeX, sizeY) = (length(fieldi.x_X), length(fieldi.y_Y))
+	r = Diagonal(zeros(Complex{T}, sizeX * sizeY))
+	t = Diagonal(Vector{Complex{T}}(undef, sizeX * sizeY))
+	i = 1
+	@inbounds for iY in eachindex(fieldi.y_Y)
+		for iX in eachindex(fieldi.x_X)
+			t.diag[i] = slm_itp(fieldi.x_X[iX], fieldi.y_Y[iY])
+			i += 1
+		end
+	end
+	fieldl = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, fieldi.ref)
+	fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
+	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r, t, r, t, fieldl, fieldr)
 end

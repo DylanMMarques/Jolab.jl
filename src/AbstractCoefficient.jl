@@ -5,14 +5,14 @@ getfields_lr(coef::AbstractCoefficient) = return (deepcopy(coef.fieldl), deepcop
 function lightinteraction(coef::AbstractCoefficient, fieldi::AbstractFieldMonochromatic)
 	(fieldl, fieldr) = getfields_lr(coef)
 
-	samedefinitions(fieldi, fieldi.dir > 0 ? fieldl : fieldr)
 	changereferenceframe!(fieldi, fieldi.dir > 0 ? fieldl.ref : fieldr.ref)
+	samedefinitions(fieldi, fieldi.dir > 0 ? fieldl : fieldr)
 	lightinteraction!(fieldl, fieldr, coef, fieldi)
 	return (fieldl, fieldr)
 end
 
-function lightinteraction(coef::Vector{<:AbstractCoefficient}, fieldi::AbstractFieldMonochromatic)
-	aux = coefficient_general(coef)
+function lightinteraction(coefs::Vector{<:AbstractCoefficient}, fieldi::AbstractFieldMonochromatic)
+	aux = coefficient_general(coefs)
 	return lightinteraction(aux, fieldi)
 end
 

@@ -74,7 +74,7 @@ function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSp
 	sizeX = length(fieldi.nsx_X)
 	sizeY = length(fieldi.nsy_Y)
 	cart = LinearIndices((sizeX, sizeY))
-	Threads.@threads for iY in eachindex(fieldi.nsy_Y)
+	@inbounds Threads.@threads for iY in eachindex(fieldi.nsy_Y)
 		for iX in eachindex(fieldi.nsx_X)
 			nsr = √(fieldi.nsx_X[iX]^2 + fieldi.nsy_Y[iY]^2)
 			i = cart[iX, iY]

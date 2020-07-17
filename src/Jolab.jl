@@ -25,6 +25,7 @@ module Jolab
 	export PropagationCoefficientScalar
 	export Mirror, rotatestructure, translatestructure
 	export SpatialLightModulator
+	export FourierTransform
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
 

@@ -17,7 +17,7 @@ We start by creating the SLM:
 x_slm = range(-10E-3, 10E-3, length = 25); # x coordinates of the SLM phase mask pixels in meters
 y_slm = range(-10E-3, 10E-3, length = 25); # y coordinates of the SLM phase mask pixels in meters
 mask_slm = ones(ComplexF64, length(x_slm), length(y_slm)); # initial mask of the SLM. Each position of the matrix phase[iX, iY] is the modulation value for the SLM pixel at position x[iX], y[iY].
-ref_slm = ReferenceFrame(0,0,0); # x,y,z position of the SLM center in meters
+ref_slm = ReferenceFrame(0.,0,0); # x,y,z position of the SLM center in meters
 slm = SpatialLightModulator(x_slm, y_slm, mask_slm, ref_slm); # Initialization of the SLM
 ```
 We need now to define the incident field upon the SLM
@@ -25,7 +25,7 @@ We need now to define the incident field upon the SLM
 λ = 1550E-9; # wavelength in meters of the field
 nambient = Jolab.refractiveindex_air(printBool = false); # refrative index of the ambient medium
 dir = 1; # direction of the field
-ref_field = ReferenceFrame(0,0,0); # Initial position of the field (coincident with the SLM)
+ref_field = ReferenceFrame(0.,0,0); # Initial position of the field (coincident with the SLM)
 x = range(-10E-3, 10E-3, length = 100); # x coordinates in meters where the field is evaluated
 y = range(-10E-3, 10E-3, length = 100); # y coordinates in meters where the field is evaluated
 field = FieldSpace_uniform(x, y, λ, nambient(λ), dir, ref_field); # Initialization of field with uniform intensity.
@@ -57,17 +57,17 @@ findmodes!(fibre, λ);
 We can now define the function lightpropagation. This function propagates the field by the optical setup and returns the field transmitted by the multi mode fibre.
 ```julia; results = "hidden"
 function lightpropagation(field_l, slm_l, lens_l, fibre_l)
-    field_l = lightinteraction(slm_l, field_l); # Calculate the change in the field wavefront by the SLM
-    angspe_l = lightinteraction(lens_l, field_l); # Calculate the angular spectrum in the focal plane of the lens
+    (tmp, field_l) = lightinteraction(slm_l, field_l); # Calculate the change in the field wavefront by the SLM
+    (tmp, angspe_l) = lightinteraction(lens_l, field_l); # Calculate the angular spectrum in the focal plane of the lens
 
     # To calculate the light coupling inside the fibre, the incident field must be a field in space
     fieldfocalplane_l = FieldSpace_fromangspefft(angspe_l, padding = 1024-100); # Transform the angular spectrum into the field in space. Be sure that the padding is good enough to have a good field sampling
 
-    fieldmodes_l = lightinteraction(fibre_l, fieldfocalplane_l); # Calculate the field coupled into de fibre
-    x_l = range(-fibre_l.r, fibre_l.r, length = 100); # x coordinates in meters where the field will be evaluated
-    y_l = range(-fibre_l.r, fibre_l.r, length = 100); # y coordinates in meters where the field will be evaluated
-    fieldoutfibre_l = lightinteraction(fibre_l, fieldmodes_l, x_l, y_l); # Field at the tip of the fibre after propagating through the fibre
-    return fieldoutfibre_l
+    (tmp, fieldmodes_l) = lightinteraction(fibre_l, fieldfocalplane_l); # Calculate the field coupled into de fibre
+    # x_l = range(-fibre_l.r, fibre_l.r, length = 100); # x coordinates in meters where the field will be evaluated
+    # y_l = range(-fibre_l.r, fibre_l.r, length = 100); # y coordinates in meters where the field will be evaluated
+    # fieldoutfibre_l = lightinteraction(fibre_l, fieldmodes_l, x_l, y_l); # Field at the tip of the fibre after propagating through the fibre
+    return fieldfocalplane_l
 end
 ```
 ## Defining the optimization
@@ -84,7 +84,7 @@ At this point we just need to run the optimization algorithm from the BlackBoxOp
 ```julia; results = "hidden"
 optimization(mask) = condition(field, slm, lens, fibre, mask); # defines the optimization function for the BlackBoxOptim package
 
-result = bboptimize(optimization, SearchRange = (-π, float(π)), NumDimensions = length(mask_slm), MaxTime = 100); # Runs the optimization algorithm
+result = bboptimize(optimization, SearchRange = (-π, float(π)), NumDimensions = length(mask_slm), MaxTime = 10); # Runs the optimization algorithm
 ```
 After the optimization we can finally plot the desired result
 ```julia
