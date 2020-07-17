@@ -72,6 +72,7 @@ module Jolab
 	include("Lens.jl")
 	include("SingleModeFibre.jl")
 	include("Mirror.jl")
+	include("FourierTransform.jl")
 	include("interpolation.jl")
 	include("CircularStepIndexFibre.jl")
 	include("SpatialLightModulator.jl")

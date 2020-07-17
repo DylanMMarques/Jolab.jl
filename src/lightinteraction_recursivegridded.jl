@@ -42,7 +42,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	i = 1
 	arg_l = 1
 	arg_r = 1
-	while true
+	@inbounds while true
 		# Select the next field to consider
 		max_r = zero(T)
 		max_l = zero(T)
@@ -58,7 +58,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 		end
 
 		if max_r > max_l # Field is propagating forward
-			max_r < rtol && break
+			max_r / cval_r[arg_r] < rtol && break
 			mls = arg_r
 			fields_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
 			lightinteraction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], fields_r[mls])
@@ -70,7 +70,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			int_r[mls] = zero(T)
 			cval_r[mls] = one(T)
 		else # field is going backward
-			max_l < rtol && break
+			max_l / cval_l[arg_l + 1] < rtol && break
 			mls = arg_l + 1 # need to add +1 because length start from 2
 			fields_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()
 			lightinteraction!(fields_aux_l[mls-1], fields_aux_r[mls], coefs[mls-1], fields_l[mls])
@@ -83,7 +83,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			cval_l[mls] = one(T)
 		end
 		sum(int_l) + sum(int_r) > 10initial_int && (println("lightinteraction_recursivegridded is not converging. Change cval (increase is recommended)."); break)
-		i > 100000 && error("Max number of iterations achieved")
+		i > 1000000 && error("Max number of iterations achieved")
 		i += 1
 
 		cval_l .*= cval
@@ -96,7 +96,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 		# @show initial_int
 
 	end
-	# @show i
+	@show i
 	vec(fieldl.e_SXY) .= vec(fields_l[1].e_SXY)
 	vec(fieldr.e_SXY) .= vec(fields_r[sizeL].e_SXY)
 end
