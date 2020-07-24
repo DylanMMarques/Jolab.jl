@@ -100,7 +100,7 @@ function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRang
 	y = fftshift(FFTW.fftfreq(length(nsy), 1 / (nsy[2] - nsy[1]))) * λ
 	z = rmls.Δz.(x, y')
 	(nsxfft, nsyfft, fftz) = fourriertransformfft(x, y, z, λ)
-	return (x,y)
+	return (x,y, z)
 end
 
 function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
