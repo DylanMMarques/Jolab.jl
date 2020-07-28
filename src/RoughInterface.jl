@@ -88,11 +88,12 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 		fieldl = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, rmls.ref)
 		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	tmp = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
-	planfft = plan_fft(tmp)  # precalculates the fft plan
+	tmp1 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
+	tmp2 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
+	planfft = plan_fft(tmp1)  # precalculates the fft plan
 	inv(planfft) # precalculates the inverse fft plan
 
-	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp)
+	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
 end
 
 function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T

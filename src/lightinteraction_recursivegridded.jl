@@ -59,7 +59,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 
 		for mls in 1:sizeL
 			if mls < sizeL
-				if int_r[mls] > rtol * 1E-4
+				if int_r[mls] > initial_int * @tol
 					iE_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
 					lightinteraction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], iE_r[mls])
 					add_inplace!(toSave_l[mls], fields_aux_l[mls])
@@ -70,7 +70,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 				vec(iE_r[mls].e_SXY) .= zero(Complex{T})
 			end
 			if mls > 1
-				if int_l[mls] > rtol * 1E-4
+				if int_l[mls] > initial_int * @tol
 					iE_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()
 					lightinteraction!(fields_aux_l[mls-1], fields_aux_r[mls], coefs[mls-1], iE_l[mls])
 					add_inplace!(toSave_l[mls-1], fields_aux_l[mls-1])
@@ -88,7 +88,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 
 		sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1)) < rtol && break
 		sum(int_l) + sum(int_r) > 10initial_int && (println("lightinteraction_recursivegridded is not converging."); break)
-		i > 10000 && error("Max number of iterations achieved")
+		i > 10000 && (println("Max number of iterations achieved"); break)
 		i += 1
 	end
 	println("Interactions until convergence: ", i)

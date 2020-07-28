@@ -77,6 +77,7 @@ module Jolab
 	include("interpolation.jl")
 	include("CircularStepIndexFibre.jl")
 	include("SpatialLightModulator.jl")
+	include("RoughMultilayerStructure.jl")
 	include("lightinteraction_recursive.jl")
 	include("lightinteraction_recursivegridded.jl")
 	include("PlotsRecipes.jl")
