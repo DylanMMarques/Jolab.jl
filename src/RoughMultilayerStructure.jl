@@ -16,7 +16,10 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n[1](fieldi.λ) : rmls.n[sizeM](fieldi.λ), atol = @tol) || error("Refractive index missmatch")
 
 	k = 2π / fieldi.λ
-	n_M = [rmls.n[i](fieldi.n) for i in 1:sizeM]
+	n_M = Vector{Complex{T}}(undef, sizeM)
+	for i in 1:sizeM
+		n_M[i] = rmls.n[i](fieldi.λ)
+	end
 	Δz_M = rmls.Δz
 	h_M = rmls.h
 
@@ -149,7 +152,7 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 		fieldl = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), -1, ref1(rmls))
 		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	
+
 	tmp2 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
 	tmp1 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
 	planfft = plan_fft(r12)  # precalculates the fft plan
