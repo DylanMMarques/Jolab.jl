@@ -63,8 +63,7 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 			r = r12
 			t = t12
 		end
-
-		for iM in eachindex(Δz_M)
+		Threads.@threads for iM in eachindex(Δz_M)
 			for iY in eachindex(fieldi.nsy_Y)
 				for iX in eachindex(fieldi.nsx_X)
 					nsr = √(fieldi.nsx_X[iX]^2 + fieldi.nsy_Y[iY]^2)
@@ -153,8 +152,8 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
 
-	tmp2 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
-	tmp1 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
+	tmp2 = Array{Complex{T},3}(undef, sizeX, sizeY, sizeM-1) # preallocate matrix to avoid allocation after
+	tmp1 = Array{Complex{T},3}(undef, sizeX, sizeY, sizeM-1) # preallocate matrix to avoid allocation after
 	planfft = plan_fft(r12)  # precalculates the fft plan
 	inv(planfft) # precalculates the inverse fft plan
 	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, Array{Complex{T},3}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
@@ -245,4 +244,12 @@ end
 @inline function ref2(rmls::RoughMultilayerStructure)
 	totalh = sum(rmls.h);
 	return rmls.ref + ReferenceFrame(sin(rmls.ref.θ) * cos(rmls.ref.ϕ) * totalh, sin(rmls.ref.θ) * sin(rmls.ref.ϕ) * totalh, cos(rmls.ref.θ) * totalh, rmls.ref.θ, rmls.ref.ϕ);
+end
+
+function roughfft(rmls::RoughMultilayerStructure{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T
+	x = fftshift(FFTW.fftfreq(length(nsx), 1 / (nsx[2] - nsx[1]))) * λ
+	y = fftshift(FFTW.fftfreq(length(nsy), 1 / (nsy[2] - nsy[1]))) * λ
+	z = rmls.Δz[1].(x, y')
+	(nsxfft, nsyfft, fftz) = fourriertransformfft(x, y, z, λ)
+	return (x, y, z)
 end
