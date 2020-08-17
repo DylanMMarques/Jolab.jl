@@ -79,8 +79,8 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where 
 		fieldl = FieldSpace{T}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
 		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
 	end
-	r = Diagonal(zeros(Complex{T}, sizeXY))
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r, t12, r, t21, fieldl, fieldr)
+	r = spzeros(Complex{T}, sizeXY, sizeXY)
+	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), typeof(r), Diagonal{Complex{T},Vector{Complex{T}}}}(r, t12, r, t21, fieldl, fieldr)
 end
 
 function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}

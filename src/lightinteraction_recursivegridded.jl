@@ -57,7 +57,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			iE_r = fields_r
 		end
 
-		Threads.@threads for mls in 1:sizeL
+		for mls in 1:sizeL
 			if mls < sizeL
 				if int_r[mls] > initial_int * @tol
 					iE_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
@@ -70,7 +70,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 				vec(iE_r[mls].e_SXY) .= zero(Complex{T})
 			end
 		end
-		Threads.@threads for mls in 1:sizeL
+		for mls in 1:sizeL
 			if mls > 1
 				if int_l[mls] > initial_int * @tol
 					iE_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()

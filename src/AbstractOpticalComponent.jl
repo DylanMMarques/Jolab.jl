@@ -57,5 +57,25 @@ function translatestructure(comps::AbstractVector{T}, x::Real, y::Real, z::Real)
 	return out
 end
 
+function coefficient_general(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic) where T
+    coef = Vector{ScatteringMatrix{T}}(undef, 2)
+    if fieldi.dir > 0
+		coef[1] = coefficient_general(comps[1], fieldi)
+        for i in 2:length(comps)
+            coef[2] = coefficient_general(comps[i], coef[1].fieldr)
+			coef[1] = coefficient_general(coef)
+        end
+		return coef[1]
+    else
+        sizeA = length(comps)
+		coef[2] = coefficient_general(comps[sizeA], fieldi)
+        for i in 1:length(comps)-1
+            coef[1] = coefficient_general(comps[sizeA-i],coef[2].fieldl)
+            coef[2] = coefficient_general(coef)
+        end
+		return coef[2]
+    end
+end
+
 ref1(comp::AbstractOpticalComponent) = comp.ref
 ref2(comp::AbstractOpticalComponent) = comp.ref

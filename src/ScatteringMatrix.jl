@@ -31,6 +31,7 @@ function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where
 	t21 = coefs[sizeA].t₂₁
 
 	for i in length(coefs)-1:-1:1
+
 		if coefs[i].fieldr.ref != coefs[i+1].fieldl.ref
 			propMatrix = propagationmatrix(coefs[i].fieldr, coefs[i+1].fieldl)
 			# (r12, t12, r21, t21) are now (r23, t23, r23, t23) inside the equation
@@ -41,14 +42,25 @@ function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where
 			lmul!(propMatrix, t21)
 		end
 
-		aux = inv(I - r12 * coefs[i].r₂₁)
-		r13 = coefs[i].r₁₂ + coefs[i].t₂₁ * aux * r12 * coefs[i].t₁₂
-		t31 = coefs[i].t₂₁ * aux * t21
+		if isa(r12, SparseMatrixCSC) || isa(coefs[i].r₂₁, SparseMatrixCSC)
+			r13 = spzeros(Complex{T}, size(r12,1), size(r12,2))
+			t31 = coefs[i].t₂₁ * t21
+		else
+			aux = inv(I - r12 * coefs[i].r₂₁)
+			r13 = coefs[i].r₁₂ + coefs[i].t₂₁ * aux * r12 * coefs[i].t₁₂
+			t31 = coefs[i].t₂₁ * aux * t21
+		end
 
-		aux = inv(I - coefs[i].r₂₁ * r12)
-		r31 = r21 + t12 * aux * coefs[i].r₂₁ * t21
-		t13 = t12 * aux * coefs[i].t₁₂
+		if isa(r21, SparseMatrixCSC) || isa(coefs[i].r₁₂, SparseMatrixCSC)
+			r31 = spzeros(Complex{T}, size(r21,1), size(r21,2))
+			t13 = coefs[i].t₁₂ * t12
+		else
+			aux = inv(I - coefs[i].r₂₁ * r12)
+			r31 = r21 + t12 * aux * coefs[i].r₂₁ * t21
+			t13 = t12 * aux * coefs[i].t₁₂
+		end
 		(r12, t12, r21, t21) = (r13, t13, r31, t31)
+
 	end
 	return ScatteringMatrix{T, typeof(coefs[1].fieldl), typeof(coefs[end].fieldr), typeof(r12), typeof(t12)}(r12, t12, r21, t21, coefs[1].fieldl, coefs[end].fieldr)
 end

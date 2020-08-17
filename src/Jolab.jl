@@ -1,5 +1,5 @@
 module Jolab
-	using LinearAlgebra
+	using LinearAlgebra, SparseArrays
 	using SpecialFunctions
 	using Roots
 	using Interpolations
@@ -25,7 +25,7 @@ module Jolab
 	export PropagationCoefficientScalar
 	export Mirror, rotatestructure, translatestructure
 	export SpatialLightModulator
-	export FourierTransform
+	export FourierTransform, PhantomLayer
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
 
@@ -78,6 +78,7 @@ module Jolab
 	include("CircularStepIndexFibre.jl")
 	include("SpatialLightModulator.jl")
 	include("RoughMultilayerStructure.jl")
+	include("PhantomLayer.jl")
 	include("lightinteraction_recursive.jl")
 	include("lightinteraction_recursivegridded.jl")
 	include("PlotsRecipes.jl")
