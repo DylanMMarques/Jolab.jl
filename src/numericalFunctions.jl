@@ -327,3 +327,20 @@ end
 	end
 	return val
 end
+
+@inline function Δvector(x_X::Vector{T}, i::Integer) where T
+	sizeX = length(x_X)
+	if 1 < i < sizeX
+		return (x_X[i + 1] - x_X[i - 1]) / 2
+	elseif i == 1
+		return (x_X[2] - x_X[1]) / 2
+	elseif i == sizeX
+		return (x_X[sizeX] - x_X[sizeX - 1]) / 2
+	else
+		return zero(T)
+	end
+end
+
+@inline function Δvector(x_X::AbstractRange{<:Number}, i::Integer)
+	return x_X.step.hi
+end
