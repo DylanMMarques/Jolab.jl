@@ -50,3 +50,4 @@ coef = Jolab.coefficient_general(fft, spaceref)
 (angspe, tmp) = lightinteraction(coef, spaceref)
 #Test if fourier transform gives the same result as the analytical of a gausian beam
 @test isapprox(angspe.e_SXY, angsperef.e_SXY, rtol = 1E-5)
+return true
