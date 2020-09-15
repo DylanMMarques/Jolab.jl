@@ -24,8 +24,9 @@ module Jolab
 	export RoughInterface, lightinteraction_recursive, lightinteraction_recursivegridded
 	export PropagationCoefficientScalar
 	export Mirror, rotatestructure, translatestructure
-	export SpatialLightModulator
+	export SpatialLightModulator, SpatialLightModulator_slm, SpatialLightModulator_mask, SpatialLightModulator_reflectivemask
 	export FourierTransform, PhantomLayer
+
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
 

@@ -90,7 +90,7 @@ end
 
 function samedefinitions(fieldl::L, fieldr::L) where L <: FieldSpace
 	isapprox(fieldl.x_X, fieldr.x_X, atol = @tol) || return false
-	isapprox(fieldl.y_Y, fieldr.x_X, atol = @tol) || return false
+	isapprox(fieldl.y_Y, fieldr.y_Y, atol = @tol) || return false
 	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
 	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
 	fieldl.ref == fieldr.ref || return false

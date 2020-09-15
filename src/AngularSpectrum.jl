@@ -336,7 +336,7 @@ end
 
 function samedefinitions(fieldl::L, fieldr::L) where L <: FieldAngularSpectrum
 	isapprox(fieldl.nsx_X, fieldr.nsx_X, atol = @tol) || return false
-	isapprox(fieldl.nsy_Y, fieldr.nsx_X, atol = @tol) || return false
+	isapprox(fieldl.nsy_Y, fieldr.nsy_Y, atol = @tol) || return false
 	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
 	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
 	fieldl.ref == fieldr.ref || return false

@@ -6,8 +6,8 @@ FourierTransform() = FourierTransform{Float64}()
 function coefficient_general(fourier::FourierTransform{T}, field::FieldSpace{T,X}, nsx_A::AbstractRange{<:Real}, nsy_B::AbstractRange{<:Real}) where {T, X <: AbstractRange}
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
 	(sizeA, sizeB) = (length(nsx_A), length(nsy_B))
-	r12 = spzeros(Complex{T}, sizeX*sizeY, sizeX * sizeY)
-	r21 = spzeros(Complex{T}, sizeA*sizeB, sizeA * sizeB)
+	r12 = UniformScaling(zero(Complex{T}))
+	r21 = UniformScaling(zero(Complex{T}))
 	t12 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
 	t21 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
 
@@ -65,8 +65,8 @@ end
 function coefficient_general(fourier::FourierTransform{T}, field::FieldAngularSpectrum{T,X}, x_A::AbstractRange{<:Real}, y_B::AbstractRange{<:Real}) where {T, X <: AbstractRange}
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
 	(sizeA, sizeB) = (length(x_A), length(y_B))
-	r12 = spzeros(Complex{T}, sizeX*sizeY, sizeX * sizeY)
-	r21 = spzeros(Complex{T}, sizeA*sizeB, sizeA * sizeB)
+	r12 = UniformScaling(zero(Complex{T}))
+	r21 = UniformScaling(zero(Complex{T}))
 	t12 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
 	t21 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
 

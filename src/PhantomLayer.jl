@@ -7,7 +7,7 @@ function coefficient_general(phantom::PhantomLayer{T}, field::AbstractFieldSpace
 	checkinplane(field.ref, phatom.ref) || error("cannot do this")
 
 	sizeXY = length(field.x_X) * length(field.y_Y)
-	r = spzeros(Complex{T}, sizeXY, sizeXY)
+	r = UniformScaling(zero(Complex{T}))
 	t = Diagonal(ones(Complex{T}, sizeXY))
 
 	fieldl = FieldSpace{T}(field.x_X, field.y_Y, field.e_SXY, field.λ, field.n, -1, phantom.ref)
@@ -20,7 +20,7 @@ function coefficient_general(phantom::PhantomLayer{T}, field::AbstractFieldAngul
 
 	sizeXY = length(field.nsx_X) * length(field.nsy_Y)
 
-	r = spzeros(Complex{T}, sizeXY, sizeXY)
+	r = UniformScaling(zero(Complex{T}))
 	t = Diagonal(ones(Complex{T}, sizeXY))
 
 	if !checkposition(field.ref, phantom.ref)

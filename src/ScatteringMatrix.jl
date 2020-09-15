@@ -1,4 +1,4 @@
-struct ScatteringMatrix{T, L, R, X1 <: AbstractMatrix{Complex{T}}, X2 <: AbstractMatrix{Complex{T}}} <: AbstractCoefficient{T,L,R}
+struct ScatteringMatrix{T, L, R, X1 <: Union{AbstractMatrix{Complex{T}}, UniformScaling{Complex{T}}}, X2 <: AbstractMatrix{Complex{T}}} <: AbstractCoefficient{T,L,R}
 	r₁₂::X1
 	t₁₂::X2
 	r₂₁::X1
@@ -21,48 +21,44 @@ function checkapplicability(scatMs::AbstractVector{<:ScatteringMatrix})
 	return true
 end
 
+function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::ScatteringMatrix{T,L2,R2,X12}) where {T<:Real, L1, L2, R1, R2, X11<:UniformScaling, X12<:UniformScaling}
+	r13 = UniformScaling(zero(Complex{T}))
+	t31 = coef2.t₂₁ * coef1.t₂₁
+
+	r31 = UniformScaling(zero(Complex{T}))
+	t13 = coef1.t₁₂ * coef2.t₁₂
+
+	return ScatteringMatrix{T, L1, R2, typeof(r13), typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
+end
+
+function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::ScatteringMatrix{T,L2,R2,X12}) where {T<:Real, L1, R1, L2, R2, X11<:UniformScaling, X12<:AbstractMatrix}
+	r13 = coef1.t₁₂ * coef2.r₁₂ * coef1.t₂₁
+	t13 = coef1.t₁₂ * coef2.t₁₂
+
+	r31 = coef2.r₂₁
+	t31 = coef2.t₂₁ * coef1.t₂₁
+
+	return ScatteringMatrix{T, L1, R2, typeof(r13), typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
+end
+
+function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::ScatteringMatrix{T,L2,R2,X12}) where {T<:Real, L1, R1, L2, R2, X11<:AbstractMatrix, X12<:UniformScaling}
+	r13 = coef1.r₁₂
+	t13 = coef1.t₁₂ * coef2.t₁₂
+
+	r31 = coef2.t₂₁ * coef1.r₂₁ * coef2.t₁₂
+	t31 = coef2.t₂₁ * coef1.t₂₁
+
+	return ScatteringMatrix{T, L1, R2, typeof(r13), typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
+end
+
 function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where {T<:Real}
 	checkapplicability(coefs) || error("cannot be merged")
-
 	sizeA = length(coefs)
-	r12 = coefs[sizeA].r₁₂
-	t12 = coefs[sizeA].t₁₂
-	r21 = coefs[sizeA].r₂₁
-	t21 = coefs[sizeA].t₂₁
-
+	coefaux = coefs[sizeA]
 	for i in length(coefs)-1:-1:1
-
-		if coefs[i].fieldr.ref != coefs[i+1].fieldl.ref
-			propMatrix = propagationmatrix(coefs[i].fieldr, coefs[i+1].fieldl)
-			# (r12, t12, r21, t21) are now (r23, t23, r23, t23) inside the equation
-			rmul!(r12, propMatrix)
-			lmul!(propMatrix, r12)
-
-			rmul!(t12, propMatrix)
-			lmul!(propMatrix, t21)
-		end
-
-		if isa(r12, SparseMatrixCSC) || isa(coefs[i].r₂₁, SparseMatrixCSC)
-			r13 = spzeros(Complex{T}, size(r12,1), size(r12,2))
-			t31 = coefs[i].t₂₁ * t21
-		else
-			aux = inv(I - r12 * coefs[i].r₂₁)
-			r13 = coefs[i].r₁₂ + coefs[i].t₂₁ * aux * r12 * coefs[i].t₁₂
-			t31 = coefs[i].t₂₁ * aux * t21
-		end
-
-		if isa(r21, SparseMatrixCSC) || isa(coefs[i].r₁₂, SparseMatrixCSC)
-			r31 = spzeros(Complex{T}, size(r21,1), size(r21,2))
-			t13 = coefs[i].t₁₂ * t12
-		else
-			aux = inv(I - coefs[i].r₂₁ * r12)
-			r31 = r21 + t12 * aux * coefs[i].r₂₁ * t21
-			t13 = t12 * aux * coefs[i].t₁₂
-		end
-		(r12, t12, r21, t21) = (r13, t13, r31, t31)
-
+		coefaux = coefficient_general(coefs[i], coefaux)
 	end
-	return ScatteringMatrix{T, typeof(coefs[1].fieldl), typeof(coefs[end].fieldr), typeof(r12), typeof(t12)}(r12, t12, r21, t21, coefs[1].fieldl, coefs[end].fieldr)
+	return coefaux
 end
 
 function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{L,R}) where {T,X,L,R}
