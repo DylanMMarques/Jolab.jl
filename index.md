@@ -1,3 +1,4 @@
+<meta name="google-site-verification" content="9YzS6tq5mXkfTx2qXt0wSu2_fPkXPyEEmXylfnxxyG4" />
 ## Welcome to GitHub Pages
 
 You can use the [editor on GitHub](https://github.com/DylanMMarques/Jolab.jl/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
