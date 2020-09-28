@@ -1,7 +1,7 @@
 name = "Jolab"
 uuid = "0583885e-d035-482f-8ce1-fd86afbe19e8"
 authors = ["Dylan M. Marques", "James A. Guggenheim", "Peter R. T. Munro"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 DSP = "717857b8-e6f2-59f4-9121-6e50c889abd2"
