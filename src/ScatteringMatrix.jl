@@ -51,6 +51,18 @@ function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::Scatte
 	return ScatteringMatrix{T, L1, R2, typeof(r13), typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
 end
 
+function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::ScatteringMatrix{T,L2,R2,X12}) where {T<:Real, L1, R1, L2, R2, X11, X12}
+	aux = inv(I - coef2.r₁₂ * coef1.r₂₁)
+	r13 = coef1.r₁₂ + coef1.t₂₁ * aux * coef2.r₁₂ * coef1.t₁₂
+	t31 = coef1.t₂₁ * aux * coef2.t₂₁
+
+	aux = inv(I - coef1.r₂₁ * coef2.r₁₂)
+	r31 = coef2.r₂₁ + coef2.t₁₂ * aux * coef1.r₂₁ * coef2.t₂₁
+	t13 = coef2.t₁₂ * aux * coef1.t₁₂
+
+	return ScatteringMatrix{T, L1, R2, typeof(r13), typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
+end
+
 function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where {T<:Real}
 	checkapplicability(coefs) || error("cannot be merged")
 	sizeA = length(coefs)

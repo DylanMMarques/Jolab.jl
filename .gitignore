@@ -2,4 +2,5 @@
 *.jl.cov
 *.jl.mem
 *.html
+docs/build
 Manifest.toml

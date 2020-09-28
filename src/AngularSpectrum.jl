@@ -52,7 +52,7 @@ function FieldSpace_fromangspefft(angspe::FieldAngularSpectrum{T,X}; padding=0::
 end
 
 function angspeto3Dspace(angspe::FieldAngularSpectrum, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, z_Z::AbstractVector{<:Real})
-	@show "This is wrong, I think"
+	# @show "This is wrong, I think"
 	e_SXYZ = zeros(eltype(angspe.e_SXY), size(angspe.e_SXY, 1), length(x_X), length(y_Y), length(z_Z));
  	angspeWithZ = Array{eltype(angspe.e_SXY), 3}(undef, size(angspe.e_SXY));
 	kz_XY = (2π / angspe.λ) .* angspe.dir .* .√(angspe.n^2 .- reshape(angspe.nsx_X.^2, 1,:,1) .- reshape(angspe.nsy_Y.^2, 1, 1, :))
