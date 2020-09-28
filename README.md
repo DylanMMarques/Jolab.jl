@@ -1,5 +1,5 @@
 # Jolab
-
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://dylanmmarques.github.io/Jolab.jl/)
 [![Build Status](https://travis-ci.com/DylanMMarques/Jolab.jl.svg?branch=master)](https://travis-ci.com/DylanMMarques/Jolab.jl)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/DylanMMarques/Jolab.jl?svg=true)](https://ci.appveyor.com/project/DylanMMarques/Jolab-jl)
 [![Codecov](https://codecov.io/gh/DylanMMarques/Jolab.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/DylanMMarques/Jolab.jl)
