@@ -26,7 +26,7 @@ module Jolab
 	export Mirror, rotatestructure, translatestructure
 	export SpatialLightModulator, SpatialLightModulator_slm, SpatialLightModulator_mask, SpatialLightModulator_reflectivemask
 	export FourierTransform, PhantomLayer
-
+	export Axicon
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
 
@@ -80,6 +80,7 @@ module Jolab
 	include("SpatialLightModulator.jl")
 	include("RoughMultilayerStructure.jl")
 	include("PhantomLayer.jl")
+	include("Axicon.jl")
 	include("lightinteraction_recursive.jl")
 	include("lightinteraction_recursivegridded.jl")
 	include("PlotsRecipes.jl")
