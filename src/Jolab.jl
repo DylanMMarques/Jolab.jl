@@ -56,6 +56,7 @@ module Jolab
 	include("AbstractCoefficient.jl")
 	include("AbstractOpticalComponent.jl")
 	include("AbstractDetector.jl")
+	include("expint.jl")
 
 	include("numericalFunctions.jl");
 	include("JolabFunction.jl")

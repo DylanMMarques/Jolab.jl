@@ -344,3 +344,58 @@ end
 @inline function Δvector(x_X::AbstractRange{<:Number}, i::Integer)
 	return x_X.step.hi
 end
+
+@inline function integralExtremes(x_X::AbstractVector{<:Number}, i::Integer)
+	sizeX = length(x_X)
+	if i == 1
+		return (x_X[1], x_X[1] + (x_X[2] - x_X[1]) / 2)
+	elseif i >= sizeX
+		i == sizeX && return (x_X[sizeX] - (x_X[sizeX] - x_X[sizeX-1]) / 2, x_X[sizeX])
+		error("Programming error")
+	else
+		return (x_X[i] - (x_X[i] - x_X[i-1]) / 2, x_X[i] + (x_X[i+1] - x_X[i]) / 2)
+	end
+end
+
+@inline function integralExtremes(x_X::AbstractRange{<:Number}, i::Integer)
+	sizeX = length(x_X)
+	if i == 1
+		return  (x_X[1], x_X[1] + x_X.step.hi / 2)
+	elseif i >= sizeX
+		i == sizeX && return (x_X[i] - x_X.step.hi / 2, x_X[i])
+		error("Programming error")
+	else
+		return (x_X[i] - x_X.step.hi / 2, x_X[i] + x_X.step.hi / 2)
+	end
+end
+
+@inline function integral(f::Function, xmin, xmax, ymin, ymax)
+	f11 = f(xmin, ymin)
+	f12 = f(xmin, ymax)
+	f21 = f(xmax, ymin)
+	f22 = f(xmax, ymax)
+	α = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
+	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
+	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
+	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
+
+	# g(x,y) = (α * x * y + β * x + γ * y + δ)
+	cond = 0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1
+	# @show cond
+	if cond
+		# @show (xmin, xmax, ymin, ymax)
+		b(r) = exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
+		return hcubature(b, SVector(xmin, ymin), SVector(xmax, ymax))[1]
+	else
+		Pf(x, y) = begin
+			aux = (γ + α * x) * (β + α * y) / α
+			if aux < 0
+				return ((-conj(expint(im * aux))) - π * im)
+			else
+				return ((-conj(expint(im * aux))) + π * im)
+			end
+ 		end
+		b = - im / α * exp(im * (δ - β * γ / α)) * (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
+		return b
+	end
+end

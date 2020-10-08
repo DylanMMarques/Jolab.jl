@@ -21,38 +21,27 @@ function coefficient_general(axicon::Axicon{T}, space::FieldSpace{T}) where T
 	t21 = Matrix{Complex{T}}(undef, sizeXY, sizeXY)
 	cart = LinearIndices((sizeX, sizeY))
 
-	nsx_X = range(-axicon.β * 1.5, axicon.β * 1.5, length = sizeX)
-	nsy_Y = range(-axicon.β * 1.5, axicon.β * 1.5, length = sizeY)
-	# nsy_Y = [0.]
-	naxicon = n(axicon)
+	nsx_X = range(-axicon.β * 2, axicon.β * 2, length = sizeX)
+	nsy_Y = range(-axicon.β * 2, axicon.β * 2, length = sizeY)
 
 	Threads.@threads for ixN in eachindex(space.x_X)
-		if ixN == 1
-			xmin = space.x_X[1]
-			xmax = space.x_X[1] + (space.x_X[2] - space.x_X[1]) / 2
-		elseif ixN == sizeX
-			xmin = space.x_X[sizeX] - (space.x_X[sizeX] - space.x_X[sizeX-1]) / 2
-			xmax = space.x_X[sizeX]
-		else
-			xmin = space.x_X[ixN] - (space.x_X[ixN] - space.x_X[ixN-1]) / 2
-			xmax = space.x_X[ixN] + (space.x_X[ixN+1] - space.x_X[ixN]) / 2
-		end
+		(xmin, xmax) = integralExtremes(space.x_X, ixN)
 		for iyN in eachindex(space.y_Y)
+			(ymin, ymax) = integralExtremes(space.y_Y, iyN)
 			iN = cart[ixN, iyN]
-			if iyN == 1
-				ymin = space.y_Y[1]
-				ymax = space.y_Y[iyN] + (space.y_Y[2] - space.y_Y[1]) / 2
-			elseif iyN == sizeY
-				ymin = space.y_Y[sizeY] - (space.y_Y[sizeY] - space.y_Y[sizeY-1]) / 2
-				ymax = space.y_Y[sizeY]
-			else
-				ymin = space.y_Y[iyN] - (space.y_Y[iyN] - space.y_Y[iyN-1]) / 2
-				ymax = space.y_Y[iyN] + (space.y_Y[iyN+1] - space.y_Y[iyN]) / 2
-			end
+			bool =  space.x_X[ixN]^2 + space.y_Y[iyN]^2 > 1E-6 && xmin * xmax > 0 && ymin * ymax > 0
 			for ixM in 1:sizeX
 				for iyM in 1:sizeY
-					phaseTerm(r) = exp(-im * k * (axicon.β * √(r[1]^2 + r[2]^2) + nsx_X[ixM] * r[1] + nsy_Y[iyM] * r[2]))
-					t12[cart[ixM, iyM], iN] = 1 / 4π^2 * hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), atol = 1E-5)[1]
+					# hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), atol = 1E-5)[1]
+					# t12[cart[ixM, iyM], iN] = 1 / 4π^2 * hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), atol = 1E-5)[1]
+					if bool
+						f(x,y) = -k * (axicon.β * √(x^2 + y^2) + nsx_X[ixM] * x + nsy_Y[iyM] * y)
+						aux = integral(f, xmin, xmax, ymin, ymax)
+					else
+						phaseTerm(r) = exp(-im * k * (axicon.β * √(r[1]^2 + r[2]^2) + nsx_X[ixM] * r[1] + nsy_Y[iyM] * r[2]))
+					 	aux = hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), atol = 1E-5)[1]
+					end
+					t12[cart[ixM, iyM], iN] = 1 / 4π^2 * aux
 				end
 			end
 		end
