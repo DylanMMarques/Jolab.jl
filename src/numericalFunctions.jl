@@ -369,16 +369,19 @@ end
 	end
 end
 
-@inline function integral(f::Function, xmin, xmax, ymin, ymax)
-	f11 = f(xmin, ymin)
-	f12 = f(xmin, ymax)
-	f21 = f(xmax, ymin)
-	f22 = f(xmax, ymax)
-	α = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
-	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
-	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
-	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
+@inline function integrate_exp_x_y(β, γ, δ, xmin, xmax, ymin, ymax)
+	if β == 0 && γ == 0
+		return exp(im * δ) * (xmax - xmin) * (ymax - ymin)
+	elseif γ == 0
+		return im * exp(im * δ) * (-exp(im * β * xmax) + exp(im * β * xmin)) * (ymax - ymin) / β
+	elseif β == 0
+		return im * exp(im * δ) * (-exp(im * γ * ymax) + exp(im * γ * ymin)) * (xmax - xmin) / γ
+	else
+		return exp(im * δ) * (exp(im * β * xmax) - exp(im * β * xmin)) * (-exp(im * γ * ymax) + exp(im * γ * ymin)) / (γ * β)
+	end
+end
 
+@inline function integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
 	# g(x,y) = (α * x * y + β * x + γ * y + δ)
 	cond = 0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1
 	# @show cond
@@ -398,4 +401,18 @@ end
 		b = - im / α * exp(im * (δ - β * γ / α)) * (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
 		return b
 	end
+
+end
+
+@inline function integrate_exp_xy_x_y(f::Function, xmin, xmax, ymin, ymax)
+	f11 = f(xmin, ymin)
+	f12 = f(xmin, ymax)
+	f21 = f(xmax, ymin)
+	f22 = f(xmax, ymax)
+	α = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
+	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
+	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
+	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
+
+	return integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
 end

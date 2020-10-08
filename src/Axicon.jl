@@ -36,7 +36,7 @@ function coefficient_general(axicon::Axicon{T}, space::FieldSpace{T}) where T
 					# t12[cart[ixM, iyM], iN] = 1 / 4π^2 * hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), atol = 1E-5)[1]
 					if bool
 						f(x,y) = -k * (axicon.β * √(x^2 + y^2) + nsx_X[ixM] * x + nsy_Y[iyM] * y)
-						aux = integral(f, xmin, xmax, ymin, ymax)
+						aux = integrate_exp_xy_x_y(f, xmin, xmax, ymin, ymax)
 					else
 						phaseTerm(r) = exp(-im * k * (axicon.β * √(r[1]^2 + r[2]^2) + nsx_X[ixM] * r[1] + nsy_Y[iyM] * r[2]))
 					 	aux = hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), atol = 1E-5)[1]

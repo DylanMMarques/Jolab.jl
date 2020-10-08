@@ -34,24 +34,33 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T
 	(sizeA, sizeB) = (length(fourier.nsx_X), length(fourier.nsy_Y))
 	r12 = UniformScaling(zero(Complex{T}))
 	r21 = UniformScaling(zero(Complex{T}))
-	t12 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
-	t21 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
 
 	k = 2π / field.λ
 	imk = im * k
-
-	coord = LinearIndices((sizeA, sizeB))
+	coordAB = LinearIndices((sizeA, sizeB))
+	coordXY = LinearIndices((sizeX, sizeY))
 	@inbounds Threads.@threads for iX1 in 1:sizeX
+		(xmin, xmax) = integralExtremes(field.x_X, iX1)
 	 	@simd for iY1 in 1:sizeY
-			ΔxΔy = Δvector(field.y_Y, iY1) * Δvector(field.x_X, iX1) / 4π^2
-			i1 = coord[iX1, iY1]
+			(ymin, ymax) = integralExtremes(field.y_Y, iY1)
+			i1 = coordXY[iX1, iY1]
 			for iA2 in 1:sizeA
 				for iB2 in 1:sizeB
-					ΔkxΔky = Δvector(fourier.nsy_Y, iB2) * Δvector(fourier.nsx_X, iA2) * k^2
-					i2 = coord[iA2, iB2]
-					phaseterm = exp(-imk * (field.x_X[iX1] * fourier.nsx_X[iA2] + field.y_Y[iY1] * fourier.nsy_Y[iB2]))
-					t12[i2, i1] = phaseterm * ΔxΔy
-					t21[i1, i2] = ΔkxΔky / phaseterm
+					t12[coordAB[iA2, iB2], i1] = integrate_exp_x_y(-k * fourier.nsx_X[iA2], -k * fourier.nsy_Y[iB2], zero(T), xmin, xmax, ymin, ymax) / 4π^2
+				end
+			end
+		end
+	end
+	@inbounds Threads.@threads for iA1 in 1:sizeA
+		(nsxmin, nsxmax) = integralExtremes(fourier.nsx_X, iA1)
+	 	for iB1 in 1:sizeB
+			(nsymin, nsymax) = integralExtremes(fourier.nsy_Y, iB1)
+			i1 = coordAB[iA1, iB1]
+			for iX2 in 1:sizeX
+				for iY2 in 1:sizeY
+					t21[coordXY[iX2, iY2], i1] = integrate_exp_x_y(k * field.x_X[iX2], k * field.y_Y[iY2], zero(T), nsxmin, nsxmax, nsymin, nsymax) * k^2
 				end
 			end
 		end
@@ -59,9 +68,9 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T
 
 	if field.dir > 0
 		fieldl = FieldSpace{T}(copy(field.x_X), copy(field.y_Y), field.e_SXY, field.λ, field.n, -1, copy(field.ref))
-		fieldr = FieldAngularSpectrum{T}(fourier.nsx_X, fourier.nsy_Y, field.e_SXY, field.λ, field.n, 1, copy(field.ref))
+		fieldr = FieldAngularSpectrum{T}(fourier.nsx_X, fourier.nsy_Y, zeros(Complex{T},1,sizeA,sizeB), field.λ, field.n, 1, copy(field.ref))
 	else
-		fieldl = FieldAngularSpectrum{T}(fourier.nsx_X, fourier.nsy_Y, field.e_SXY, field.λ, field.n, -1, copy(field.ref))
+		fieldl = FieldAngularSpectrum{T}(fourier.nsx_X, fourier.nsy_Y, zeros(Complex{T},1,sizeA,sizeB), field.λ, field.n, -1, copy(field.ref))
 		fieldr = FieldSpace{T}(copy(field.x_X), copy(field.y_Y), field.e_SXY, field.λ, field.n, 1, copy(field.ref))
 		aux = t12
 		t12 = t21
@@ -86,24 +95,35 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngular
 	(sizeA, sizeB) = (length(fourier.x_X), length(fourier.y_Y))
 	r12 = UniformScaling(zero(Complex{T}))
 	r21 = UniformScaling(zero(Complex{T}))
-	t12 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
-	t21 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
 
 	k = 2π / field.λ
 	imk = im * k
 
-	coord = LinearIndices((sizeX, sizeY))
+	coordXY = LinearIndices((sizeX, sizeY))
+	coordAB = LinearIndices((sizeA, sizeB))
 	@inbounds Threads.@threads for iX1 in 1:sizeX
+		(nsxmin, nsxmax) = integralExtremes(field.nsx_X, iX1)
 		@simd for iY1 in 1:sizeY
-			i1 = coord[iX1, iY1]
-			ΔkxΔky = Δvector(field.nsx_X, iX1) * Δvector(field.nsy_Y, iY1) * k^2
+			(nsymin, nsymax) = integralExtremes(field.nsy_Y, iY1)
+			i1 = coordXY[iX1, iY1]
 			for iA2 in 1:sizeA
 				for iB2 in 1:sizeB
-					i2 = coord[iA2, iB2]
-					ΔxΔy = Δvector(fourier.x_X, iA2) * Δvector(fourier.y_Y, iB2) / 4π^2
-					phaseterm = exp(imk * (field.nsx_X[iX1] * fourier.x_X[iA2] + field.nsy_Y[iY1] * fourier.y_Y[iB2]))
-					t12[i2, i1] = phaseterm * ΔkxΔky
-					t21[i1, i2] = ΔxΔy / phaseterm
+					t12[coordAB[iA2, iB2], i1] = k^2 * integrate_exp_x_y(k * fourier.x_X[iA2], k*fourier.y_Y[iB2], zero(T), nsxmin, nsxmax, nsymin, nsymax)
+				end
+			end
+		end
+	end
+
+	@inbounds Threads.@threads for iA1 in 1:sizeA
+		(xmin, xmax) = integralExtremes(fourier.x_X, iA1)
+		@simd for iB1 in 1:sizeB
+			(ymin, ymax) = integralExtremes(fourier.y_Y, iB1)
+			i1 = coordAB[iA1, iB1]
+			for iX2 in 1:sizeX
+				for iY2 in 1:sizeY
+					t21[coordXY[iX2, iY2], i1] = integrate_exp_x_y(-k * field.nsx_X[iX2], -k * field.nsy_Y[iY2], zero(T), xmin, xmax, ymin, ymax)
 				end
 			end
 		end
@@ -111,9 +131,9 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngular
 
 	if field.dir > 0
 		fieldl = FieldAngularSpectrum{T}(copy(field.nsx_X), copy(field.nsy_Y), field.e_SXY, field.λ, field.n, -1, copy(field.ref))
-		fieldr = FieldSpace{T}(fourier.x_X, fourier.y_Y, field.e_SXY, field.λ, field.n, 1, copy(field.ref))
+		fieldr = FieldSpace{T}(fourier.x_X, fourier.y_Y, zeros(Complex{T},1,sizeA,sizeB), field.λ, field.n, 1, copy(field.ref))
 	else
-		fieldl = FieldSpace{T}(fourier.x_X, fourier.y_Y, field.e_SXY, field.λ, field.n, -1, copy(field.ref))
+		fieldl = FieldSpace{T}(fourier.x_X, fourier.y_Y, zeros(Complex{T}, 1,sizeA,sizeB), field.λ, field.n, -1, copy(field.ref))
 		fieldr = FieldAngularSpectrum{T}(copy(field.nsx_X), copy(field.nsy_Y), field.e_SXY, field.λ, field.n, 1, copy(field.ref))
 		aux = t12
 		t12 = t21
