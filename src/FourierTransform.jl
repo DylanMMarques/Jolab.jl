@@ -1,13 +1,14 @@
-struct FourierTransform{T, X <:Union{AbstractVector{T}, Nothing}} <: AbstractOpticalComponent{T}
+struct FourierTransform{T, X <:Union{AbstractVector{T}, Nothing}, Y<:Union{ReferenceFrame{T}, Nothing}} <: AbstractOpticalComponent{T}
 	x_X::X
 	y_Y::X
 	nsx_X::X
 	nsy_Y::X
+	ref::Y
 end
 
 function FourierTransform(x_X::X1, y_Y::X2, nsx_X::X3, nsy_Y::X4) where {X1 <: AbstractVector{T}, X2 <: AbstractVector{T}, X3 <: AbstractVector{T}, X4 <: AbstractVector{T}} where T <: Real
 	X = promote_type(X1, X2, X3, X4)
-	return FourierTransform{T, X}(x_X, y_Y, nsx_X, nsy_Y)
+	return FourierTransform{T, X, Nothing}(x_X, y_Y, nsx_X, nsy_Y, nothing)
 end
 
 FourierTransform{T}() where T = FourierTransform{T, Nothing}(nothing, nothing, nothing, nothing)
@@ -27,7 +28,85 @@ end
 
 @inline checkapplicability(fourier::FourierTransform{T,X}, field::Union{FieldAngularSpectrum{T}, FieldSpace{T}}) where {T, X <:Nothing} = true
 
-function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T}) where {T, X <: AbstractVector}
+@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:Nothing}
+	(xmin, xmax) = integralExtremes(field.x_X, iX)
+	(ymin, ymax) = integralExtremes(field.y_Y, iY)
+
+	(nsxmin, nsxmax) = integralExtremes(fourier.nsx_X, iA)
+	(nsymin, nsymax) = integralExtremes(fourier.nsy_Y, iB)
+
+	k = 2π / field.λ
+
+	return (integrate_exp_x_y(-k * fourier.nsx_X[iA], -k * fourier.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2, integrate_exp_x_y(k * field.x_X[iX], k * field.y_Y[iY], zero(T), nsxmin, nsxmax, nsymin, nsymax) * k^2)
+end
+
+@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum, iX, iY, iA, iB) where {T, X, Y<:Nothing}
+	(nsxmin, nsxmax) = integralExtremes(field.nsx_X, iX)
+	(nsymin, nsymax) = integralExtremes(field.nsy_Y, iY)
+
+	(xmin, xmax) = integralExtremes(fourier.x_X, iA)
+	(ymin, ymax) = integralExtremes(fourier.y_Y, iB)
+
+	k = 2π / field.λ
+
+	return (k^2 * integrate_exp_x_y(k * fourier.x_X[iA], k*fourier.y_Y[iB], zero(T), nsxmin, nsxmax, nsymin, nsymax), integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2)
+end
+
+@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
+	(nsxmin, nsxmax) = integralExtremes(field.nsx_X, iX)
+	(nsymin, nsymax) = integralExtremes(field.nsy_Y, iY)
+
+	(xmin, xmax) = integralExtremes(fourier.x_X, iA)
+	(ymin, ymax) = integralExtremes(fourier.y_Y, iB)
+
+	k = 2π / field.λ
+
+	(refΔx, refΔy, refΔz) = (fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z)
+	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ);
+
+	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
+
+	if imagina_waves
+		@inline f(nsr) = k * ((fourier.x_X[iA] + refΔx) * nsr[1] + (fourier.y_Y[iB] + refΔy) * nsr[2] + √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz)
+		t12 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))
+	else
+		@inline g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx) * nsx + (fourier.y_Y[iB] + refΔy) * nsy + √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz)
+		t12 = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
+	end
+
+	aux = exp(-im * k * refΔz * √(field.n^2 - fourier.nsx_X[iX]^2 - fourier.nsy_Y[iY]^2))
+
+	return (t12, aux * integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2)
+end
+
+@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
+	(xmin, xmax) = integralExtremes(field.x_X, iX)
+	(ymin, ymax) = integralExtremes(field.y_Y, iY)
+
+	(nsxmin, nsxmax) = integralExtremes(fourier.nsx_X, iA)
+	(nsymin, nsymax) = integralExtremes(fourier.nsy_Y, iB)
+
+	k = 2π / field.λ
+
+	(refΔx, refΔy, refΔz) = (fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z)
+	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ);
+
+	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
+	if imagina_waves
+		f(nsr) = k * ((fourier.x_X[iX] + refΔx) * nsr[1] + (fourier.y_Y[iY] + refΔy) * nsr[2] - √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz)
+		t21 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))
+	else
+		g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx) * nsx + (fourier.y_Y[iB] + refΔy) * nsy - √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz)
+		t21 = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
+	end
+
+	aux = exp(im * k * refΔz * √(field.n^2 - fourier.nsx_X[iA]^2 - fourier.nsy_Y[iB]^2))
+
+	return (aux * integrate_exp_x_y(-k * field.nsx_X[iA], -k * field.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2, t21)
+end
+
+
+function coefficient_general(fourier::FourierTransform{T,X,Y}, field::FieldSpace{T}) where {T, X <: AbstractVector, Y<:Nothing}
 	checkapplicability(fourier, field) || tobedone()
 
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
@@ -37,35 +116,19 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T
 	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
 	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
 
-	k = 2π / field.λ
-	imk = im * k
 	coordAB = LinearIndices((sizeA, sizeB))
 	coordXY = LinearIndices((sizeX, sizeY))
 	@inbounds Threads.@threads for iX1 in 1:sizeX
-		(xmin, xmax) = integralExtremes(field.x_X, iX1)
 	 	@simd for iY1 in 1:sizeY
-			(ymin, ymax) = integralExtremes(field.y_Y, iY1)
 			i1 = coordXY[iX1, iY1]
 			for iA2 in 1:sizeA
 				for iB2 in 1:sizeB
-					t12[coordAB[iA2, iB2], i1] = integrate_exp_x_y(-k * fourier.nsx_X[iA2], -k * fourier.nsy_Y[iB2], zero(T), xmin, xmax, ymin, ymax) / 4π^2
+					i2 = coordAB[iA2, iB2]
+					(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
 				end
 			end
 		end
 	end
-	@inbounds Threads.@threads for iA1 in 1:sizeA
-		(nsxmin, nsxmax) = integralExtremes(fourier.nsx_X, iA1)
-	 	for iB1 in 1:sizeB
-			(nsymin, nsymax) = integralExtremes(fourier.nsy_Y, iB1)
-			i1 = coordAB[iA1, iB1]
-			for iX2 in 1:sizeX
-				for iY2 in 1:sizeY
-					t21[coordXY[iX2, iY2], i1] = integrate_exp_x_y(k * field.x_X[iX2], k * field.y_Y[iY2], zero(T), nsxmin, nsxmax, nsymin, nsymax) * k^2
-				end
-			end
-		end
-	end
-
 	if field.dir > 0
 		fieldl = FieldSpace{T}(copy(field.x_X), copy(field.y_Y), field.e_SXY, field.λ, field.n, -1, copy(field.ref))
 		fieldr = FieldAngularSpectrum{T}(fourier.nsx_X, fourier.nsy_Y, zeros(Complex{T},1,sizeA,sizeB), field.λ, field.n, 1, copy(field.ref))
@@ -93,37 +156,20 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngular
 	checkapplicability(fourier, field) || tobedone()
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
 	(sizeA, sizeB) = (length(fourier.x_X), length(fourier.y_Y))
-	r12 = UniformScaling(zero(Complex{T}))
-	r21 = UniformScaling(zero(Complex{T}))
+
+	(r12, r21) = (UniformScaling(zero(Complex{T})), UniformScaling(zero(Complex{T})))
 	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
 	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
-
-	k = 2π / field.λ
-	imk = im * k
 
 	coordXY = LinearIndices((sizeX, sizeY))
 	coordAB = LinearIndices((sizeA, sizeB))
 	@inbounds Threads.@threads for iX1 in 1:sizeX
-		(nsxmin, nsxmax) = integralExtremes(field.nsx_X, iX1)
 		@simd for iY1 in 1:sizeY
-			(nsymin, nsymax) = integralExtremes(field.nsy_Y, iY1)
 			i1 = coordXY[iX1, iY1]
 			for iA2 in 1:sizeA
 				for iB2 in 1:sizeB
-					t12[coordAB[iA2, iB2], i1] = k^2 * integrate_exp_x_y(k * fourier.x_X[iA2], k*fourier.y_Y[iB2], zero(T), nsxmin, nsxmax, nsymin, nsymax)
-				end
-			end
-		end
-	end
-
-	@inbounds Threads.@threads for iA1 in 1:sizeA
-		(xmin, xmax) = integralExtremes(fourier.x_X, iA1)
-		@simd for iB1 in 1:sizeB
-			(ymin, ymax) = integralExtremes(fourier.y_Y, iB1)
-			i1 = coordAB[iA1, iB1]
-			for iX2 in 1:sizeX
-				for iY2 in 1:sizeY
-					t21[coordXY[iX2, iY2], i1] = integrate_exp_x_y(-k * field.nsx_X[iX2], -k * field.nsy_Y[iY2], zero(T), xmin, xmax, ymin, ymax)
+					i2 = coordAB[iA2, iB2]
+					(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
 				end
 			end
 		end
