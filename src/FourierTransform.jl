@@ -52,34 +52,34 @@ end
 	return (k^2 * integrate_exp_x_y(k * fourier.x_X[iA], k*fourier.y_Y[iB], zero(T), nsxmin, nsxmax, nsymin, nsymax), integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2)
 end
 
-@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
+@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum{T}, iX, iY, iA, iB)::Tuple{Complex{T}, Complex{T}} where {T, X, Y<:ReferenceFrame}
 	(nsxmin, nsxmax) = integralExtremes(field.nsx_X, iX)
 	(nsymin, nsymax) = integralExtremes(field.nsy_Y, iY)
 
 	(xmin, xmax) = integralExtremes(fourier.x_X, iA)
 	(ymin, ymax) = integralExtremes(fourier.y_Y, iB)
 
-	k = 2π / field.λ
+	refΔx, refΔy, refΔz = fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z
+	(refΔx2, refΔy2, refΔz2) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ)
 
-	(refΔx, refΔy, refΔz) = (fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z)
-	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ);
+	k = 2π / field.λ
 
 	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
 
 	if imagina_waves
-		@inline f(nsr) = k * ((fourier.x_X[iA] + refΔx) * nsr[1] + (fourier.y_Y[iB] + refΔy) * nsr[2] + √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz)
-		t12 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))
+		f(nsr) = k * ((fourier.x_X[iA] + refΔx2) * nsr[1] + (fourier.y_Y[iB] + refΔy2) * nsr[2] + field.dir * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
+		t12 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))[1]
 	else
-		@inline g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx) * nsx + (fourier.y_Y[iB] + refΔy) * nsy + √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz)
+		@inline g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx2) * nsx + (fourier.y_Y[iB] + refΔy2) * nsy + field.dir * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
 		t12 = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
 	end
 
-	aux = exp(-im * k * refΔz * √(field.n^2 - fourier.nsx_X[iX]^2 - fourier.nsy_Y[iY]^2))
+	aux = exp(-im * k * refΔz2 * field.dir *√(field.n^2 - fourier.nsx_X[iX]^2 - fourier.nsy_Y[iY]^2)) # miss ref.x factors
 
 	return (t12, aux * integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2)
 end
 
-@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
+@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB)::Tuple{Complex{T}, Complex{T}} where {T, X, Y<:ReferenceFrame}
 	(xmin, xmax) = integralExtremes(field.x_X, iX)
 	(ymin, ymax) = integralExtremes(field.y_Y, iY)
 
@@ -88,25 +88,25 @@ end
 
 	k = 2π / field.λ
 
-	(refΔx, refΔy, refΔz) = (fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z)
-	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ);
+	refΔx, refΔy, refΔz = fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z
+	(refΔx2, refΔy2, refΔz2) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ)
 
 	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
 	if imagina_waves
-		f(nsr) = k * ((fourier.x_X[iX] + refΔx) * nsr[1] + (fourier.y_Y[iY] + refΔy) * nsr[2] - √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz)
+		@inline f(nsr) = k * ((fourier.x_X[iX] + refΔx2) * nsr[1] + (fourier.y_Y[iY] + refΔy2) * nsr[2] - field.dir * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
 		t21 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))
 	else
-		g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx) * nsx + (fourier.y_Y[iB] + refΔy) * nsy - √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz)
+		@inline g(nsx, nsy) = k * ((fourier.x_X[iX] + refΔx2) * nsx + (fourier.y_Y[iY] + refΔy2) * nsy + field.dir * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
 		t21 = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
 	end
 
-	aux = exp(im * k * refΔz * √(field.n^2 - fourier.nsx_X[iA]^2 - fourier.nsy_Y[iB]^2))
+	aux = exp(im * k * refΔz2 * field.dir * √(field.n^2 - fourier.nsx_X[iA]^2 - fourier.nsy_Y[iB]^2)) #MISS ref factor
 
-	return (aux * integrate_exp_x_y(-k * field.nsx_X[iA], -k * field.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2, t21)
+	return (aux * integrate_exp_x_y(-k * fourier.nsx_X[iA], -k * fourier.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2, t21)
 end
 
 
-function coefficient_general(fourier::FourierTransform{T,X,Y}, field::FieldSpace{T}) where {T, X <: AbstractVector, Y<:Nothing}
+function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T}) where {T, X <: AbstractVector}
 	checkapplicability(fourier, field) || tobedone()
 
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
@@ -118,13 +118,17 @@ function coefficient_general(fourier::FourierTransform{T,X,Y}, field::FieldSpace
 
 	coordAB = LinearIndices((sizeA, sizeB))
 	coordXY = LinearIndices((sizeX, sizeY))
-	@inbounds Threads.@threads for iX1 in 1:sizeX
-	 	@simd for iY1 in 1:sizeY
-			i1 = coordXY[iX1, iY1]
-			for iA2 in 1:sizeA
-				for iB2 in 1:sizeB
-					i2 = coordAB[iA2, iB2]
-					(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
+
+	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
+	let t12 = t12, t21 = t21, fourier = fourier, field = field
+		@inbounds Threads.@threads for iX1 in 1:sizeX
+	 	 	@simd for iY1 in 1:sizeY
+				i1 = coordXY[iX1, iY1]
+				for iA2 in 1:sizeA
+					for iB2 in 1:sizeB
+						i2 = coordAB[iA2, iB2]
+						(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
+					end
 				end
 			end
 		end
@@ -155,7 +159,7 @@ end
 function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngularSpectrum{T}) where {T, X <: AbstractVector}
 	checkapplicability(fourier, field) || tobedone()
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
-	(sizeA, sizeB) = (length(fourier.x_X), length(fourier.y_Y))
+	sizeA, sizeB = length(fourier.x_X), length(fourier.y_Y)
 
 	(r12, r21) = (UniformScaling(zero(Complex{T})), UniformScaling(zero(Complex{T})))
 	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
@@ -163,13 +167,17 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngular
 
 	coordXY = LinearIndices((sizeX, sizeY))
 	coordAB = LinearIndices((sizeA, sizeB))
-	@inbounds Threads.@threads for iX1 in 1:sizeX
-		@simd for iY1 in 1:sizeY
-			i1 = coordXY[iX1, iY1]
-			for iA2 in 1:sizeA
-				for iB2 in 1:sizeB
-					i2 = coordAB[iA2, iB2]
-					(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
+
+	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
+	let t12 = t12, t21 = t21, fourier = fourier, field = field
+		@inbounds Threads.@threads for iX1 in 1:sizeX
+		 	for iY1 in 1:sizeY
+				i1 = coordXY[iX1, iY1]
+				for iA2 in 1:sizeA
+					for iB2 in 1:sizeB
+						i2 = coordAB[iA2, iB2]
+						(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
+					end
 				end
 			end
 		end

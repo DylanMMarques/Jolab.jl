@@ -357,7 +357,7 @@ end
 	end
 end
 
-@inline function integralExtremes(x_X::AbstractRange{<:Number}, i::Integer)
+@inline function integralExtremes(x_X::AbstractRange{T}, i::Integer)::Tuple{T,T} where T
 	sizeX = length(x_X)
 	if i == 1
 		return  (x_X[1], x_X[1] + x_X.step.hi / 2)
@@ -369,7 +369,7 @@ end
 	end
 end
 
-@inline function integrate_exp_x_y(β, γ, δ, xmin, xmax, ymin, ymax)
+@inline function integrate_exp_x_y(β::T, γ::T, δ::T, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
 	if β == 0 && γ == 0
 		return exp(im * δ) * (xmax - xmin) * (ymax - ymin)
 	elseif γ == 0
@@ -381,30 +381,27 @@ end
 	end
 end
 
-@inline function integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
+@inline function integrate_exp_xy_x_y(α::T, β::T, γ::T, δ::T, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
 	# g(x,y) = (α * x * y + β * x + γ * y + δ)
-	cond = 0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1
-	# @show cond
-	if cond
-		# @show (xmin, xmax, ymin, ymax)
+	if (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
 		b(r) = exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
 		return hcubature(b, SVector(xmin, ymin), SVector(xmax, ymax))[1]
 	else
-		Pf(x, y) = begin
+		@inline Pf(x::T, y::T)::Complex{T} = begin
 			aux = (γ + α * x) * (β + α * y) / α
 			if aux < 0
-				return ((-conj(expint(im * aux))) - π * im)
+				return ((-conj(Complex{T}(expint(im * aux)))) - π * im)
 			else
-				return ((-conj(expint(im * aux))) + π * im)
+				return ((-conj(Complex{T}(expint(im * aux)))) + π * im)
 			end
  		end
-		b = - im / α * exp(im * (δ - β * γ / α)) * (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
-		return b
+		return - im / α * exp(im * (δ - β * γ / α)) * (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
 	end
 
+	return zero(Complex{T})
 end
 
-@inline function integrate_exp_xy_x_y(f::Function, xmin, xmax, ymin, ymax)
+@inline function integrate_exp_xy_x_y(f::Function, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
 	f11 = f(xmin, ymin)
 	f12 = f(xmin, ymax)
 	f21 = f(xmax, ymin)
@@ -413,6 +410,10 @@ end
 	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
 	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
 	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
-
-	return integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
+	
+	if abs(α) <= 1E-7
+		return integrate_exp_x_y(β, γ, δ, xmin, xmax, ymin, ymax)
+	else
+		return integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
+	end
 end

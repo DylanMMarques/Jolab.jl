@@ -98,7 +98,7 @@ function expint(x::Float64)
     end
 end
 
-function expint(z::Complex{Float64})
+function expint(z::Complex{Float64})::Complex{Float64}
     if real(z) < 0
         return expint(1, z)
     end

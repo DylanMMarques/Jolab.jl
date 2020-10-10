@@ -73,6 +73,13 @@ function rotatecoordinatesfrom(sx, sy, sz, θ::Real, ϕ::Real)
 	return (sxr, syr, szr);
 end
 
+@inline function rotatecoordinatesfrom(sx::T, sy::T, sz::T, θ::Real, ϕ::Real)::Tuple{T,T,T} where T
+	sxr = -real(sz) * sin(θ) + cos(θ) * (sx * cos(ϕ) + sy * sin(ϕ))
+	syr = sy * cos(ϕ) - sx * sin(ϕ)
+	szr = real(sz) * cos(θ) + sin(θ) * (sx * cos(ϕ) + sy * sin(ϕ))
+	return (sxr, syr, szr)
+end
+
 @inline function rotatecoordinatesto!(sx::AbstractArray{<:Number}, sy::AbstractArray{<:Number}, sz::AbstractArray{<:Number}, θ::Real, ϕ::Real)
 	length(sx) == length(sy) == length(sz) || error("Arrays must have the same length")
 	@inbounds @simd for i in eachindex(sxr)
