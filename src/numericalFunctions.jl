@@ -410,7 +410,7 @@ end
 	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
 	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
 	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
-	
+
 	if abs(α) <= 1E-7
 		return integrate_exp_x_y(β, γ, δ, xmin, xmax, ymin, ymax)
 	else

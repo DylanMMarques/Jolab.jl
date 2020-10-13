@@ -160,13 +160,15 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 end
 
 function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
-	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Field medium and rmls incident medium are different")
+	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n[1](fieldi.λ) : rmls.n[end](fieldi.λ), atol = @tol) || error("Field medium and rmls incident medium are different")
 	checkorientation(fieldi.ref, rmls.ref) || errorToDo()
+
+	errorToDo()
 
 	sizeX = length(fieldi.nsx_X)
 	sizeY = length(fieldi.nsy_Y)
 	k = 2π / fieldi.λ
-	n1 = rmls.n1(fieldi.λ)
+	n1 = rmls.n[1](fieldi.λ)
 	n2 = rmls.n2(fieldi.λ)
 	x = fftshift(FFTW.fftfreq(sizeX, 1 / (fieldi.nsx_X[2] - fieldi.nsx_X[1]))) * fieldi.λ
 	y = fftshift(FFTW.fftfreq(sizeY, 1 / (fieldi.nsy_Y[2] - fieldi.nsy_Y[1]))) * fieldi.λ
@@ -187,18 +189,20 @@ function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAng
 			ri12 = reflectioncoefficientinterfaces(n1, sz1_i, n2, sz2_i)
 			for iX2 in 1:sizeX
 				for iY2 in 1:sizeY
-					if (nsxfft[1] < fieldi.nsx_X[iX2] - fieldi.nsx_X[iX1] < nsxfft[sizeX] && nsyfft[1] < fieldi.nsy_Y[iY2] - fieldi.nsy_Y[iY1] < nsyfft[sizeY])
-						aux = fftz_itp(fieldi.nsx_X[iX2] - fieldi.nsx_X[iX1], fieldi.nsy_Y[iY2] - fieldi.nsy_Y[iY1])
-						sz1_s = √(1 - (fieldi.nsx_X[iX2]^2 + fieldi.nsy_Y[iY2]^2) / n1^2)
-						sz2_s = √(1 - (fieldi.nsx_X[iX2]^2 + fieldi.nsy_Y[iY2]^2) / n2^2)
-						rs12 = reflectioncoefficientinterfaces(n1, sz1_s, n2, sz2_s)
-						ts21 = transmissioncoefficientinterfaces(n2, sz2_s, n1, sz1_s)
-						ts12 = transmissioncoefficientinterfaces(n1, sz1_s, n2, sz2_s)
-						# add the minus sign because the z is upside down on the paper
-						r12[iX2, iY2, iX1, iY1] = -im * aux * (n2^2 - n1^2) / 2 * k / n1 / sz1_s * (1 + ri12) * (1 + rs12) * cons
-						t12[iX2, iY2, iX1, iY1] = -im * k / 2 / n2 / sz2_s * (n2^2 - n1^2) * aux * (1 + ri12) * ts21 * cons
-						r21[iX2, iY2, iX1, iY1] = im * aux * (n1^2 - n2^2) / 2 * k / n2 / sz2_s * (1 - ri12) * (1 - rs12) * cons
-						t21[iX2, iY2, iX1, iY1] = im * k / 2 / n1 / sz1_s * (n1^2 - n2^2) * aux * (1 - ri12) * ts12 * cons
+					for iM in 1:sizeM
+						if (nsxfft[1] < fieldi.nsx_X[iX2] - fieldi.nsx_X[iX1] < nsxfft[sizeX] && nsyfft[1] < fieldi.nsy_Y[iY2] - fieldi.nsy_Y[iY1] < nsyfft[sizeY])
+							aux = fftz_itp(fieldi.nsx_X[iX2] - fieldi.nsx_X[iX1], fieldi.nsy_Y[iY2] - fieldi.nsy_Y[iY1])
+							sz1_s = √(1 - (fieldi.nsx_X[iX2]^2 + fieldi.nsy_Y[iY2]^2) / n1^2)
+							sz2_s = √(1 - (fieldi.nsx_X[iX2]^2 + fieldi.nsy_Y[iY2]^2) / n2^2)
+							rs12 = reflectioncoefficientinterfaces(n1, sz1_s, n2, sz2_s)
+							ts21 = transmissioncoefficientinterfaces(n2, sz2_s, n1, sz1_s)
+							ts12 = transmissioncoefficientinterfaces(n1, sz1_s, n2, sz2_s)
+							# add the minus sign because the z is upside down on the paper
+							r12[iX2, iY2, iX1, iY1] = -im * aux * (n2^2 - n1^2) / 2 * k / n1 / sz1_s * (1 + ri12) * (1 + rs12) * cons
+							t12[iX2, iY2, iX1, iY1] = -im * k / 2 / n2 / sz2_s * (n2^2 - n1^2) * aux * (1 + ri12) * ts21 * cons
+							r21[iX2, iY2, iX1, iY1] = im * aux * (n1^2 - n2^2) / 2 * k / n2 / sz2_s * (1 - ri12) * (1 - rs12) * cons
+							t21[iX2, iY2, iX1, iY1] = im * k / 2 / n1 / sz1_s * (n1^2 - n2^2) * aux * (1 - ri12) * ts12 * cons
+						end
 					end
 					if (iX1 == iX2 && iY1 == iY2)
 						r12[iX2, iY2, iX1, iY1] += ri12
@@ -232,11 +236,11 @@ function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAng
 	end
 
 	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, fieldi.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n2(fieldi.λ), 1, rmls.ref)
+		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), -1, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), 1, rmls.ref)
 	else
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, rmls.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), 1, fieldi.ref)
+		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), -1, rmls.ref)
+		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), 1, fieldi.ref)
 	end
 	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Matrix{Complex{T}}, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
@@ -252,4 +256,14 @@ function roughfft(rmls::RoughMultilayerStructure{T}, nsx::AbstractRange, nsy::Ab
 	z = rmls.Δz[1].(x, y')
 	(nsxfft, nsyfft, fftz) = fourriertransformfft(x, y, z, λ)
 	return (x, y, z)
+end
+
+function plotroughsampling(rmls::RoughMultilayerStructure{T}, field::FieldAngularSpectrum) where T
+	nsx = field.nsx_X
+	nsy = field.nsy_Y
+	x = fftshift(FFTW.fftfreq(length(nsx), 1 / (nsx[2] - nsx[1]))) * field.λ
+	y = fftshift(FFTW.fftfreq(length(nsy), 1 / (nsy[2] - nsy[1]))) * field.λ
+	z = rmls.Δz[1].(x, y')
+	(nsxfft, nsyfft, fftz) = fourriertransformfft(x, y, z, field.λ)
+	return (x,y,z)
 end
