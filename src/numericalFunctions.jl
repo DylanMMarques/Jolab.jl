@@ -417,3 +417,19 @@ end
 		return integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
 	end
 end
+
+function integrate_xy_x_y_d_exp_xy_xy_y(a, b, c, d, α, β, γ, δ, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
+	# return the integral of (a xy + b x + c y + d) * exp(im * (α xy + β x + γ y + δ))
+	if (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
+		int(r) = (a * r[1] * r[2] + b * r[1] + c * r[2] + d) * exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
+		return hcubature(int, SVector(xmin, ymin), SVector(xmax, ymax))[1]
+	else
+		@inline Pf(x::T, y::T)::Complex{T} = begin
+			aux = (γ + α * x) * (β + α * y) / α
+			expi = -conj(Complex{T}(expint(im * aux))) + (aux < 0 ? - π * im : π * im)
+		 	return - 1 / α^3 * im * exp(im * δ) * (-((im * α * exp(im * (β * x + (γ + α * x) * y)) * (-a * β * γ + α * (β * c + b * γ) + α^2 * (b * x + c * y + a * x * y))) / ((γ + α * x) * (β + α * y))) + exp(- im * β * γ / α) * (α * (- β * c + α * d - b * γ) + a * (im * α + β * γ)) * expi)
+ 		end
+		return (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
+	end
+	return zero(Complex{T})
+end
