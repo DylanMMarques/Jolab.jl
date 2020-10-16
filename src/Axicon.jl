@@ -46,8 +46,8 @@ function lightinteraction(axicon::Axicon, space::FieldSpace{T}) where T
 
 	(fieldl, fieldr) = getfields_lr(axicon, space)
 
-	e_SXY = space.dir > 0 ? fieldr.e_SXY : fieldl.e_SXY
-	space.dir > 0 ? fieldl.e_SXY .= zero(Complex{T}) : fieldr.e_SXY .= zero(Complex{T})
+	e_SXY = dir(space) > 0 ? fieldr.e_SXY : fieldl.e_SXY
+	dir(space) > 0 ? fieldl.e_SXY .= zero(Complex{T}) : fieldr.e_SXY .= zero(Complex{T})
 	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
 	let axicon = axicon, space = space
 		@inbounds Threads.@threads for iX1 in 1:sizeX
@@ -60,7 +60,7 @@ function lightinteraction(axicon::Axicon, space::FieldSpace{T}) where T
 	return (fieldl, fieldr)
 end
 
-function get_scatteringmatrixtype(axicon::Axicon{T}, fieldi::FieldSpace{T,X}) where {T,X}
+function get_scatteringmatrixtype(axicon::Axicon{T}, fieldi::FieldSpace{T,D,X}) where {T,D,X}
 	sizeXY = length(fieldi.x_X) * length(fieldi.y_Y)
 	r12 = nothing
 	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
@@ -71,11 +71,11 @@ function get_scatteringmatrixtype(axicon::Axicon{T}, fieldi::FieldSpace{T,X}) wh
 
 	(fieldl, fieldr) = getfields_lr(axicon, fieldi)
 
-	return ScatteringMatrix{T,FieldSpace{T,X},FieldSpace{T,X}, Nothing, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T,FieldSpace{T,-1,X},FieldSpace{T,1,X}, Nothing, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-function getfields_lr(axicon::Axicon, fieldi::FieldSpace{T,X}) where {T,X}
-	fieldl = FieldSpace{T,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, -1, axicon.ref)
-	fieldr = FieldSpace{T,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, 1, axicon.ref)
+function getfields_lr(axicon::Axicon, fieldi::FieldSpace{T,D,X}) where {T,D,X}
+	fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
 	return (fieldl, fieldr)
 end

@@ -1,11 +1,10 @@
-mutable struct FieldModes{T<:Real,M<:AbstractModes{T}} <: AbstractFieldMonochromatic{T}
+mutable struct FieldModes{T<:Real,D,M<:AbstractModes{T}} <: AbstractFieldMonochromatic{T,D}
     modesamplitude::Vector{Complex{T}}
     modes::M
-    dir::Int8
 	ref::ReferenceFrame{T}
     function FieldModes{T}(modesamplitude, modes::M, dir, ref) where {T, M}
         length(modesamplitude) == length(modes.m) || error("size must be the same")
-        new{T,M}(modesamplitude, modes, dir, ref)
+        new{T,dir,M}(modesamplitude, modes, dir, ref)
     end
 end
 

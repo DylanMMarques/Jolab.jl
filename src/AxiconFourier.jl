@@ -90,7 +90,7 @@ function coefficient_general(axicon::AxiconFourier, field::AbstractFieldMonochro
 				for iA2 in 1:sizeA
 					for iB2 in 1:sizeB
 						i2 = coordAB[iA2, iB2]
-						if field.dir > 0
+						if dir(field) > 0
 							scat.t₁₂[i2, i1] = t(axicon, field, iX1, iY1, iA2, iB2)
 							scat.t₂₁[i1, i2] = tinv(axicon, field, iX1, iY1, iA2, iB2)
 						else
@@ -115,29 +115,27 @@ function lightinteraction(axicon::AxiconFourier{T,X}, field::AbstractFieldMonoch
 	coordXY = LinearIndices((sizeX, sizeY))
 	coordAB = LinearIndices((sizeA, sizeB))
 
-	e_SXY = zeros(Complex{T}, size(field.e_SXY,1), sizeA, sizeB)
+	(fieldl, fieldr) = getfields_lr(axicon, field)
+	fieldl.e_SXY .= zero(Complex{T})
+	fieldr.e_SXY .= zero(Complex{T})
+
 	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
-	let axicon = axicon, field = field, e_SXY = e_SXY
+	let axicon = axicon, field = field, fieldl = fieldl, fieldr = fieldr
 		@inbounds Threads.@threads for iA2 in 1:sizeA
 			@simd for iB2 in 1:sizeB
 				i2 = coordAB[iA2, iB2]
 				for iX1 in 1:sizeX
 	 	 			for iY1 in 1:sizeY
 						i1 = coordXY[iX1, iY1]
-						e_SXY[i2] += fieldi_newref.e_SXY[i1] * t(axicon, field, iX1, iY1, iA2, iB2)
+						if dir(fieldi_newref) > 0
+							fieldr.e_SXY[i2] += fieldi_newref.e_SXY[i1] * t(axicon, field, iX1, iY1, iA2, iB2)
+						else
+							fieldl.e_SXY[i2] += fieldi_newref.e_SXY[i1] * t(axicon, field, iX1, iY1, iA2, iB2)
+						end
 					end
 				end
 			end
 		end
-	end
-
-	(fieldl, fieldr) = getfields_lr(axicon, field)
-	if field.dir > 0
-		fieldr.e_SXY = e_SXY
-		fieldl.e_SXY .= zero(Complex{T})
-	else
-		fieldl.e_SXY = e_SXY
-		fieldr.e_SXY .= zero(Complex{T})
 	end
 	return (fieldl, fieldr)
 end
@@ -152,7 +150,7 @@ function checkapplicability(axicon::AxiconFourier, angspe::FieldAngularSpectrum)
 	return true
 end
 
-function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldSpace{T,X}) where {T,X,Y}
+function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldSpace{T,D,X}) where {T,D,X,Y}
 	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
 	sizeA, sizeB = length(axicon.nsx_X), length(axicon.nsy_Y)
 
@@ -161,18 +159,18 @@ function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldSpace
 	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
 	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
 	m = Array{Complex{T},3}(undef,1,length(axicon.nsx_X), length(axicon.nsy_Y))
-	if fieldi.dir > 0
-		fieldl = FieldSpace{T,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, -1, fieldi.ref)
-		fieldr = FieldAngularSpectrum{T,Y}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, 1, axicon.ref)
-		return ScatteringMatrix{T,FieldSpace{T,X}, FieldAngularSpectrum{T,Y},Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	if dir(fieldi) > 0
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, axicon.ref)
+		return ScatteringMatrix{T,FieldSpace{T,-1,X}, FieldAngularSpectrum{T,1,Y},Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 	else
-		fieldl = FieldAngularSpectrum{T,Y}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, -1, axicon.ref)
-		fieldr = FieldSpace{T,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, 1, fieldi.ref)
-		return ScatteringMatrix{T, FieldAngularSpectrum{T,Y}, FieldSpace{T,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, axicon.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,Y}, FieldSpace{T,1,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 	end
 end
 
-function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldAngularSpectrum{T,X}) where {T,X,Y}
+function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D,X,Y}
 	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
 	sizeA, sizeB = length(axicon.x_X), length(axicon.y_Y)
 
@@ -182,37 +180,41 @@ function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldAngul
 	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
 
 	m = Array{Complex{T},3}(undef,1,length(axicon.x_X), length(axicon.y_Y))
-	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, -1, fieldi.ref)
-		fieldr = FieldSpace{T,X}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, 1, axicon.ref)
-		return ScatteringMatrix{T, FieldAngularSpectrum{T,Y}, FieldSpace{T,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, axicon.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,Y}, FieldSpace{T,1,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 	else
-		fieldl = FieldSpace{T,X}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, -1, axicon.ref)
-		fieldr = FieldAngularSpectrum{T,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, 1, fieldi.ref)
-		return ScatteringMatrix{T, FieldSpace{T,X}, FieldAngularSpectrum{T,Y}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+		fieldl = FieldSpace{T,-1,X}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, axicon.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldSpace{T,-1,X}, FieldAngularSpectrum{T,1,Y}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 	end
 end
 
-function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldSpace{T,X}) where {T,X,A}
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldSpace{T,1,X}) where {T,X,A}
 	m = Array{Complex{T},3}(undef,1,length(axicon.nsx_X), length(axicon.nsy_Y))
-	if fieldi.dir > 0
-		fieldl = FieldSpace{T,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, -1, axicon.ref)
-		fieldr = FieldAngularSpectrum{T,A}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, 1, axicon.ref)
-	else
-		fieldl = FieldAngularSpectrum{T,A}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, -1, axicon.ref)
-		fieldr = FieldSpace{T,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, 1, axicon.ref)
-	end
+	fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldAngularSpectrum{T,1,A}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, axicon.ref)
 	return (fieldl, fieldr)
 end
 
-function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldAngularSpectrum{T,X}) where {T,X,A}
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldSpace{T,-1,X}) where {T,X,A}
+	m = Array{Complex{T},3}(undef,1,length(axicon.nsx_X), length(axicon.nsy_Y))
+	fieldl = FieldAngularSpectrum{T,-1,A}(deepcopy(axicon.nsx_X), deepcopy(axicon.nsy_Y), m, fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldAngularSpectrum{T,1,X}) where {T,X,A}
 	m = Array{Complex{T},3}(undef, 1, length(axicon.x_X), length(axicon.y_Y))
-	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, -1, axicon.ref)
-		fieldr = FieldSpace{T,A}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, 1, axicon.ref)
-	else
-		fieldl = FieldSpace{T,A}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, -1, axicon.ref)
-		fieldr = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, 1, axicon.ref)
-	end
+	fieldl = FieldAngularSpectrum{T,-1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldSpace{T,1,A}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, axicon.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldAngularSpectrum{T,-1,X}) where {T,X,A}
+	m = Array{Complex{T},3}(undef, 1, length(axicon.x_X), length(axicon.y_Y))
+	fieldl = FieldSpace{T,-1,A}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldAngularSpectrum{T,1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
 	return (fieldl, fieldr)
 end

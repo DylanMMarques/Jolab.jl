@@ -68,23 +68,23 @@ function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrum, tip::Integ
 	end
 end
 
-function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumSymmetric, tip::Integer=1)::Float64
-
-	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1;)
-
-	dir == angspe.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
-	angsperef = angspe#changereferenceframe(angspe, ref);
-
-	k = 2 * π * angsperef.n / angsperef.λ;
-	kx_X = adddims(k * angsperef.sx_X, (1,));
-
-	cons = fibre.mfd * √(1 / 32 / π^3);
-	sens_XY = cons .* exp.(.- fibre.mfd.^2 ./ 16 .* kx_X.^2);
-
-	e_SXY = angsperef.e_SXY .* sens_XY .* kx_X;
-	e_S = ∫(vec(e_SXY), vec(kx_X));
-	return 64 .* π.^6 .* abs2(e_S);
-end
+# function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumSymmetric, tip::Integer=1)::Float64
+#
+# 	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1;)
+#
+# 	dir == angspe.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
+# 	angsperef = angspe#changereferenceframe(angspe, ref);
+#
+# 	k = 2 * π * angsperef.n / angsperef.λ;
+# 	kx_X = adddims(k * angsperef.sx_X, (1,));
+#
+# 	cons = fibre.mfd * √(1 / 32 / π^3);
+# 	sens_XY = cons .* exp.(.- fibre.mfd.^2 ./ 16 .* kx_X.^2);
+#
+# 	e_SXY = angsperef.e_SXY .* sens_XY .* kx_X;
+# 	e_S = ∫(vec(e_SXY), vec(kx_X));
+# 	return 64 .* π.^6 .* abs2(e_S);
+# end
 
 function signal(fibre::SingleModeFibre, fieldspace::FieldSpace, tip::Integer=1)::Float64
 	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1);
@@ -109,18 +109,18 @@ function signal(fibre::SingleModeFibre, fieldspace::FieldSpace, tip::Integer=1):
 	end
 end
 
-function signal(fibre::SingleModeFibre, fieldspace::FieldSpaceSymmetric, tip::Integer=1)::Float64
-	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1);
-	dir == fieldspace.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -fieldspace.dir)") : nothing
-
-	fieldspaceref = changereferenceframe(fieldspace, ref);
-
-	x_X = adddims(fieldspaceref.x_X, (1,));
-
-	cons = √(8 / π / fibre.mfd.^2);
-	sens_XY = cons .* exp.(.- 4 ./ fibre.mfd.^2 .* x_X.^2);
-
-	e_SXY = fieldspaceref.e_SXY .* sens_XY .* x_X;
-	e_S = ∫(vec(e_SXY), vec(x_X));
-	return abs2(e_S) * 4 * π^2;
-end
+# function signal(fibre::SingleModeFibre, fieldspace::FieldSpaceSymmetric, tip::Integer=1)::Float64
+# 	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1);
+# 	dir == fieldspace.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -fieldspace.dir)") : nothing
+#
+# 	fieldspaceref = changereferenceframe(fieldspace, ref);
+#
+# 	x_X = adddims(fieldspaceref.x_X, (1,));
+#
+# 	cons = √(8 / π / fibre.mfd.^2);
+# 	sens_XY = cons .* exp.(.- 4 ./ fibre.mfd.^2 .* x_X.^2);
+#
+# 	e_SXY = fieldspaceref.e_SXY .* sens_XY .* x_X;
+# 	e_S = ∫(vec(e_SXY), vec(x_X));
+# 	return abs2(e_S) * 4 * π^2;
+# end

@@ -2,10 +2,11 @@ using Jolab
 axicon = Axicon(0.003, ReferenceFrame(0.,0.,0))
 
 # Create the gaussian field incident upon the axicon
-x = range(-3E-3, 3E-3, length = 52)
-nsx = range(-0.006, 0.006, length = 51)
+x = range(-3E-3, 3E-3, length = 51)
+nsx = range(-0.006, 0.006, length = 50)
 
 for dir in [-1, 1]
+    dir = 1
     field = FieldSpace_gaussian(x, x, 2.5E-3, 1550E-9, 1, dir, ReferenceFrame(0,0,0.))
 
     # calculate the transmission matrix of the axicon

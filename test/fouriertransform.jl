@@ -1,7 +1,7 @@
 using Jolab, Test
 
-sx = range(-.3, .3, length = 50)
-x = range(-15E-6, 15E-6, length = 50)
+sx = range(-.3, .3, length = 51)
+x = range(-15E-6, 15E-6, length = 51)
 
 ref = ReferenceFrame(0.,0,0,0,0)
 λ = 1550E-9
@@ -47,7 +47,7 @@ angsperef = FieldAngularSpectrum_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
 spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., dir, ref)
 fourier = Jolab.FourierTransform(x, x, sx, sx)
 
-(tmp, space) = lightinteraction(fourier, angsperef)
+@time (tmp, space) = lightinteraction(fourier, angsperef)
 @test isapprox(spaceref.e_SXY, space.e_SXY, rtol = .5E-2)
 
 spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., -dir, ref)

@@ -1,16 +1,18 @@
-mutable struct FieldAngularSpectrum{T,X<:AbstractVector{T}} <: AbstractFieldAngularSpectrum{T}
+mutable struct FieldAngularSpectrum{T,D, X<:AbstractVector{T}} <: AbstractFieldAngularSpectrum{T,D}
 	nsx_X::X
 	nsy_Y::X
 	e_SXY::Array{Complex{T}, 3}
 	λ::T
 	n::Complex{T}
-	dir::Int8
 	ref::ReferenceFrame{T}
-	function FieldAngularSpectrum{T,X}(nsx_X, nsy_Y, e_SXY, λ, n, dir, ref) where {T,X}
+	function FieldAngularSpectrum{T,D,X}(nsx_X, nsy_Y, e_SXY, λ, n, ref) where {T,D,X}
 		length(nsx_X) != size(e_SXY, 2) && error("The length of sx_X must be the same as the size of e_SXY in the second dimension.")
 		length(nsy_Y) != size(e_SXY, 3) && error("The length of sy_Y must be the same as the size of e_SXY in the third dimension.")
 		(size(e_SXY, 1) != 1 && size(e_SXY, 1) != 3) && error("The size of e_SXY must be 1 (scallar field) or 3 (vectorial field).")
-		return new{T,X}(nsx_X, nsy_Y, e_SXY, λ, n, dir >= 0 ? 1 : -1, ref);
+		return new{T,D,X}(nsx_X, nsy_Y, e_SXY, λ, n, ref);
+	end
+	function FieldAngularSpectrum{T,X}(nsx_X, nsy_Y, e_SXY, λ, n, dir, ref) where {T,X}
+		return FieldAngularSpectrum{T,dir,X}(nsx_X, nsy_Y, e_SXY, λ, n, ref);
 	end
 	function FieldAngularSpectrum{T}(nsx_X::X, nsy_Y::Y, e_SXY, λ, n, dir, ref) where {T,X,Y}
 		M = promote_type(X,Y)
@@ -170,7 +172,7 @@ end
 function translatereferenceframe!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
 	nsx_XY = repeat(angspe.nsx_X, 1, length(angspe.nsy_Y))
 	nsy_XY = repeat(reshape(angspe.nsy_Y, 1, :), length(angspe.nsx_X), 1)
-	nsz_XY = angspe.dir .* .√(angspe.n^2 .- angspe.nsx_X.^2 .- (angspe.nsy_Y').^2)
+	nsz_XY = dir(angspe) .* .√(angspe.n^2 .- angspe.nsx_X.^2 .- (angspe.nsy_Y').^2)
 	translatereferenceframe!(angspe.e_SXY, nsx_XY, nsy_XY, nsz_XY, angspe.λ, angspe.ref, refnew)
 	angspe.ref.x = refnew.x;
 	angspe.ref.y = refnew.y;

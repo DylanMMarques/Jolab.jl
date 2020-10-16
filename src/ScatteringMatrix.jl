@@ -93,8 +93,8 @@ function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X
 	end
 end
 
-function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{L,R}) where {T,X<:Nothing,L,R}
-	if fieldi.dir > 0
+function lightinteraction!(fieldl::AbstractFieldMonochromatic{T,-1}, fieldr::AbstractFieldMonochromatic{T,1}, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{A,B}) where {T,X<:Nothing,L,R, A<:AbstractFieldMonochromatic{T,1}, B<:AbstractFieldMonochromatic{T,-1}}
+	if dir(fieldi) > 0
 		mul!(vec(fieldr.e_SXY), scatM.t₁₂, vec(fieldi.e_SXY))
 	else
 		mul!(vec(fieldl.e_SXY), scatM.t₂₁, vec(fieldi.e_SXY))
@@ -102,11 +102,11 @@ function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X
 end
 
 function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix, comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic)
-	ref = (fieldi.dir > 0 ? ref1(comp) : ref2(comp))
+	ref = (dir(fieldi) > 0 ? ref1(comp) : ref2(comp))
 	checkorientation(fieldi.ref, ref) || errorToDo()
 	if !checkposition(fieldi.ref, ref)
 		propM = propagationmatrix(fieldi, ref)
-		if fieldi.dir > 0
+		if dir(fieldi) > 0
 			rmul!(scat.r₁₂, propM)
 			lmul!(propM, scat.r₁₂)
 			rmul!(scat.t₁₂, propM)

@@ -85,7 +85,7 @@ end
 function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum) where {T<:Real}
 	checkapplicability(mls, fieldi)
 	(fieldl, fieldr) = getfields_lr(mls, fieldi)
-	fieldi_newref = changereferenceframe(fieldi, fieldi.dir > 0 ? ref1(mls) : ref2(mls))
+	fieldi_newref = changereferenceframe(fieldi, dir(fieldi) > 0 ? ref1(mls) : ref2(mls))
 
 	n_A = [mls.n_A[i](fieldi.λ) for i in eachindex(mls.n_A)]
 	inv_n_A = n_A[end:-1:1]
@@ -98,7 +98,7 @@ function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpect
 			for iX in eachindex(fieldi_newref.nsx_X)
 			nsr = √(fieldi_newref.nsx_X[iX]^2 + fieldi_newref.nsy_Y[iY]^2)
 			i = cart[iX, iY]
-			if fieldi_newref.dir > 0
+			if dir(fieldi_newref) > 0
 				(r, t) = rtss₁₂(nsr, n_A, mls.h_A, fieldi.λ)
 				fieldl.e_SXY[i] = fieldi_newref.e_SXY[i] * r
 				fieldr.e_SXY[i] = fieldi_newref.e_SXY[i] * t
@@ -112,7 +112,7 @@ function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpect
 	return (fieldl, fieldr)
 end
 
-function get_scatteringmatrixtype(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,X}) where {T,X}
+function get_scatteringmatrixtype(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D,X}
 	sizeXY = length(fieldi.nsx_X) * length(fieldi.nsy_Y)
 	r12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
@@ -121,15 +121,15 @@ function get_scatteringmatrixtype(mls::MultilayerStructure{T}, fieldi::FieldAngu
 	sizeX = length(fieldi.nsx_X)
 	sizeY = length(fieldi.nsy_Y)
 
-	fieldl = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), -1, fieldi.dir > 0 ? fieldi.ref : ref1(mls))
-	fieldr = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), 1, fieldi.dir > 0 ? ref2(mls) : fieldi.ref)
+	fieldl = FieldAngularSpectrum{T,-1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), dir(fieldi) > 0 ? fieldi.ref : ref1(mls))
+	fieldr = FieldAngularSpectrum{T,1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), dir(fieldi) > 0 ? ref2(mls) : fieldi.ref)
 
-	return ScatteringMatrix{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,X}, FieldAngularSpectrum{T,1,X}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-function getfields_lr(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,X}) where {T,X}
-	fieldl = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), -1, ref1(mls))
-	fieldr = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), 1, ref2(mls))
+function getfields_lr(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,1,X}) where {T,X}
+	fieldl = FieldAngularSpectrum{T,-1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), ref1(mls))
+	fieldr = FieldAngularSpectrum{T,1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), ref2(mls))
 	return (fieldl, fieldr)
 end
 
@@ -139,6 +139,6 @@ end
 end
 
 function checkapplicability(mls::MultilayerStructure, fieldi::AbstractFieldAngularSpectrum)
-	isapprox(fieldi.n, fieldi.dir > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and multilayer structure medium are different")
+	isapprox(fieldi.n, dir(fieldi) > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and multilayer structure medium are different")
 	checkorientation(fieldi.ref, mls.ref) || errorToDo()
 end

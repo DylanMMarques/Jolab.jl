@@ -11,13 +11,13 @@ module Jolab
 	import FunctionWrappers: FunctionWrapper
 	using Random
 
-	export FieldAngularSpectrum, FieldAngularSpectrum_fromspace, FieldAngularSpectrum_fromspacefft, FieldAngularSpectrum_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar, FieldAngularSpectrumSymmetric_gaussian, FieldAngularSpectrumSymmetric
-	export FieldSpace, FieldSpace_gaussian, FieldSpace_uniform, FieldSpace_fromangspe, FieldSpace_fromangspefft, FieldSpaceSymmetric, FieldSpaceSymmetric_gaussian
+	export FieldAngularSpectrum, FieldAngularSpectrum_fromspace, FieldAngularSpectrum_fromspacefft, FieldAngularSpectrum_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar
+	export FieldSpace, FieldSpace_gaussian, FieldSpace_uniform, FieldSpace_fromangspe, FieldSpace_fromangspefft
 	export angspeto3Dspace
 	export PointDetector, signal
 	export ReferenceFrame
 	export lightinteraction, MultilayerStructure
-	export SingleModeFibre, signal, FieldSpace_fromfibre, FieldAngularSpectrum_fromfibre, FieldSpaceSymmetric_fromfibre, FieldAngularSpectrumSymmetric_fromfibre
+	export SingleModeFibre, signal, FieldSpace_fromfibre, FieldAngularSpectrum_fromfibre
 	export numberofmodes
 	export adddims
 	export Lens
@@ -38,9 +38,9 @@ module Jolab
 		error("Sorry, function not implemented yet.")
 	end
 
-	abstract type AbstractFieldMonochromatic{T<:Real} end
-	abstract type AbstractFieldAngularSpectrum{T} <: AbstractFieldMonochromatic{T} end
-	abstract type AbstractFieldSpace{T} <: AbstractFieldMonochromatic{T} end
+	abstract type AbstractFieldMonochromatic{T<:Real, D} end
+	abstract type AbstractFieldAngularSpectrum{T,D} <: AbstractFieldMonochromatic{T,D} end
+	abstract type AbstractFieldSpace{T,D} <: AbstractFieldMonochromatic{T,D} end
 
 	abstract type AbstractCoefficient{T<:Real, L<:Union{AbstractFieldMonochromatic{T}, Number}, R<:Union{AbstractFieldMonochromatic{T}, Number}} end
 	abstract type AbstractCoefficientCache{T<:Real} end
@@ -62,9 +62,7 @@ module Jolab
 	include("JolabFunction.jl")
 	include("RefractiveIndexDatabase.jl")
 	include("AngularSpectrum.jl");
-	include("AngularSpectrumSymmetric.jl");
 	include("FieldSpace.jl")
-	include("FieldSpaceSymmetric.jl")
 	include("FieldModes.jl")
 	include("PointDetector.jl")
 	include("PropagationCoefficient.jl")

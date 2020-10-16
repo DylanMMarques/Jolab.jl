@@ -14,75 +14,94 @@ end
 FourierTransform{T}() where T = FourierTransform{T, Nothing}(nothing, nothing, nothing, nothing)
 FourierTransform() = FourierTransform{Float64}()
 
-@inline function checkapplicability(fourier::FourierTransform{T,X}, field::FieldSpace{T}) where {T, X <: AbstractVector}
-	isapprox(fourier.x_X, field.x_X, atol = @tol) || return false
-	isapprox(fourier.y_Y, field.y_Y, atol = @tol) || return false
-	return true
-end
+@inline checkapplicability(fourier::FourierTransform, field::Union{FieldAngularSpectrum{T}, FieldSpace{T}}) where {T} = true
 
-@inline function checkapplicability(fourier::FourierTransform{T,X}, field::FieldAngularSpectrum{T}) where {T, X <: AbstractVector}
-	isapprox(fourier.nsx_X, field.nsx_X, atol = @tol) || return false
-	isapprox(fourier.nsy_Y, field.nsy_Y, atol = @tol) || return false
-	return true
-end
-
-@inline checkapplicability(fourier::FourierTransform{T,X}, field::Union{FieldAngularSpectrum{T}, FieldSpace{T}}) where {T, X <:Nothing} = true
-
-@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:Nothing}
+@inline function t(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:Nothing}
 	(xmin, xmax) = integralExtremes(field.x_X, iX)
 	(ymin, ymax) = integralExtremes(field.y_Y, iY)
 
+	k = 2π / field.λ
+
+	return integrate_exp_x_y(-k * fourier.nsx_X[iA], -k * fourier.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2
+end
+
+@inline function tinv(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:Nothing}
 	(nsxmin, nsxmax) = integralExtremes(fourier.nsx_X, iA)
 	(nsymin, nsymax) = integralExtremes(fourier.nsy_Y, iB)
 
 	k = 2π / field.λ
 
-	return (integrate_exp_x_y(-k * fourier.nsx_X[iA], -k * fourier.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2, integrate_exp_x_y(k * field.x_X[iX], k * field.y_Y[iY], zero(T), nsxmin, nsxmax, nsymin, nsymax) * k^2)
+	return integrate_exp_x_y(k * field.x_X[iX], k * field.y_Y[iY], zero(T), nsxmin, nsxmax, nsymin, nsymax) * k^2
 end
 
-@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum, iX, iY, iA, iB) where {T, X, Y<:Nothing}
+@inline function t(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum, iX, iY, iA, iB) where {T, X, Y<:Nothing}
 	(nsxmin, nsxmax) = integralExtremes(field.nsx_X, iX)
 	(nsymin, nsymax) = integralExtremes(field.nsy_Y, iY)
 
+	k = 2π / field.λ
+
+	return k^2 * integrate_exp_x_y(k * fourier.x_X[iA], k*fourier.y_Y[iB], zero(T), nsxmin, nsxmax, nsymin, nsymax)
+end
+
+@inline function tinv(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum, iX, iY, iA, iB) where {T, X, Y<:Nothing}
 	(xmin, xmax) = integralExtremes(fourier.x_X, iA)
 	(ymin, ymax) = integralExtremes(fourier.y_Y, iB)
 
 	k = 2π / field.λ
 
-	return (k^2 * integrate_exp_x_y(k * fourier.x_X[iA], k*fourier.y_Y[iB], zero(T), nsxmin, nsxmax, nsymin, nsymax), integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2)
+	return integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2
 end
 
-@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum{T}, iX, iY, iA, iB)::Tuple{Complex{T}, Complex{T}} where {T, X, Y<:ReferenceFrame}
+@inline function t(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum{T}, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
 	(nsxmin, nsxmax) = integralExtremes(field.nsx_X, iX)
 	(nsymin, nsymax) = integralExtremes(field.nsy_Y, iY)
 
-	(xmin, xmax) = integralExtremes(fourier.x_X, iA)
-	(ymin, ymax) = integralExtremes(fourier.y_Y, iB)
+	k = 2π / field.λ
 
 	refΔx, refΔy, refΔz = fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z
 	(refΔx2, refΔy2, refΔz2) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ)
 
-	k = 2π / field.λ
-
 	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
 
 	if imagina_waves
-		f(nsr) = k * ((fourier.x_X[iA] + refΔx2) * nsr[1] + (fourier.y_Y[iB] + refΔy2) * nsr[2] + field.dir * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
+		f(nsr) = k * ((fourier.x_X[iA] + refΔx2) * nsr[1] + (fourier.y_Y[iB] + refΔy2) * nsr[2] + dir(field) * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
 		t12 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))[1]
 	else
-		@inline g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx2) * nsx + (fourier.y_Y[iB] + refΔy2) * nsy + field.dir * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
+		@inline g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx2) * nsx + (fourier.y_Y[iB] + refΔy2) * nsy + dir(field) * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
 		t12 = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
 	end
-
-	aux = exp(-im * k * refΔz2 * field.dir *√(field.n^2 - fourier.nsx_X[iX]^2 - fourier.nsy_Y[iY]^2)) # miss ref.x factors
-
-	return (t12, aux * integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2)
+	return t12
 end
 
-@inline function fourierΔintegral(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB)::Tuple{Complex{T}, Complex{T}} where {T, X, Y<:ReferenceFrame}
+@inline function tinv(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum{T}, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
+	(xmin, xmax) = integralExtremes(fourier.x_X, iA)
+	(ymin, ymax) = integralExtremes(fourier.y_Y, iB)
+
+	k = 2π / field.λ
+
+	refΔx, refΔy, refΔz = fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z
+	(refΔx2, refΔy2, refΔz2) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ)
+
+	aux = exp(-im * k * refΔz2 * dir(field) * √(field.n^2 - fourier.nsx_X[iX]^2 - fourier.nsy_Y[iY]^2)) # miss ref.x factors
+
+	return aux * integrate_exp_x_y(-k * field.nsx_X[iX], -k * field.nsy_Y[iY], zero(T), xmin, xmax, ymin, ymax) / 4π^2
+end
+
+@inline function t(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
 	(xmin, xmax) = integralExtremes(field.x_X, iX)
 	(ymin, ymax) = integralExtremes(field.y_Y, iY)
 
+	k = 2π / field.λ
+
+	refΔx, refΔy, refΔz = fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z
+	(refΔx2, refΔy2, refΔz2) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ)
+
+	aux = exp(im * k * refΔz2 * dir(field) * √(field.n^2 - fourier.nsx_X[iA]^2 - fourier.nsy_Y[iB]^2)) #MISS ref factor
+
+	return aux * integrate_exp_x_y(-k * fourier.nsx_X[iA], -k * fourier.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2
+end
+
+@inline function tinv(fourier::FourierTransform{T,X,Y}, field::FieldSpace, iX, iY, iA, iB) where {T, X, Y<:ReferenceFrame}
 	(nsxmin, nsxmax) = integralExtremes(fourier.nsx_X, iA)
 	(nsymin, nsymax) = integralExtremes(fourier.nsy_Y, iB)
 
@@ -93,60 +112,226 @@ end
 
 	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
 	if imagina_waves
-		@inline f(nsr) = k * ((fourier.x_X[iX] + refΔx2) * nsr[1] + (fourier.y_Y[iY] + refΔy2) * nsr[2] - field.dir * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
-		t21 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))
+		@inline f(nsr) = k * ((fourier.x_X[iX] + refΔx2) * nsr[1] + (fourier.y_Y[iY] + refΔy2) * nsr[2] - dir(field) * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
+		t = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))
 	else
-		@inline g(nsx, nsy) = k * ((fourier.x_X[iX] + refΔx2) * nsx + (fourier.y_Y[iY] + refΔy2) * nsy + field.dir * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
-		t21 = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
+		@inline g(nsx, nsy) = k * ((fourier.x_X[iX] + refΔx2) * nsx + (fourier.y_Y[iY] + refΔy2) * nsy + dir(field) * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
+		t = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
 	end
-
-	aux = exp(im * k * refΔz2 * field.dir * √(field.n^2 - fourier.nsx_X[iA]^2 - fourier.nsy_Y[iB]^2)) #MISS ref factor
-
-	return (aux * integrate_exp_x_y(-k * fourier.nsx_X[iA], -k * fourier.nsy_Y[iB], zero(T), xmin, xmax, ymin, ymax) / 4π^2, t21)
+	return t
 end
 
+getsizes(fourier::FourierTransform{T,X}, field::FieldSpace) where {T, X<:AbstractVector} = (length(fourier.nsx_X), length(fourier.nsy_Y))
+getsizes(fourier::FourierTransform{T,X}, field::FieldAngularSpectrum) where {T, X<:AbstractVector} = (length(fourier.x_X), length(fourier.y_Y))
 
-function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T}) where {T, X <: AbstractVector}
+function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::FieldSpace{T,D,X}) where {T,D,Y, X<:AbstractVector, R<:ReferenceFrame}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
+	r12 = nothing
+	r21 = nothing
+	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
+	m = Array{Complex{T},3}(undef,1,sizeA, sizeB)
+	if dir(fieldi) > 0
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+		return ScatteringMatrix{T,FieldSpace{T,-1,X}, FieldAngularSpectrum{T,1,Y},Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	else
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,Y}, FieldSpace{T,1,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	end
+end
+
+function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::FieldSpace{T,D,X}) where {T, D,X<:AbstractVector, R<:Nothing, Y}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
+	r12 = nothing
+	r21 = nothing
+	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
+	m = Array{Complex{T},3}(undef,1,sizeA, sizeB)
+	if dir(fieldi) > 0
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T,FieldSpace{T,-1,X}, FieldAngularSpectrum{T,1,Y},Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	else
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,Y}, FieldSpace{T,1,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	end
+end
+
+function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D,X,Y,R<:Nothing}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
+
+	r12 = nothing
+	r21 = nothing
+	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
+
+	m = Array{Complex{T},3}(undef,1,length(fourier.x_X), length(fourier.y_Y))
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,Y}, FieldSpace{T,1,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	else
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, field.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldSpace{T,-1,X}, FieldAngularSpectrum{T,1,Y}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	end
+end
+
+function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D,X,Y,R<:ReferenceFrame}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
+
+	r12 = nothing
+	r21 = nothing
+	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
+	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
+
+	m = Array{Complex{T},3}(undef,1,length(fourier.x_X), length(fourier.y_Y))
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,Y}, FieldSpace{T,1,X}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	else
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldSpace{T,-1,X}, FieldAngularSpectrum{T,1,Y}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	end
+end
+
+function getfields_lr(fourier::FourierTransform{T,Y,R}, fieldi::FieldSpace{T,D,X}) where {T,D,Y, X<:AbstractVector, R<:ReferenceFrame}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, field)
+
+	m = Array{Complex{T},3}(undef,1,sizeA, sizeB)
+	if dir(fieldi) > 0
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+	else
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	end
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(fourier::FourierTransform{T,Y,R}, fieldi::FieldSpace{T,D,X}) where {T,Y,D,X<:AbstractVector, R<:Nothing}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
+	m = Array{Complex{T},3}(undef,1,sizeA, sizeB)
+	if dir(fieldi) > 0
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
+	else
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fourier.nsx_X), deepcopy(fourier.nsy_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	end
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D,X,Y,R<:Nothing}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
+
+	m = Array{Complex{T},3}(undef,1,length(fourier.x_X), length(fourier.y_Y))
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
+	else
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	end
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D,X,Y,R<:ReferenceFrame}
+	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
+
+	m = Array{Complex{T},3}(undef,1,length(fourier.x_X), length(fourier.y_Y))
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+	else
+		fieldl = FieldSpace{T,-1,X}(deepcopy(fourier.x_X), deepcopy(fourier.y_Y), m, fieldi.λ, fieldi.n, fourier.ref)
+		fieldr = FieldAngularSpectrum{T,1,Y}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	end
+	return (fieldl, fieldr)
+end
+
+function coefficient_general(fourier::FourierTransform{T,X}, field::AbstractFieldMonochromatic) where {T, X <: AbstractVector}
 	checkapplicability(fourier, field) || tobedone()
 
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
-	(sizeA, sizeB) = (length(fourier.nsx_X), length(fourier.nsy_Y))
-	r12 = UniformScaling(zero(Complex{T}))
-	r21 = UniformScaling(zero(Complex{T}))
-	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
-	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
+	(sizeA, sizeB) = getsizes(fourier, field)
+
+	scat = get_scatteringmatrixtype(fourier, field)
 
 	coordAB = LinearIndices((sizeA, sizeB))
 	coordXY = LinearIndices((sizeX, sizeY))
 
 	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
-	let t12 = t12, t21 = t21, fourier = fourier, field = field
-		@inbounds Threads.@threads for iX1 in 1:sizeX
-	 	 	@simd for iY1 in 1:sizeY
+	let scat=scat, fourier = fourier, field = field
+		Threads.@threads for iX1 in 1:sizeX
+	 	 	for iY1 in 1:sizeY
 				i1 = coordXY[iX1, iY1]
 				for iA2 in 1:sizeA
 					for iB2 in 1:sizeB
 						i2 = coordAB[iA2, iB2]
-						(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
+						if dir(field) > 0
+							scat.t₁₂[i2, i1] = t(fourier, field, iX1, iY1, iA2, iB2)
+							scat.t₂₁[i1, i2] = tinv(fourier, field, iX1, iY1, iA2, iB2)
+						else
+							scat.t₂₁[i2, i1] = t(fourier, field, iX1, iY1, iA2, iB2)
+							scat.t₁₂[i1, i2] = tinv(fourier, field, iX1, iY1, iA2, iB2)
+						end
 					end
 				end
 			end
 		end
 	end
-	if field.dir > 0
-		fieldl = FieldSpace{T}(copy(field.x_X), copy(field.y_Y), field.e_SXY, field.λ, field.n, -1, copy(field.ref))
-		fieldr = FieldAngularSpectrum{T}(fourier.nsx_X, fourier.nsy_Y, zeros(Complex{T},1,sizeA,sizeB), field.λ, field.n, 1, copy(field.ref))
-	else
-		fieldl = FieldAngularSpectrum{T}(fourier.nsx_X, fourier.nsy_Y, zeros(Complex{T},1,sizeA,sizeB), field.λ, field.n, -1, copy(field.ref))
-		fieldr = FieldSpace{T}(copy(field.x_X), copy(field.y_Y), field.e_SXY, field.λ, field.n, 1, copy(field.ref))
-		aux = t12
-		t12 = t21
-		t21 = aux
-	end
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), typeof(r12), typeof(t12)}(r12, t12, r21, t21, fieldl, fieldr)
+	return scat
 end
 
-@inline function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T,Y}) where {T, X<:Nothing, Y <: AbstractRange}
+function lightinteraction(fourier::FourierTransform{T,X}, field::AbstractFieldMonochromatic) where {T, X <: AbstractVector}
+	checkapplicability(fourier, field) || tobedone()
+
+	(sizeX, sizeY) = size(field.e_SXY)[2:3]
+	(sizeA, sizeB) = getsizes(fourier, field)
+
+	(fieldl, fieldr) = getfields_lr(fourier, field)
+
+	coordAB = LinearIndices((sizeA, sizeB))
+	coordXY = LinearIndices((sizeX, sizeY))
+	fieldl.e_SXY .= zero(Complex{T})
+	fieldr.e_SXY .= zero(Complex{T})
+
+	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
+	let fieldl = fieldl, fieldr = fieldr, fourier = fourier, field = field
+		@inbounds Threads.@threads for iA2 in 1:sizeA
+			for iB2 in 1:sizeB
+				i2 = coordAB[iA2, iB2]
+				for iX1 in 1:sizeX
+	 	 			for iY1 in 1:sizeY
+						i1 = coordXY[iX1, iY1]
+						if dir(field) > 0
+							fieldr.e_SXY[i2] += t(fourier, field, iX1, iY1, iA2, iB2) * field.e_SXY[i1]
+						else
+							fieldl.e_SXY[i2] += t(fourier, field, iX1, iY1, iA2, iB2) * field.e_SXY[i1]
+						end
+					end
+				end
+			end
+		end
+	end
+	return (fieldl, fieldr)
+end
+
+@inline function coefficient_general(fourier::FourierTransform{T,X}, field::FieldSpace{T,D,Y}) where {T, X<:Nothing, Y <: AbstractRange, D}
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
 	Δx = Δvector(field.x_X, 1)
 	Δy = Δvector(field.y_Y, 1)
@@ -156,48 +341,7 @@ end
 	return coefficient_general(fourieraux, field)
 end
 
-function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngularSpectrum{T}) where {T, X <: AbstractVector}
-	checkapplicability(fourier, field) || tobedone()
-	(sizeX, sizeY) = size(field.e_SXY)[2:3]
-	sizeA, sizeB = length(fourier.x_X), length(fourier.y_Y)
-
-	(r12, r21) = (UniformScaling(zero(Complex{T})), UniformScaling(zero(Complex{T})))
-	t12 = Matrix{Complex{T}}(undef, sizeA * sizeB, sizeX * sizeY)
-	t21 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeA * sizeB)
-
-	coordXY = LinearIndices((sizeX, sizeY))
-	coordAB = LinearIndices((sizeA, sizeB))
-
-	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
-	let t12 = t12, t21 = t21, fourier = fourier, field = field
-		@inbounds Threads.@threads for iX1 in 1:sizeX
-		 	for iY1 in 1:sizeY
-				i1 = coordXY[iX1, iY1]
-				for iA2 in 1:sizeA
-					for iB2 in 1:sizeB
-						i2 = coordAB[iA2, iB2]
-						(t12[i2, i1], t21[i1, i2]) = fourierΔintegral(fourier, field, iX1, iY1, iA2, iB2)
-					end
-				end
-			end
-		end
-	end
-
-	if field.dir > 0
-		fieldl = FieldAngularSpectrum{T}(copy(field.nsx_X), copy(field.nsy_Y), field.e_SXY, field.λ, field.n, -1, copy(field.ref))
-		fieldr = FieldSpace{T}(fourier.x_X, fourier.y_Y, zeros(Complex{T},1,sizeA,sizeB), field.λ, field.n, 1, copy(field.ref))
-	else
-		fieldl = FieldSpace{T}(fourier.x_X, fourier.y_Y, zeros(Complex{T}, 1,sizeA,sizeB), field.λ, field.n, -1, copy(field.ref))
-		fieldr = FieldAngularSpectrum{T}(copy(field.nsx_X), copy(field.nsy_Y), field.e_SXY, field.λ, field.n, 1, copy(field.ref))
-		aux = t12
-		t12 = t21
-		t21 = aux
-	end
-
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), typeof(r12), typeof(t12)}(r12, t12, r21, t21, fieldl, fieldr)
-end
-
-@inline function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngularSpectrum{T,Y}) where {T, X <: Nothing, Y <: AbstractRange}
+@inline function coefficient_general(fourier::FourierTransform{T,X}, field::FieldAngularSpectrum{T,D,Y}) where {T,D, X <: Nothing, Y <: AbstractRange}
 	(sizeX, sizeY) = size(field.e_SXY)[2:3]
 	Δnsx = Δvector(field.nsx_X, 1)
 	Δnsy = Δvector(field.nsy_Y, 1)
@@ -207,7 +351,7 @@ end
 	return coefficient_general(fourieraux, field)
 end
 
-function coefficient_specific(fourrier::FourierTransform{T,X}, field::F) where {T, X <: Nothing, F <: FieldSpace{T, <:AbstractRange}}
+function coefficient_specific(fourier::FourierTransform{T,X}, field::F) where {T, X <: Nothing, F <: FieldSpace{T, <:AbstractRange}}
 	planfft = FFTW.plan_fft(view(field.e_SXY,1,:,:))
 	(sizeX, sizeY) = (length(field.x_X), length(field.y_Y))
 
@@ -221,16 +365,16 @@ function coefficient_specific(fourrier::FourierTransform{T,X}, field::F) where {
 	i_scalar = sizeX * sizeY * Δnsx * Δnsy * 4 * π^2 / field.λ^2
 
 	tmp = Array{Complex{T},2}(undef, sizeX, sizeY)
-	if field.dir > 0
-		fieldr = FieldAngularSpectrum{T}(nsx_X, nsy_Y, field.e_SXY, field.λ, field.n, 1, field.ref)
+	if dir(field) > 0
+		fieldr = FieldAngularSpectrum{T, 1}(nsx_X, nsy_Y, field.e_SXY, field.λ, field.n, field.ref)
 		return FFTCoefficient{T,F,typeof(fieldr),typeof(planfft)}(planfft, scalar, i_scalar, tmp, field, fieldr)
 	else
-		fieldl = FieldAngularSpectrum{T}(nsx_X, nsy_Y, field.e_SXY, field.λ, field.n, -1, field.ref)
+		fieldl = FieldAngularSpectrum{T,-1}(nsx_X, nsy_Y, field.e_SXY, field.λ, field.n, field.ref)
 		return FFTCoefficient{T,typeof(fieldl),F,typeof(planfft)}(planfft, scalar, i_scalar, tmp, fieldl, field)
 	end
 end
 
-function coefficient_specific(fourrier::FourierTransform{T,X}, field::F) where {T, X <: Nothing, F <: FieldAngularSpectrum{T, <:AbstractRange}}
+function coefficient_specific(fourier::FourierTransform{T,X}, field::F) where {T, X <: Nothing, F <: FieldAngularSpectrum{T, <:AbstractRange}}
 	planfft = FFTW.plan_fft(view(field.e_SXY,1,:,:))
 	(sizeX, sizeY) = (length(field.nsx_X), length(field.nsy_Y))
 
@@ -244,11 +388,11 @@ function coefficient_specific(fourrier::FourierTransform{T,X}, field::F) where {
 	i_scalar = sizeX * sizeY * Δnsx * Δnsy * 4 * π^2 / field.λ^2
 
 	tmp = Array{Complex{T},2}(undef, sizeX, sizeY)
-	if field.dir > 0
-		fieldr = FieldSpace{T}(x_X, y_Y, field.e_SXY, field.λ, field.n, 1, field.ref)
+	if dir(field) > 0
+		fieldr = FieldSpace{T,1}(x_X, y_Y, field.e_SXY, field.λ, field.n, field.ref)
 		return FFTCoefficient{T,F,typeof(fieldr),typeof(planfft)}(planfft, scalar, i_scalar, tmp, field, fieldr)
 	else
-		fieldl = FieldSpace{T}(x_X, y_Y, field.e_SXY, field.λ, field.n, -1, field.ref)
+		fieldl = FieldSpace{T,-1}(x_X, y_Y, field.e_SXY, field.λ, field.n, field.ref)
 		return FFTCoefficient{T,typeof(fieldl),F,typeof(planfft)}(planfft, scalar, i_scalar, tmp, fieldl, field)
 	end
 end
