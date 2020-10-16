@@ -6,13 +6,15 @@ mutable struct FieldSpace{T,X<:AbstractVector{T}} <: AbstractFieldSpace{T}
 	n::Complex{T}
 	dir::Int8
 	ref::ReferenceFrame{T}
-	function FieldSpace{T}(x_X::X, y_Y::Y, e_SXY, λ, n, dir, ref) where {T,X,Y}
-		M = promote_type(X,Y)
-
+	function FieldSpace{T,X}(x_X, y_Y, e_SXY, λ, n, dir, ref) where {T,X}
 		length(x_X) != size(e_SXY, 2) ? error("The length of x_X must be the same as the size of e_SXY in the second dimension.") : nothing;
 		length(y_Y) != size(e_SXY, 3) ? error("The length of y_Y must be the same as the size of e_SXY in the third dimension.") : nothing;
 		size(e_SXY, 1) != 1 && size(e_SXY, 1) != 3 ? error("The size of e_SXY must be 1 (scallar field) or 3 (vectorial field).") : nothing;
-		return new{T,M}(x_X, y_Y, e_SXY, λ, n, dir >= 0 ? 1 : -1, ref);
+		return new{T,X}(x_X, y_Y, e_SXY, λ, n, dir >= 0 ? 1 : -1, ref);
+	end
+	function FieldSpace{T}(x_X::X, y_Y::Y, e_SXY, λ, n, dir, ref) where {T,X,Y}
+		M = promote_type(X,Y)
+		return FieldSpace{T,M}(x_X, y_Y, e_SXY, λ, n, dir, ref)
 	end
 end
 # FieldSpace(x_X, y_Y, e_SXY, λ, n, dir, ref) = FieldSpace{Float64}(x_X, y_Y, e_SXY, λ, n, dir, ref)

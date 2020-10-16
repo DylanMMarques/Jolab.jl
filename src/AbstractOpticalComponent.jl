@@ -1,4 +1,4 @@
-function lightinteraction(comp::AbstractOpticalComponent{T}, fieldi::AbstractFieldMonochromatic) where T
+function lightinteraction(comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic) where T
     coef = coefficient_specific(comp, fieldi)
     return lightinteraction(coef, fieldi)
 end

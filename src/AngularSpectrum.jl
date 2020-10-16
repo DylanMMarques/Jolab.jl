@@ -155,6 +155,12 @@ function rotatereferenceframe!(nsx_XY::AbstractArray{<:Number, 2}, nsy_XY::Abstr
 	end
 end
 
+function changereferenceframe(angspe::FieldAngularSpectrum{T,X}, refnew::ReferenceFrame)::FieldAngularSpectrum{T,X} where {T,X}
+	angspe2 = deepcopy(angspe)
+	changereferenceframe!(angspe2, refnew)
+	return angspe2
+end
+
 function changereferenceframe!(angspe::FieldAngularSpectrum, refnew::ReferenceFrame)
 	#Needs checking after doing the 2D interpolation
 	checkposition(angspe.ref, refnew) || translatereferenceframe!(angspe, refnew);

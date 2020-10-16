@@ -9,6 +9,7 @@ field = FieldAngularSpectrum_gaussian(sx, sx, 50E-6, 1500E-9, 1., 1, ReferenceFr
 
 (lfield1, rfield1) = lightinteraction(rmls, field)
 (lfield2, rfield2) = lightinteraction(mls, field)
+changereferenceframe!(lfield2, lfield1.ref)
 
 @test isapprox(lfield1.e_SXY[1,5,5], lfield2.e_SXY[1,5,5], rtol = 1E-3)
 

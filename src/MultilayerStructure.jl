@@ -59,18 +59,14 @@ function rtpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVecto
 end
 
 function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum) where {T<:Real}
-	isapprox(fieldi.n, fieldi.dir > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and multilayer structure medium are different")
-	checkorientation(fieldi.ref, mls.ref) || errorToDo()
+	checkapplicability(mls, fieldi)
 
 	n_A = [mls.n_A[i](fieldi.λ) for i in eachindex(mls.n_A)]
 	inv_n_A = n_A[end:-1:1]
 	inv_h_A = mls.h_A[end:-1:1]
 
 	sizeXY = length(fieldi.nsx_X) * length(fieldi.nsy_Y)
-	r12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
-	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
-	r21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
-	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	scat = get_scatteringmatrixtype(mls, fieldi)
 	sizeX = length(fieldi.nsx_X)
 	sizeY = length(fieldi.nsy_Y)
 	cart = LinearIndices((sizeX, sizeY))
@@ -78,38 +74,71 @@ function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSp
 		for iX in eachindex(fieldi.nsx_X)
 			nsr = √(fieldi.nsx_X[iX]^2 + fieldi.nsy_Y[iY]^2)
 			i = cart[iX, iY]
-			(r12.diag[i], t12.diag[i]) = rtss₁₂(nsr, n_A, mls.h_A, fieldi.λ)
-			(r21.diag[i], t21.diag[i]) = rtss₁₂(nsr, inv_n_A, inv_h_A, fieldi.λ)
+			(scat.r₁₂.diag[i], scat.t₁₂.diag[i]) = rtss₁₂(nsr, n_A, mls.h_A, fieldi.λ)
+			(scat.r₂₁.diag[i], scat.t₂₁.diag[i]) = rtss₁₂(nsr, inv_n_A, inv_h_A, fieldi.λ)
 		end
 	end
+	correctscatteringmatrix_referenceframes!(scat, mls, fieldi)
+	return scat
+end
 
-	ref = (fieldi.dir > 0 ? ref1(mls) : ref2(mls))
-	if !checkposition(fieldi.ref, ref)
-		propM = propagationmatrix(fieldi, ref)
-		if fieldi.dir > 0
-			rmul!(r12, propM)
-			lmul!(propM, r12)
-			rmul!(t12, propM)
-			lmul!(propM, t21)
-		else
-			conj!(propM.diag)
-			rmul!(r21, propM)
-			lmul!(propM, r21)
-			rmul!(t21, propM)
-			lmul!(propM, t12)
+function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum) where {T<:Real}
+	checkapplicability(mls, fieldi)
+	(fieldl, fieldr) = getfields_lr(mls, fieldi)
+	fieldi_newref = changereferenceframe(fieldi, fieldi.dir > 0 ? ref1(mls) : ref2(mls))
+
+	n_A = [mls.n_A[i](fieldi.λ) for i in eachindex(mls.n_A)]
+	inv_n_A = n_A[end:-1:1]
+	inv_h_A = mls.h_A[end:-1:1]
+
+	sizeXY = length(fieldi_newref.nsx_X) * length(fieldi_newref.nsy_Y)
+	cart = LinearIndices((length(fieldi_newref.nsx_X), length(fieldi_newref.nsy_Y)))
+
+	@inbounds Threads.@threads for iY in eachindex(fieldi_newref.nsy_Y)
+			for iX in eachindex(fieldi_newref.nsx_X)
+			nsr = √(fieldi_newref.nsx_X[iX]^2 + fieldi_newref.nsy_Y[iY]^2)
+			i = cart[iX, iY]
+			if fieldi_newref.dir > 0
+				(r, t) = rtss₁₂(nsr, n_A, mls.h_A, fieldi.λ)
+				fieldl.e_SXY[i] = fieldi_newref.e_SXY[i] * r
+				fieldr.e_SXY[i] = fieldi_newref.e_SXY[i] * t
+			else
+				(r, t) = rtss₁₂(nsr, inv_n_A, inv_h_A, fieldi.λ)
+				fieldl.e_SXY[i] = fieldi_newref.e_SXY[i] * t
+				fieldr.e_SXY[i] = fieldi_new.e_SXY[i] * r
+			end
 		end
 	end
-	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, first(n_A), -1, fieldi.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, last(n_A), 1, ref2(mls))
-	else
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, first(n_A), -1, mls.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, last(n_A), 1, fieldi.ref)
-	end
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
+	return (fieldl, fieldr)
+end
+
+function get_scatteringmatrixtype(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,X}) where {T,X}
+	sizeXY = length(fieldi.nsx_X) * length(fieldi.nsy_Y)
+	r12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	r21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	sizeX = length(fieldi.nsx_X)
+	sizeY = length(fieldi.nsy_Y)
+
+	fieldl = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), -1, fieldi.dir > 0 ? fieldi.ref : ref1(mls))
+	fieldr = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), 1, fieldi.dir > 0 ? ref2(mls) : fieldi.ref)
+
+	return ScatteringMatrix{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
+end
+
+function getfields_lr(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,X}) where {T,X}
+	fieldl = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), -1, ref1(mls))
+	fieldr = FieldAngularSpectrum{T,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), 1, ref2(mls))
+	return (fieldl, fieldr)
 end
 
 @inline function ref2(mls::MultilayerStructure)
 	totalh = sum(mls.h_A);
 	return mls.ref + ReferenceFrame(sin(mls.ref.θ) * cos(mls.ref.ϕ) * totalh, sin(mls.ref.θ) * sin(mls.ref.ϕ) * totalh, cos(mls.ref.θ) * totalh, mls.ref.θ, mls.ref.ϕ);
+end
+
+function checkapplicability(mls::MultilayerStructure, fieldi::AbstractFieldAngularSpectrum)
+	isapprox(fieldi.n, fieldi.dir > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and multilayer structure medium are different")
+	checkorientation(fieldi.ref, mls.ref) || errorToDo()
 end

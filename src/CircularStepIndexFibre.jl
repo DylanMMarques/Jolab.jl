@@ -259,8 +259,8 @@ function coefficient_general(fibre::CircularStepIndexFibre{T}, field::FieldSpace
 
     sizeM = numberofmodes(modes)
     (sizeX, sizeY) = (length(fieldi.x_X), length(fieldi.y_Y))
-    fieldi.dir > 0 || error("to")
-
+    fieldi.dir > 0 || errorToDo()
+    
     t12 = Matrix{Complex{T}}(undef, sizeM, sizeX * sizeY)
     t23 = Matrix{Complex{T}}(undef, sizeX * sizeY, sizeM)
 
