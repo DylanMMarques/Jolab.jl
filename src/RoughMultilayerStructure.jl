@@ -10,10 +10,10 @@ struct RoughMultilayerStructure{T<:Real} <: AbstractOpticalComponent{T}
 end
 RoughMultilayerStructure(n1, n2, Δz, ref) = RoughMultilayerStructure{Float64}(n1, n2, Δz, ref)
 
-function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
+function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D, X<:AbstractRange}
 	checkorientation(rmls.ref, fieldi.ref) || tobedone()
 	(sizeX, sizeY, sizeM) = (length(fieldi.nsx_X), length(fieldi.nsy_Y), length(rmls.n))
-	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n[1](fieldi.λ) : rmls.n[sizeM](fieldi.λ), atol = @tol) || error("Refractive index missmatch")
+	isapprox(fieldi.n, dir(fieldi) > 0 ? rmls.n[1](fieldi.λ) : rmls.n[sizeM](fieldi.λ), atol = @tol) || error("Refractive index missmatch")
 
 	k = 2π / fieldi.λ
 	n_M = Vector{Complex{T}}(undef, sizeM)
@@ -107,11 +107,11 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 	ir21 .*= -1
 	it21 .*= -1
 
-	ref = fieldi.dir > 0 ? ref1(rmls) : ref2(rmls)
+	ref = dir(fieldi) > 0 ? ref1(rmls) : ref2(rmls)
 	if !checkposition(fieldi.ref, ref)
 		propM = propagationmatrix(fieldi, ref)
 		ind = LinearIndices((sizeX, sizeY))
-		if fieldi.dir > 0
+		if dir(fieldi) > 0
 			vec(r12) .*= propM.diag .* propM.diag
 			vec(t12) .*= propM.diag
 			vec(t21) .*= propM.diag
@@ -144,23 +144,23 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 			end
 		end
 	end
-	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, fieldi.ref)
-		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[sizeM](fieldi.λ), 1, ref2(rmls))
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[sizeM](fieldi.λ), ref2(rmls))
 	else
-		fieldl = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), -1, ref1(rmls))
-		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), ref1(rmls))
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, fieldi.ref)
 	end
 
 	tmp2 = Array{Complex{T},3}(undef, sizeX, sizeY, sizeM-1) # preallocate matrix to avoid allocation after
 	tmp1 = Array{Complex{T},3}(undef, sizeX, sizeY, sizeM-1) # preallocate matrix to avoid allocation after
 	planfft = plan_fft(r12)  # precalculates the fft plan
 	inv(planfft) # precalculates the inverse fft plan
-	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, Array{Complex{T},3}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
+	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,-1,X}, FieldAngularSpectrum{T,1,X}, Matrix{Complex{T}}, Array{Complex{T},3}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
 end
 
-function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
-	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n[1](fieldi.λ) : rmls.n[end](fieldi.λ), atol = @tol) || error("Field medium and rmls incident medium are different")
+function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D, X<:AbstractRange}
+	isapprox(fieldi.n, dir(fieldi) > 0 ? rmls.n[1](fieldi.λ) : rmls.n[end](fieldi.λ), atol = @tol) || error("Field medium and rmls incident medium are different")
 	checkorientation(fieldi.ref, rmls.ref) || errorToDo()
 
 	errorToDo()
@@ -221,7 +221,7 @@ function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAng
 
 	if !checkposition(fieldi.ref, rmls.ref)
 		propM = propagationmatrix(fieldi, rmls.ref)
-		if fieldi.dir > 0
+		if dir(fieldi) > 0
 			rmul!(r12, propM)
 			lmul!(propM, r12)
 			rmul!(t12, propM)
@@ -235,14 +235,14 @@ function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAng
 		end
 	end
 
-	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), -1, fieldi.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), 1, rmls.ref)
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), rmls.ref)
 	else
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), -1, rmls.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), 1, fieldi.ref)
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), rmls.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), fieldi.ref)
 	end
-	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Matrix{Complex{T}}, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,X}, FieldAngularSpectrum{T,1,X}, Matrix{Complex{T}}, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
 @inline function ref2(rmls::RoughMultilayerStructure)

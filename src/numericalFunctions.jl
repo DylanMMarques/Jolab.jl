@@ -429,7 +429,28 @@ function integrate_xy_x_y_d_exp_xy_xy_y(a, b, c, d, α, β, γ, δ, xmin::T, xma
 			expi = -conj(Complex{T}(expint(im * aux))) + (aux < 0 ? - π * im : π * im)
 		 	return - 1 / α^3 * im * exp(im * δ) * (-((im * α * exp(im * (β * x + (γ + α * x) * y)) * (-a * β * γ + α * (β * c + b * γ) + α^2 * (b * x + c * y + a * x * y))) / ((γ + α * x) * (β + α * y))) + exp(- im * β * γ / α) * (α * (- β * c + α * d - b * γ) + a * (im * α + β * γ)) * expi)
  		end
-		return (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
+		return Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin)
 	end
 	return zero(Complex{T})
+end
+
+function integrate_xy_x_y_d_exp_xy_xy_y(fabs::Function, fangle::Function, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
+	f11 = fabs(xmin, ymin)
+	f12 = fabs(xmin, ymax)
+	f21 = fabs(xmax, ymin)
+	f22 = fabs(xmax, ymax)
+	a = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
+	b = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
+	c = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
+	d = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
+
+	f11 = fangle(xmin, ymin)
+	f12 = fangle(xmin, ymax)
+	f21 = fangle(xmax, ymin)
+	f22 = fangle(xmax, ymax)
+	α = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
+	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
+	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
+	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
+	return integrate_xy_x_y_d_exp_xy_xy_y(a, b, c, d, α, β, γ, δ, xmin, xmax, ymin, ymax)
 end

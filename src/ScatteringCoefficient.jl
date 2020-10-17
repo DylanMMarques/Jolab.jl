@@ -20,10 +20,10 @@ struct RoughInterfaceConvolutionCoefficient{T,L,R, Y<:AbstractArray{Complex{T}},
 end
 
 @inbounds function lightinteraction!(fieldl::L, fieldr::R, coef::RoughInterfaceConvolutionCoefficient{T,L,R}, fieldi::Union{L,R}) where {T,L,R}
-	samedefinitions(fieldi, fieldi.dir > 0 ? fieldl : fieldr) || tobedone()
+	samedefinitions(fieldi, dir(fieldi) > 0 ? fieldl : fieldr) || tobedone()
 	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
 	sizeM = size(coef.ir₁₂, 3)
-	if fieldi.dir > 0
+	if dir(fieldi) > 0
 		Threads.@threads for iM in 1:sizeM
 			@simd for iY in 1:sizeY
 				for iX in 1:sizeX
@@ -146,7 +146,7 @@ end
 			end
 		end
 	end
-	if fieldi.dir > 0
+	if dir(fieldi) > 0
 		@simd for i in 1:sizeY*sizeX
 			fieldl.e_SXY[i] += fieldi.e_SXY[i] * coef.r₁₂[i]
 			fieldr.e_SXY[i] += fieldi.e_SXY[i] * coef.t₁₂[i]

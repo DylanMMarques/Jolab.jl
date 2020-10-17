@@ -42,7 +42,7 @@ function FieldSpace_gaussian(x_X, y_Y, ω, λ, n, dir, ref)
 	return FieldSpace{T}(vec(x_X), vec(y_Y), e_SXY, λ, n, dir, ref);
 end
 
-function FieldAngularSpectrum_fromspace(fieldspace::FieldSpace{T}, nsx_X, nsy_Y) where T
+function FieldAngularSpectrum_fromspace(fieldspace::FieldSpace{T,D}, nsx_X, nsy_Y) where {T,D}
 	e_SXY = fourriertransform(fieldspace.x_X, fieldspace.y_Y, fieldspace.e_SXY, fieldspace.λ, fieldspace.n, nsx_X, nsy_Y);
 	return FieldAngularSpectrum{T}(nsx_X, nsy_Y, e_SXY, fieldspace.λ, fieldspace.n, fieldspace.dir, fieldspace.ref);
 end

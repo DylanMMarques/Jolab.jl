@@ -7,9 +7,9 @@ struct RoughInterface{T<:Real} <: AbstractOpticalComponent{T}
 end
 RoughInterface(n1, n2, Δz, ref) = RoughInterface{Float64}(n1, n2, Δz, ref)
 
-function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
+function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D, X<:AbstractRange}
 	checkorientation(rmls.ref, fieldi.ref) || tobedone()
-	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Refractive index missmatch")
+	isapprox(fieldi.n, dir(fieldi) > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Refractive index missmatch")
 
 	k = 2π / fieldi.λ
 	n1 = rmls.n1(fieldi.λ)
@@ -62,7 +62,7 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 
 	if !checkposition(fieldi.ref, rmls.ref)
 		propM = propagationmatrix(fieldi, rmls.ref)
-		if fieldi.dir > 0
+		if dir(fieldi) > 0
 			vec(r12) .*= propM.diag .* propM.diag
 			vec(ir12) .*= propM.diag
 			vec(sr12) .*= propM.diag
@@ -81,19 +81,19 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 			vec(it21) .*= propM.diag
 		end
 	end
-	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, fieldi.ref)
-		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n2(fieldi.λ), 1, rmls.ref)
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n2(fieldi.λ), rmls.ref)
 	else
-		fieldl = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, rmls.ref)
-		fieldr = FieldAngularSpectrum{T,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), rmls.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, fieldi.ref)
 	end
 	tmp1 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
 	tmp2 = Matrix{Complex{T}}(undef, sizeX, sizeY) # preallocate matrix to avoid allocation after
 	planfft = plan_fft(tmp1)  # precalculates the fft plan
 	inv(planfft) # precalculates the inverse fft plan
 
-	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,X}, FieldAngularSpectrum{T,X}, Matrix{Complex{T}}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
+	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrum{T,-1,X}, FieldAngularSpectrum{T,1,X}, Matrix{Complex{T}}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
 end
 
 function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T
@@ -104,8 +104,8 @@ function roughfft(rmls::RoughInterface{T}, nsx::AbstractRange, nsy::AbstractRang
 	return (x,y, z)
 end
 
-function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,X}) where {T, X<:AbstractRange}
-	isapprox(fieldi.n, fieldi.dir > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Field medium and rmls incident medium are different")
+function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D, X<:AbstractRange}
+	isapprox(fieldi.n, dir(fieldi) > 0 ? rmls.n1(fieldi.λ) : rmls.n2(fieldi.λ), atol = @tol) || error("Field medium and rmls incident medium are different")
 	checkorientation(fieldi.ref, rmls.ref) || errorToDo()
 
 	sizeX = length(fieldi.nsx_X)
@@ -162,7 +162,7 @@ function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectr
 
 	if !checkposition(fieldi.ref, rmls.ref)
 		propM = propagationmatrix(fieldi, rmls.ref)
-		if fieldi.dir > 0
+		if dir(fieldi) > 0
 			rmul!(r12, propM)
 			lmul!(propM, r12)
 			rmul!(t12, propM)
@@ -176,12 +176,12 @@ function coefficient_general(rmls::RoughInterface{T}, fieldi::FieldAngularSpectr
 		end
 	end
 
-	if fieldi.dir > 0
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, fieldi.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n2(fieldi.λ), 1, rmls.ref)
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), fieldi.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n2(fieldi.λ), rmls.ref)
 	else
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), -1, rmls.ref)
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), 1, fieldi.ref)
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), rmls.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n1(fieldi.λ), fieldi.ref)
 	end
 	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), Matrix{Complex{T}}, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 end

@@ -342,7 +342,7 @@ function centerangspereferenceframe!(angspe::FieldAngularSpectrum{T}) where T
 	changereferenceframe!(angspe, ref)
 end
 
-function samedefinitions(fieldl::L, fieldr::L) where L <: FieldAngularSpectrum
+function samedefinitions(fieldl::L, fieldr::R) where {L <: FieldAngularSpectrum, R <: FieldAngularSpectrum}
 	isapprox(fieldl.nsx_X, fieldr.nsx_X, atol = @tol) || return false
 	isapprox(fieldl.nsy_Y, fieldr.nsy_Y, atol = @tol) || return false
 	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false

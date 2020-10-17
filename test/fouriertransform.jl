@@ -47,7 +47,7 @@ angsperef = FieldAngularSpectrum_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
 spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., dir, ref)
 fourier = Jolab.FourierTransform(x, x, sx, sx)
 
-@time (tmp, space) = lightinteraction(fourier, angsperef)
+(tmp, space) = lightinteraction(fourier, angsperef)
 @test isapprox(spaceref.e_SXY, space.e_SXY, rtol = .5E-2)
 
 spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., -dir, ref)

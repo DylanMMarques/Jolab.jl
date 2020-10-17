@@ -2,9 +2,12 @@ mutable struct FieldModes{T<:Real,D,M<:AbstractModes{T}} <: AbstractFieldMonochr
     modesamplitude::Vector{Complex{T}}
     modes::M
 	ref::ReferenceFrame{T}
-    function FieldModes{T}(modesamplitude, modes::M, dir, ref) where {T, M}
+    function FieldModes{T,D}(modesamplitude, modes::M, ref) where {T,D,M}
         length(modesamplitude) == length(modes.m) || error("size must be the same")
-        new{T,dir,M}(modesamplitude, modes, dir, ref)
+        new{T,D,M}(modesamplitude, modes, ref)
+    end
+    function FieldModes{T}(modesamplitude, modes::M, dir, ref) where {T, M}
+        FieldModes{T,dir,M}(modesamplitude, modes, ref)
     end
 end
 
@@ -23,7 +26,7 @@ function translatereferenceframe!(modeweigth_M::AbstractVector{<:Number}, β_M::
 end
 
 function changereferenceframe!(fieldmodes::FieldModes, ref::ReferenceFrame)
-	changereferenceframe!(fieldmodes.modesamplitude, fieldmodes.modes.β, fieldmodes.dir, fieldmodes.ref, ref)
+	changereferenceframe!(fieldmodes.modesamplitude, fieldmodes.modes.β, dir(fieldmodes), fieldmodes.ref, ref)
 	fieldmodes.ref = ref;
 end
 

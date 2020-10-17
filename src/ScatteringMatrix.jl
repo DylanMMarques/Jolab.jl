@@ -83,8 +83,8 @@ function coefficient_general(coefs::AbstractVector{<:ScatteringMatrix{T}}) where
 	return coefaux
 end
 
-function lightinteraction!(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{L,R}) where {T,X,L,R}
-	if fieldi.dir > 0
+function lightinteraction!(fieldl::AbstractFieldMonochromatic{T,-1}, fieldr::AbstractFieldMonochromatic{T,1}, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{A,B}) where {T,X,L,R, A<:AbstractFieldMonochromatic{T,1}, B<:AbstractFieldMonochromatic{T,-1}}
+	if dir(fieldi) > 0
 		mul!(vec(fieldl.e_SXY), scatM.r₁₂, vec(fieldi.e_SXY))
 		mul!(vec(fieldr.e_SXY), scatM.t₁₂, vec(fieldi.e_SXY))
 	else

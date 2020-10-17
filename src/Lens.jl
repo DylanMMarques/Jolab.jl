@@ -22,14 +22,14 @@ function ref2(lens::Lens{T}, λ::Real) where T
 	return ReferenceFrame{T}(x, y, z, lens.ref.θ, lens.ref.ϕ)
 end
 
-function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where T
+function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum{T,D,X}) where {T,D,X}
 	(abs(imag(fieldi.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
 	checkorientation(fieldi.ref, lens.ref) || error("Cannot calculate coefficient with change of referenceframe orientation. Use lightinteraction(lens,...) instead")
 
-	ref = (fieldi.dir > 0 ? ref1(lens, fieldi.λ) : ref2(lens, fieldi.λ))
+	ref = (dir(fieldi) > 0 ? ref1(lens, fieldi.λ) : ref2(lens, fieldi.λ))
 	needProp = checkposition(fieldi.ref, ref)
 	needProp && (propM = propagationmatrix(fieldi, ref))
-	fieldi.dir > 0 || conj!(propM.diag)
+	dir(fieldi) > 0 || conj!(propM.diag)
 
 	sizeXY = length(fieldi.nsx_X) * length(fieldi.nsy_Y)
 	sx_X = fieldi.nsx_X / real(fieldi.n)
@@ -61,13 +61,13 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where 
 			i += 1
 		end
 	end
-	if fieldi.dir > 0
+	if dir(fieldi) > 0
 		if needProp
 			rmul!(t12, propM)
 			lmul!(propM, t21)
 		end
-		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, fieldi.ref)
-		fieldr = FieldSpace{T}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, 1, ref2(lens, fieldi.λ))
+		fieldl = FieldAngularSpectrum{T,-1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpace{T,1,X}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
 	else
 		aux = t12
 		t12 = t21
@@ -76,18 +76,18 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum) where 
 			lmul!(propM, t12)
 			rmul!(t21, propM)
 		end
-		fieldl = FieldSpace{T}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
-		fieldr = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
+		fieldl = FieldSpace{T,-1,X}(x_X, y_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
+		fieldr = FieldAngularSpectrum{T,1,X}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, fieldi.ref)
 	end
 	r = UniformScaling(zero(Complex{T}))
 	return ScatteringMatrix{T, typeof(fieldl), typeof(fieldr), UniformScaling{Complex{T}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r, t12, r, t21, fieldl, fieldr)
 end
 
-function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X}
+function coefficient_general(lens::Lens{T}, field::FieldSpace{T,D,X}) where {T,D,X}
 	(abs(imag(field.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
 	checkorientation(field.ref, lens.ref) || error("Cannot calculate coefficient with change of referenceframe orientation. Use lightinteraction(lens,...) instead")
 
-	ref = (field.dir > 0 ? ref1(lens, field.λ) : ref2(lens, field.λ))
+	ref = (dir(field) > 0 ? ref1(lens, field.λ) : ref2(lens, field.λ))
 	fieldi = changereferenceframe(field, ref)
 
 	sizeXY = length(fieldi.x_X) * length(fieldi.y_Y)
@@ -117,15 +117,15 @@ function coefficient_general(lens::Lens{T}, field::FieldSpace{A,X}) where {T,A,X
 			i += 1
 		end
 	end
-	if fieldi.dir > 0
-		fieldl = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, field.ref)
-		fieldr = FieldAngularSpectrum{T}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, 1, ref2(lens, fieldi.λ))
+	if dir(fieldi) > 0
+		fieldl = FieldSpace{T,-1,X}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, field.ref)
+		fieldr = FieldAngularSpectrum{T,1,X}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
 	else
 		aux = t12
 		t12 = t21
 		t21 = aux
-		fieldl = FieldAngularSpectrum{T}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, -1, ref1(lens, fieldi.λ))
-		fieldr = FieldSpace{T}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, 1, fieldi.ref)
+		fieldl = FieldAngularSpectrum{T,-1,X}(real(fieldi.n) * sx_X, real(fieldi.n) * sy_Y, fieldi.e_SXY, fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
+		fieldr = FieldSpace{T,1,X}(copy(fieldi.x_X), copy(fieldi.y_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, fieldi.ref)
 	end
 	r = UniformScaling(zero(Complex{T}))
 	return ScatteringMatrix{T,typeof(fieldl), typeof(fieldr), UniformScaling{Complex{T}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r, t12, r, t21, fieldl, fieldr)
