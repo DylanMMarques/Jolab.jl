@@ -25,7 +25,7 @@ function coefficient_general(phantom::PhantomLayer{T}, field::AbstractFieldAngul
 
 	if !checkposition(field.ref, phantom.ref)
 		propM = propagationmatrix(field, phantom.ref)
-		if field.dir > 0
+		if dir(field) > 0
 			rmul!(t, propM)
 		else
 			conj!(propM.diag)
@@ -33,7 +33,7 @@ function coefficient_general(phantom::PhantomLayer{T}, field::AbstractFieldAngul
 		end
 	end
 
-	if field.dir > 0
+	if dir(field) > 0
 		fieldl = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, field.n, -1, field.ref)
 		fieldr = FieldAngularSpectrum{T}(field.nsx_X, field.nsy_Y, field.e_SXY, field.λ, field.n, 1, phantom.ref)
 	else

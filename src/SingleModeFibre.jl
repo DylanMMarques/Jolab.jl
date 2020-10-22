@@ -14,40 +14,40 @@ end
 SingleModeFibre(mfd, n1, dir1 = 1, ref1 = ReferenceFrame(), length=0, n2=n1, dir2=dir1, ref2=ref1) = SingleModeFibre{Float64}(mfd, n1, dir1, ref1, length, n2, dir2, ref2)
 
 function FieldSpace_fromfibre(fibre::SingleModeFibre, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, λ::Real, tip::Integer=1, intensity::Real=1.)::FieldSpace
-	tip == 2 ? (n = fibre.n2; dir = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir = fibre.dir1; ref = fibre.ref1);
-	fieldspace = FieldSpace_gaussian(x_X, y_Y, fibre.mfd, λ, n(λ), dir, ref);
+	tip == 2 ? (n = fibre.n2; dir2 = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir2 = fibre.dir1; ref = fibre.ref1);
+	fieldspace = FieldSpace_gaussian(x_X, y_Y, fibre.mfd, λ, n(λ), Int64(dir), ref);
 	fieldspace.e_SXY = fieldspace.e_SXY .* sqrt(intensity);
 	return fieldspace;
 end
 
 function FieldSpaceSymmetric_fromfibre(fibre::SingleModeFibre, x_X::AbstractVector{<:Real}, λ::Real, tip::Integer=1, intensity::Real=1.)::FieldSpaceSymmetric
-	tip == 2 ? (n = fibre.n2; dir = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir = fibre.dir1; ref = fibre.ref1);
-	fieldspace = FieldSpaceSymmetric_gaussian(x_X, fibre.mfd, λ, n(λ), dir, ref);
+	tip == 2 ? (n = fibre.n2; dir2 = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir2 = fibre.dir1; ref = fibre.ref1);
+	fieldspace = FieldSpaceSymmetric_gaussian(x_X, fibre.mfd, λ, n(λ), Int64(dir2), ref);
 	fieldspace.e_SXY = fieldspace.e_SXY .* sqrt(intensity);
 	return fieldspace;
 end
 
-function FieldAngularSpectrum_fromfibre(fibre::SingleModeFibre, sx_X::AbstractVector{<:Number}, sy_Y::AbstractVector{<:Number}, λ::Real, tip::Integer=1, intensity::Real=1.)::FieldAngularSpectrum
-	tip == 2 ? (n = fibre.n2; dir = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir = fibre.dir1; ref = fibre.ref1);
+function FieldAngularSpectrum_fromfibre(fibre::SingleModeFibre{T}, sx_X::AbstractVector{<:Number}, sy_Y::AbstractVector{<:Number}, λ::Real, tip::Integer=1, intensity::Real=1.) where T
+	tip == 2 ? (n = fibre.n2; dir2 = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir2 = fibre.dir1; ref = fibre.ref1);
 
-	angspe = FieldAngularSpectrum_gaussian(sx_X, sy_Y, fibre.mfd, λ, n(λ), dir, ref);
+	angspe = FieldAngularSpectrum_gaussian(sx_X, sy_Y, fibre.mfd, λ, n(λ), Int64(dir2), ref);
 	angspe.e_SXY *= sqrt(intensity);
 	return angspe
 end
 
 function FieldAngularSpectrumSymmetric_fromfibre(fibre::SingleModeFibre, sx_X::AbstractVector{<:Number}, λ::Real, tip::Integer=1, intensity::Real=1.)::FieldAngularSpectrumSymmetric
-	tip == 2 ? (n = fibre.n2; dir = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir = fibre.dir1; ref = fibre.ref1);
+	tip == 2 ? (n = fibre.n2; dir2 = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir2 = fibre.dir1; ref = fibre.ref1);
 
-	angspe = FieldAngularSpectrumSymmetric_gaussian(sx_X, fibre.mfd, λ, n(λ), dir, ref);
+	angspe = FieldAngularSpectrumSymmetric_gaussian(sx_X, fibre.mfd, λ, n(λ), Int64(dir), ref);
 	angspe.e_SXY *= √(intensity);
 	return angspe
 end
 
-function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrum, tip::Integer=1)::Float64
+function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrum, tip::Integer=1)
 
-	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1;)
+	tip == 2 ? (ref = fibre.ref2; dir2 = fibre.dir2;) : (ref = fibre.ref1; dir2 = fibre.dir1;)
 
-	dir == angspe.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
+	dir2 == dir(angspe) ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
 	angsperef = changereferenceframe(angspe, ref);
 
 	k = 2 * π / angsperef.λ;
@@ -87,8 +87,8 @@ end
 # end
 
 function signal(fibre::SingleModeFibre, fieldspace::FieldSpace, tip::Integer=1)::Float64
-	tip == 2 ? (ref = fibre.ref2; dir = fibre.dir2;) : (ref = fibre.ref1; dir = fibre.dir1);
-	dir == fieldspace.dir ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -fieldspace.dir)") : nothing
+	tip == 2 ? (ref = fibre.ref2; dir2 = fibre.dir2;) : (ref = fibre.ref1; dir2 = fibre.dir1);
+	dir2 == dir(fieldspace) ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -fieldspace.dir)") : nothing
 
 	fieldspaceref = changereferenceframe(fieldspace, ref);
 

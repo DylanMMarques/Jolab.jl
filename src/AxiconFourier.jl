@@ -27,12 +27,14 @@ end
 	k = 2π / space.λ
 
 	bool = space.x_X[iX]^2 + space.y_Y[iY]^2 > 3E-6 && xmin * xmax > 0 && ymin * ymax > 0
+	# @show space.x_X[iX]^2 + space.y_Y[iY]^2 > 3E-6
+	# @show xmin * xmax > 0 && ymin * ymax > 0
 	if bool
 		@inline f(x,y) = -k * (axicon.β * √(x^2 + y^2) + axicon.nsx_X[iA] * x + axicon.nsy_Y[iB] * y)
 		t12 = 1 / 4π^2 * integrate_exp_xy_x_y(f, xmin, xmax, ymin, ymax)
 	else
 		@inline phaseTerm(r) = exp(-im * k * (axicon.β * √(r[1]^2 + r[2]^2) + axicon.nsx_X[iA] * r[1] + axicon.nsy_Y[iB] * r[2]))
-	 	t12 = 1 / 4π^2 * hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), rtol = 1E-2)[1]
+	 	t12 = 1 / 4π^2 * hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), rtol = 1E-2, maxevals = 2000)[1]
 	end
 	return t12
 end
@@ -66,7 +68,7 @@ end
 		t12 = 1 / 4π^2 * integrate_exp_xy_x_y(f, xmin, xmax, ymin, ymax)
 	else
 		@inline phaseTerm(r) = exp(-im * k * (axicon.β * √(r[1]^2 + r[2]^2) + angspe.nsx_X[iX] * r[1] + axicon.nsy_Y[iY] * r[2]))
-	 	t12 = 1 / 4π^2 * hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), rtol = 1E-2)[1]
+	 	t12 = 1 / 4π^2 * hcubature(phaseTerm, SVector(xmin, ymin), SVector(xmax, ymax), rtol = 1E-2, maxevals=100)[1]
 	end
 	return t12
 end
@@ -84,7 +86,7 @@ function coefficient_general(axicon::AxiconFourier, field::AbstractFieldMonochro
 
 	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
 	let scat = scat, axicon = axicon, field = field
-		for iX1 in 1:sizeX
+		@inbounds Threads.@threads for iX1 in 1:sizeX
 	 	 	@simd for iY1 in 1:sizeY
 				i1 = coordXY[iX1, iY1]
 				for iA2 in 1:sizeA
@@ -120,9 +122,9 @@ function lightinteraction(axicon::AxiconFourier{T,X}, field::AbstractFieldMonoch
 	fieldr.e_SXY .= zero(Complex{T})
 
 	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
-	let axicon = axicon, field = field, fieldl = fieldl, fieldr = fieldr
+	let axicon = axicon, fieldi_newref = fieldi_newref, fieldl = fieldl, fieldr = fieldr
 		@inbounds Threads.@threads for iA2 in 1:sizeA
-			@simd for iB2 in 1:sizeB
+			for iB2 in 1:sizeB
 				i2 = coordAB[iA2, iB2]
 				for iX1 in 1:sizeX
 	 	 			for iY1 in 1:sizeY

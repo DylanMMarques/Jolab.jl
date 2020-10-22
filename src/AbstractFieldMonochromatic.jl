@@ -16,4 +16,4 @@ end
 Base.:copy(field::AbstractFieldMonochromatic) = deepcopy(field)
 
 dir(field::AbstractFieldMonochromatic{T,-1}) where T = -1
-dir(field::AbstractFieldMonochromatic{T,1}) where T = 1 
+dir(field::AbstractFieldMonochromatic{T,1}) where T = 1

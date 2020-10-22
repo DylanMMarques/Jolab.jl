@@ -202,9 +202,9 @@ function lightinteraction_recursive(coefs::AbstractVector{<:AbstractCoefficient}
 
 	nsx_XY = repeat(angspe.nsx_X, 1, sizeY);
 	nsy_XY = repeat(angspe.nsy_Y', sizeX, 1);
-	nsz_XY = angspe.dir * .√(angspe.n^2 .- nsx_XY.^2 .- nsy_XY.^2)
+	nsz_XY = dir(angspe) * .√(angspe.n^2 .- nsx_XY.^2 .- nsy_XY.^2)
 
-	refcoef = angspe.dir > 0 ? coefs[1].ref₁ : coefs[end].ref₂
+	refcoef = dir(angspe) > 0 ? coefs[1].ref₁ : coefs[end].ref₂
 	changereferenceframe!(nsx_XY, nsy_XY, nsz_XY, ei_SXY, angspe.λ, angspe.ref, refcoef)
 
 	(nsrmin, nsrmax) = rextrema(angspe.nsx_X, angspe.nsy_Y);

@@ -1,4 +1,4 @@
-using Jolab
+using Jolab, Test
 axicon = Axicon(0.003, ReferenceFrame(0.,0.,0))
 
 # Create the gaussian field incident upon the axicon

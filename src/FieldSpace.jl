@@ -44,12 +44,12 @@ end
 
 function FieldAngularSpectrum_fromspace(fieldspace::FieldSpace{T,D}, nsx_X, nsy_Y) where {T,D}
 	e_SXY = fourriertransform(fieldspace.x_X, fieldspace.y_Y, fieldspace.e_SXY, fieldspace.λ, fieldspace.n, nsx_X, nsy_Y);
-	return FieldAngularSpectrum{T}(nsx_X, nsy_Y, e_SXY, fieldspace.λ, fieldspace.n, fieldspace.dir, fieldspace.ref);
+	return FieldAngularSpectrum{T}(nsx_X, nsy_Y, e_SXY, fieldspace.λ, fieldspace.n, dir(fieldspace), fieldspace.ref);
 end
 
 function FieldAngularSpectrum_fromspacefft(fieldspace::FieldSpace{T,X}; padding=0::Integer) where {T, X<:AbstractRange}
 	(nsx_X, nsy_Y, e_SXY) = fourriertransformfft(fieldspace.x_X, fieldspace.y_Y, fieldspace.e_SXY, fieldspace.λ, padding=padding)
-	return FieldAngularSpectrum{T}(nsx_X, nsy_Y, e_SXY, fieldspace.λ, fieldspace.n, fieldspace.dir, fieldspace.ref);
+	return FieldAngularSpectrum{T}(nsx_X, nsy_Y, e_SXY, fieldspace.λ, fieldspace.n, dir(fieldspace), fieldspace.ref);
 end
 
 function changereferenceframe!(fieldspace::FieldSpace, refnew::ReferenceFrame)
@@ -106,6 +106,14 @@ function add_inplace!(fielda::FieldSpace{T}, fieldb::FieldSpace{T}) where T
 	vec(fielda.e_SXY) .+= vec(fieldb.e_SXY)
 end
 
-function Base.:copy(field::FieldSpace{T}) where T
-	return FieldSpace{T}(copy(field.x_X), copy(field.y_Y), copy(field.e_SXY), copy(field.λ), copy(field.n), copy(field.dir), copy(field.ref))
+function Base.:copy(field::FieldSpace{T,D,X}) where {T,D,X}
+	return FieldSpace{T,D,X}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+end
+
+function copy_differentD(field::FieldSpace{T,1,X}) where {T,X}
+	return FieldSpace{T,-1,X}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+end
+
+function copy_differentD(field::FieldSpace{T,-1,X}) where {T,X}
+	return FieldSpace{T,1,X}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
 end

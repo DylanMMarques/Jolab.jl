@@ -45,19 +45,19 @@ end
 
 function FieldSpace_fromangspe(angspe::FieldAngularSpectrum{T}, x_X, y_Y) where {T}
 	e_SXY = inversefourriertransform(angspe.nsx_X, angspe.nsy_Y, angspe.e_SXY, angspe.λ, angspe.n, x_X, y_Y);
-	return FieldSpace{T}(x_X, y_Y, e_SXY, angspe.λ, angspe.n, angspe.dir, angspe.ref);
+	return FieldSpace{T}(x_X, y_Y, e_SXY, angspe.λ, angspe.n, dir(angspe), angspe.ref);
 end
 
 function FieldSpace_fromangspefft(angspe::FieldAngularSpectrum{T,X}; padding=0::Integer) where {T, X<:AbstractRange{T}}
 	(x_X, y_Y, e_SXY) = inversefourriertransformfft(angspe.nsx_X, angspe.nsy_Y, angspe.e_SXY, angspe.λ, padding=padding);
-	return FieldSpace{T}(x_X, y_Y, e_SXY, angspe.λ, angspe.n, angspe.dir, angspe.ref);
+	return FieldSpace{T}(x_X, y_Y, e_SXY, angspe.λ, angspe.n, dir(angspe), angspe.ref);
 end
 
 function angspeto3Dspace(angspe::FieldAngularSpectrum, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, z_Z::AbstractVector{<:Real})
 	# @show "This is wrong, I think"
 	e_SXYZ = zeros(eltype(angspe.e_SXY), size(angspe.e_SXY, 1), length(x_X), length(y_Y), length(z_Z));
  	angspeWithZ = Array{eltype(angspe.e_SXY), 3}(undef, size(angspe.e_SXY));
-	kz_XY = (2π / angspe.λ) .* angspe.dir .* .√(angspe.n^2 .- reshape(angspe.nsx_X.^2, 1,:,1) .- reshape(angspe.nsy_Y.^2, 1, 1, :))
+	kz_XY = (2π / angspe.λ) .* dir(angspe) .* .√(angspe.n^2 .- reshape(angspe.nsx_X.^2, 1,:,1) .- reshape(angspe.nsy_Y.^2, 1, 1, :))
 	@inbounds @simd for iZ in 1:length(z_Z)
 		angspeWithZ .= angspe.e_SXY .* exp.(im .* kz_XY .* z_Z[iZ]);
 		auxE = @view e_SXYZ[:,:,:,iZ];
@@ -183,7 +183,7 @@ function rotatereferenceframe!(angspe::FieldAngularSpectrum, refnew::ReferenceFr
 	(sizeX, sizeY) = size(angspe.e_SXY)[2:3]
 	nsx_XY = repeat(angspe.nsx_X, 1, length(angspe.nsy_Y))
 	nsy_XY = repeat(reshape(angspe.nsy_Y, 1, :), length(angspe.nsx_X), 1)
-	nsz_XY = angspe.dir .* .√(angspe.n^2 .- angspe.nsx_X.^2 .- (angspe.nsy_Y').^2)
+	nsz_XY = dir(angspe) .* .√(angspe.n^2 .- angspe.nsx_X.^2 .- (angspe.nsy_Y').^2)
 	rotatereferenceframe!(nsx_XY, nsy_XY, nsz_XY, angspe.e_SXY, angspe.ref, refnew)
 
 	if (nsx_XY[2] - nsx_XY[1]) > 0
@@ -231,7 +231,7 @@ function polarizedcomponents(angspe::AbstractFieldAngularSpectrum)::Tuple{Array{
 	@inbounds @simd for iY in 1:sizeY
 		for iX in 1:sizeX
 			tmpe = @view angspe.e_SXY[:,iX,iY];
-			(Eₚ_XY[iX,iY], Eₛ_XY[iX,iY]) = polarizedcomponents(tmpe, angspe.nsx_X[iX], angspe.nsy_Y[iY], angspe.dir, angspe.n);
+			(Eₚ_XY[iX,iY], Eₛ_XY[iX,iY]) = polarizedcomponents(tmpe, angspe.nsx_X[iX], angspe.nsy_Y[iY], dir(angspe), angspe.n);
 		end
 	end
 	return (Eₚ_XY, Eₛ_XY)
@@ -268,7 +268,7 @@ end
 
 function polarizeddirections(angspe::AbstractFieldAngularSpectrum)::Tuple{Array{Complex{Float64}, 3}, Array{Complex{Float64}, 3}}
 	size(angspe.e_SXY, 1) == 1 && error("No polarized directions can be calculated for scalar approximation");
-	return polarizeddirections(angspe.nsx_X, angspe.nsy_Y, angspe.dir);
+	return polarizeddirections(angspe.nsx_X, angspe.nsy_Y, dir(angspe));
 end
 
 function scalartovectorial!(angspe::FieldAngularSpectrum; pol = :x )::FieldAngularSpectrum
@@ -290,9 +290,9 @@ function scalartovectorial!(angspe::FieldAngularSpectrum; pol = :x )::FieldAngul
 		nₛ = MVector{3, ComplexF64}(undef)
 		for iX in eachindex(angspe.nsy_Y)
 			for iY in eachindex(angspe.nsx_X)
-				polarizeddirections!(nₚ, nₛ, angspe.nsx_X[iX], angspe.nsy_Y[iY], angspe.dir, angspe.n);
+				polarizeddirections!(nₚ, nₛ, angspe.nsx_X[iX], angspe.nsy_Y[iY], dir(angspe), angspe.n);
 				nsr = √(angspe.nsx_X[iX]^2 + angspe.nsy_Y[iY]^2);
-				Eₚ = oldE_SXY[1,iX,iY] * (ePol[1] * angspe.dir * angspe.nsx_X[iX] + ePol[2] * angspe.nsy_Y[iY] * angspe.dir) / nsr;
+				Eₚ = oldE_SXY[1,iX,iY] * (ePol[1] * dir(angspe) * angspe.nsx_X[iX] + ePol[2] * angspe.nsy_Y[iY] * dir(angspe)) / nsr;
 				Eₛ = oldE_SXY[1,iX,iY] * (ePol[1] * angspe.nsy_Y[iY] + ePol[2] * -angspe.nsx_X[iX]) / nsr;
 				angspe.e_SXY[1,iX,iY] = nₚ[1] * Eₚ + nₛ[1] * Eₛ
 				angspe.e_SXY[2,iX,iY] = nₚ[2] * Eₚ + nₛ[2] * Eₛ
@@ -356,6 +356,14 @@ function add_inplace!(fielda::FieldAngularSpectrum{T}, fieldb::FieldAngularSpect
 	vec(fielda.e_SXY) .+= vec(fieldb.e_SXY)
 end
 
-function Base.:copy(field::FieldAngularSpectrum{T}) where T
-	return FieldAngularSpectrum{T}(copy(field.nsx_X), copy(field.nsy_Y), copy(field.e_SXY), copy(field.λ), copy(field.n), copy(field.dir), copy(field.ref))
+function Base.:copy(field::FieldAngularSpectrum{T,D,X}) where {T,D,X}
+	return FieldAngularSpectrum{T,D,X}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+end
+
+function copy_differentD(field::FieldAngularSpectrum{T,1,X}) where {T,X}
+	return FieldAngularSpectrum{T,-1,X}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+end
+
+function copy_differentD(field::FieldAngularSpectrum{T,-1,X}) where {T,X}
+	return FieldAngularSpectrum{T,1,X}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
 end

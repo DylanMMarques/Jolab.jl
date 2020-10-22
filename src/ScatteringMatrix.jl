@@ -10,7 +10,7 @@ end
 function checkapplicability(fieldl::L, fieldr::R, scatM::ScatteringMatrix{T, L, R, X}, fieldi::Union{L,R}) where {T,X,L,R}
 	samedefinitions(fieldl, scatM.fieldl) || return false
 	samedefinitions(fieldr, scatM.fieldr) || return false
-	samedefinitions(fieldi, fieldi.dir > 0 ? scatM.fieldl : scatM.fieldr) || return false
+	samedefinitions(fieldi, dir(fieldi) > 0 ? scatM.fieldl : scatM.fieldr) || return false
 	return true
 end
 

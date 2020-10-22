@@ -121,6 +121,33 @@ end
 	return t
 end
 
+@inline function et(fourier::FourierTransform{T,X,Y}, field::FieldAngularSpectrum, angleE, iX,iY,iA,iB) where {T, X, Y<:ReferenceFrame}
+	nsxmin, nsxmax = field.nsx_X[iX], field.nsx_X[iX+1]
+	nsymin, nsymax = field.nsy_Y[iY], field.nsy_Y[iY+1]
+
+	k = 2π / field.λ
+
+	refΔx, refΔy, refΔz = fourier.ref.x - field.ref.x, fourier.ref.y - field.ref.y, fourier.ref.z - field.ref.z
+	(refΔx2, refΔy2, refΔz2) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, field.ref.θ, field.ref.ϕ)
+
+	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
+
+	# if imagina_waves
+	# 	f(nsr) = k * ((fourier.x_X[iA] + refΔx2) * nsr[1] + (fourier.y_Y[iB] + refΔy2) * nsr[2] + dir(field) * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
+	# 	et = space.e_SXY[1,iX,iY] * k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))[1]
+	# 	@show "this is wrong"
+	# else
+		@inline g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx2) * nsx + (fourier.y_Y[iB] + refΔy2) * nsy + dir(field) * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
+		(α, β, γ, δ) = bilinearinterpolation(angleE[iX,iY] + g(nsxmin,nsymin), angleE[iX,iY+1] + g(nsxmin, nsymax), angleE[iX+1,iY] + g(nsxmax, nsymin), angleE[iX+1,iY+1] + g(nsxmax,nsymax), nsxmin, nsxmax, nsymin, nsymax)
+		(a,b,c,d) = bilinearinterpolation(abs(field.e_SXY[1,iX,iY]), abs(field.e_SXY[1,iX,iY+1]), abs(field.e_SXY[1,iX+1,iY]), abs(field.e_SXY[1,iX+1,iY+1]), nsxmin, nsxmax, nsymin, nsymax)
+
+		et = k^2 * integrate_xy_x_y_d_exp_xy_x_y(a, b, c, d, α, β, γ, δ, nsxmin, nsxmax, nsymin, nsymax)
+	# end
+	return et
+
+end
+
+
 getsizes(fourier::FourierTransform{T,X}, field::FieldSpace) where {T, X<:AbstractVector} = (length(fourier.nsx_X), length(fourier.nsy_Y))
 getsizes(fourier::FourierTransform{T,X}, field::FieldAngularSpectrum) where {T, X<:AbstractVector} = (length(fourier.x_X), length(fourier.y_Y))
 
@@ -310,9 +337,11 @@ function lightinteraction(fourier::FourierTransform{T,X}, field::AbstractFieldMo
 	fieldl.e_SXY .= zero(Complex{T})
 	fieldr.e_SXY .= zero(Complex{T})
 
+	# angleE = unwrap!(angle.(view(field.e_SXY,1,:,:)), dims = 1:2)
+
 	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
 	let fieldl = fieldl, fieldr = fieldr, fourier = fourier, field = field
-		@inbounds Threads.@threads for iA2 in 1:sizeA
+		 @inbounds Threads.@threads for iA2 in 1:sizeA
 			for iB2 in 1:sizeB
 				i2 = coordAB[iA2, iB2]
 				for iX1 in 1:sizeX
@@ -407,7 +436,7 @@ struct FFTCoefficient{T,L,R, F <: AbstractFFTs.Plan} <: AbstractCoefficient{T,L,
 end
 
 function lightinteraction!(fieldl::L, fieldr::R, coef::FFTCoefficient{T,L,R}, fieldi::Union{L,R}) where {T,L,R}
-	if fieldi.dir > 0
+	if dir(fieldi) > 0
 		samedefinitions(fieldl, fieldi) || tobedone()
 		if fieldi isa FieldSpace
 			mul!(coef.tmp, coef.planfft, fftshift(view(fieldi.e_SXY,1,:,:)))

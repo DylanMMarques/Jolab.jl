@@ -17,7 +17,7 @@ function coefficient_general(pointdet::PointDetector{T}, fieldi::FieldAngularSpe
 	r12 = zeros(Complex{T}, sizeXY, sizeXY)
 	r21 = zeros(Complex{T}, sizeXY, sizeXY)
 
-	if fieldi.dir > 0
+	if dir(fieldi) > 0
 		t12 = Matrix{Complex{T}}(undef, 1, sizeXY)
 		t21 = zeros(Complex{T}, 1, sizeXY)
 	else
@@ -38,7 +38,7 @@ function coefficient_general(pointdet::PointDetector{T}, fieldi::FieldAngularSpe
 	@inbounds for iY in eachindex(fieldi.nsy_Y)
 		for iX in eachindex(fieldi.nsx_X)
 			nsz = √(fieldi.n^2 - (fieldi.nsx_X[iX]^2 + fieldi.nsy_Y[iY]^2))
-			if fieldi.dir > 0
+			if dir(fieldi) > 0
 				t12[i] = exp(im * k * (xdet * fieldi.nsx_X[iX] + ydet * fieldi.nsy_Y[iY] + zdet * nsz)) * Δkx[iX] * Δky[iY]
 			else
 				t21[i] = exp(im * k * (xdet * fieldi.nsx_X[iX] + ydet * fieldi.nsy_Y[iY] - zdet * nsz)) * Δkx[iX] * Δky[iY]
@@ -47,7 +47,7 @@ function coefficient_general(pointdet::PointDetector{T}, fieldi::FieldAngularSpe
 		end
 	end
 
-	if fieldi.dir > 0
+	if dir(fieldi) > 0
 		fieldl = FieldAngularSpectrum{T}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, fieldi.n, -1, fieldi.ref)
 		fieldr = FieldAngularSpectrum{T}(zeros(T,1), zeros(T, 1), zeros(Complex{T}, 1,1,1), fieldi.λ, fieldi.n, 1, pointdet.ref)
 	else

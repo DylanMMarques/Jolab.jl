@@ -7,7 +7,7 @@ function coefficient_specific(comps::AbstractVector{<:AbstractOpticalComponent{T
     coefs = Vector{AbstractCoefficient{T}}(undef, length(comps))
     fieldaux = fieldi
 
-    if fieldi.dir > 0
+    if dir(fieldi) > 0
         for i in eachindex(comps)
             coefs[i] = coefficient_specific(comps[i], fieldaux)
             (tmp, fieldaux) = getfields_lr(coefs[i])
@@ -59,7 +59,7 @@ end
 
 function coefficient_general(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic) where T
     coef = Vector{ScatteringMatrix{T}}(undef, 2)
-    if fieldi.dir > 0
+    if dir(fieldi) > 0
 		coef[1] = coefficient_general(comps[1], fieldi)
         for i in 2:length(comps)
             coef[2] = coefficient_general(comps[i], coef[1].fieldr)

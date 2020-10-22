@@ -10,8 +10,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	# miss check if this can be done
 	sizeL = length(coefs) + 1;
 
-	fields_r = Vector{AbstractFieldMonochromatic{T}}(undef, sizeL)
-	fields_l = Vector{AbstractFieldMonochromatic{T}}(undef, sizeL)
+	fields_r = Vector{AbstractFieldMonochromatic{T,1}}(undef, sizeL)
+	fields_l = Vector{AbstractFieldMonochromatic{T,-1}}(undef, sizeL)
 	int_l = zeros(T, sizeL)
 	int_r = zeros(T, sizeL)
 	cval_l = ones(T, sizeL)
@@ -19,25 +19,21 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 
 	for i in 1:sizeL-1
 		(fields_l[i], tmp) = getfields_lr(coefs[i])
-		fields_l[i].dir = -1
 		vec(fields_l[i].e_SXY) .= zero(Complex{T})
-		fields_r[i] = copy(fields_l[i])
-		fields_r[i].dir = 1
+		fields_r[i] = copy_differentD(fields_l[i])
 	end
 
-	(tmp, fields_l[sizeL]) = getfields_lr(coefs[sizeL-1])
-	fields_l[sizeL].dir = -1
-	fields_l[sizeL].e_SXY .= zero(Complex{T})
-	fields_r[sizeL] = copy(fields_l[sizeL])
-	fields_r[sizeL].dir = 1
+	(tmp, fields_r[sizeL]) = getfields_lr(coefs[sizeL-1])
+	fields_r[sizeL].e_SXY .= zero(Complex{T})
+	fields_l[sizeL] = copy_differentD(fields_r[sizeL])
 
 	fields_aux_r = deepcopy(fields_r)
 	fields_aux_l = deepcopy(fields_l)
 	rtol = intensity_p(fieldi) * rtol^2
 
-	fieldi.dir > 0 ? vec(fields_r[1].e_SXY) .= vec(fieldi.e_SXY) : vec(fields_l[sizeL].e_SXY) .= vec(fieldi.e_SXY)
+	dir(fieldi) > 0 ? vec(fields_r[1].e_SXY) .= vec(fieldi.e_SXY) : vec(fields_l[sizeL].e_SXY) .= vec(fieldi.e_SXY)
 	initial_int = intensity_p(fieldi)
-	fieldi.dir > 0 ? int_r[1] = initial_int : int_l[sizeL] = initial_int
+	dir(fieldi) > 0 ? int_r[1] = initial_int : int_l[sizeL] = initial_int
 	fields2_l = deepcopy(fields_l)
 	fields2_r = deepcopy(fields_r)
 
@@ -102,7 +98,7 @@ function lightinteraction_recursivegridded(coefs::AbstractVector{<:AbstractCoeff
 	(fieldl, tmp) = getfields_lr(coefs[1])
 	(tmp, fieldr) = getfields_lr(coefs[end])
 
-	samedefinitions(field_inc, field_inc.dir > 0 ? fieldl : fieldr) || error("Cannot do this")
+	samedefinitions(field_inc, dir(field_inc) > 0 ? fieldl : fieldr) || error("Cannot do this")
 	lightinteraction_recursivegridded!(fieldl, fieldr, coefs, field_inc, rtol = rtol)
 	return (fieldl, fieldr)
 end

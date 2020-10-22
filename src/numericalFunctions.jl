@@ -383,74 +383,83 @@ end
 
 @inline function integrate_exp_xy_x_y(α::T, β::T, γ::T, δ::T, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
 	# g(x,y) = (α * x * y + β * x + γ * y + δ)
-	if (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
-		b(r) = exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
-		return hcubature(b, SVector(xmin, ymin), SVector(xmax, ymax))[1]
+	if abs(α) <= 1E-7
+		return integrate_exp_x_y(β, γ, δ, xmin, xmax, ymin, ymax)
 	else
-		@inline Pf(x::T, y::T)::Complex{T} = begin
-			aux = (γ + α * x) * (β + α * y) / α
-			if aux < 0
-				return ((-conj(Complex{T}(expint(im * aux)))) - π * im)
-			else
-				return ((-conj(Complex{T}(expint(im * aux)))) + π * im)
-			end
- 		end
-		return - im / α * exp(im * (δ - β * γ / α)) * (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
+		if (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
+			b(r) = exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
+			return hcubature(b, SVector(xmin, ymin), SVector(xmax, ymax), maxevals = 2000)[1]
+		else
+			@inline Pf(x::T, y::T)::Complex{T} = begin
+				aux = (γ + α * x) * (β + α * y) / α
+				if aux < 0
+					return ((-conj(Complex{T}(expint(im * aux)))) - π * im)
+				else
+					return ((-conj(Complex{T}(expint(im * aux)))) + π * im)
+				end
+ 			end
+			return - im / α * exp(im * (δ - β * γ / α)) * (Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin))
+		end
 	end
-
 	return zero(Complex{T})
 end
 
 @inline function integrate_exp_xy_x_y(f::Function, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
-	f11 = f(xmin, ymin)
-	f12 = f(xmin, ymax)
-	f21 = f(xmax, ymin)
-	f22 = f(xmax, ymax)
-	α = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
-	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
-	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
-	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
-
-	if abs(α) <= 1E-7
-		return integrate_exp_x_y(β, γ, δ, xmin, xmax, ymin, ymax)
-	else
-		return integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
-	end
+	f11, f12, f21, f22 = f(xmin, ymin), f(xmin, ymax), f(xmax, ymin), f(xmax, ymax)
+	(α, β, γ, δ) = bilinearinterpolation(f11, f12, f21, f22, xmin, xmax, ymin, ymax)
+	return integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
 end
 
-function integrate_xy_x_y_d_exp_xy_xy_y(a, b, c, d, α, β, γ, δ, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
-	# return the integral of (a xy + b x + c y + d) * exp(im * (α xy + β x + γ y + δ))
-	if (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
-		int(r) = (a * r[1] * r[2] + b * r[1] + c * r[2] + d) * exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
-		return hcubature(int, SVector(xmin, ymin), SVector(xmax, ymax))[1]
+function integrate_xy_x_y_d_exp_x_y(a, b, c, d, β, γ, δ, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
+	if (β <= @tol) && (γ <= @tol)
+		f1(x,y) = 1 / 4 * exp(im * δ) * x * y * (4 * d + 2 * b * x + 2 * c * y + a * x * y)
+		return f1(xmax,ymax) - f1(xmin, ymax) - f1(xmax, ymin) + f1(xmin,ymin)
+	elseif γ <= @tol
+		f2(x,y) = exp(im * (δ + β * x)) * y * (b * (2 - 2im * β * x) + a * y - im * β * (2 * d + c * y + a * x * y)) / 2 / β^2
+		return f2(xmax,ymax) - f2(xmin, ymax) - f2(xmax, ymin) + f2(xmin,ymin)
+	elseif β <= @tol
+		f3(x,y) = - 1 / 2 / γ^2 * im * exp(im * (δ + γ * y)) * x * (2 * d * γ + 2 * c * (im + γ * y) + x * (im * a + b * γ + a * γ * y))
+		return f3(xmax,ymax) - f3(xmin, ymax) - f3(xmax, ymin) + f3(xmin,ymin)
 	else
-		@inline Pf(x::T, y::T)::Complex{T} = begin
-			aux = (γ + α * x) * (β + α * y) / α
-			expi = -conj(Complex{T}(expint(im * aux))) + (aux < 0 ? - π * im : π * im)
-		 	return - 1 / α^3 * im * exp(im * δ) * (-((im * α * exp(im * (β * x + (γ + α * x) * y)) * (-a * β * γ + α * (β * c + b * γ) + α^2 * (b * x + c * y + a * x * y))) / ((γ + α * x) * (β + α * y))) + exp(- im * β * γ / α) * (α * (- β * c + α * d - b * γ) + a * (im * α + β * γ)) * expi)
- 		end
-		return Pf(xmax, ymax) - Pf(xmax, ymin) - Pf(xmin, ymax) + Pf(xmin, ymin)
+		f4(x,y) = - 1 / β^2 / γ^2 * exp(im * (δ + β * x + γ * y)) * (im * b * γ + a * (im + β * x) * (im + γ * y) + β * (im * c + d * γ + b * γ * x + c * γ * y))
+		return f4(xmax,ymax) - f4(xmin, ymax) - f4(xmax, ymin) + f4(xmin,ymin)
 	end
 	return zero(Complex{T})
 end
 
-function integrate_xy_x_y_d_exp_xy_xy_y(fabs::Function, fangle::Function, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
-	f11 = fabs(xmin, ymin)
-	f12 = fabs(xmin, ymax)
-	f21 = fabs(xmax, ymin)
-	f22 = fabs(xmax, ymax)
+function integrate_xy_x_y_d_exp_xy_x_y(a, b, c, d, α, β, γ, δ, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
+	# return the integral of (a xy + b x + c y + d) * exp(im * (α xy + β x + γ y + δ))
+	if abs(α) <= 1E-7
+		return integrate_xy_x_y_d_exp_x_y(a,b,c,d,β, γ, δ, xmin, xmax, ymin, ymax)
+	end
+	if  (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
+		int(r) = (a * r[1] * r[2] + b * r[1] + c * r[2] + d) * exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
+		return hcubature(int, SVector(xmin, ymin), SVector(xmax, ymax), maxevals = 2000)[1]
+	else
+		Pf(x::A, y::A) where A = begin
+			aux = (γ + α * x) * (β + α * y) / α
+			expi = -conj(Complex{A}(expint(im * aux))) + (aux < 0 ? - π * im : π * im)
+		 	return - 1 / α^3 * im * exp(im * δ) * (-((im * α * exp(im * (β * x + (γ + α * x) * y)) * (-a * β * γ + α * (β * c + b * γ) + α^2 * (b * x + c * y + a * x * y))) / ((γ + α * x) * (β + α * y))) + exp(- im * β * γ / α) * (α * (- β * c + α * d - b * γ) + a * (im * α + β * γ)) * expi)
+ 		end
+		return Complex{T}(Pf(BigFloat(xmax), BigFloat(ymax)) - Pf(BigFloat(xmax), BigFloat(ymin)) - Pf(BigFloat(xmin), BigFloat(ymax)) + Pf(BigFloat(xmin), BigFloat(ymin)))
+	end
+	return zero(Complex{T})
+end
+
+function bilinearinterpolation(f11::T, f12, f21, f22, xmin, xmax, ymin, ymax)::Tuple{T,T,T,T} where T
+	# fits the 4 data points to a xy + b x + c y + d
 	a = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
 	b = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
 	c = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
 	d = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
+	return (a,b,c,d)
+end
 
-	f11 = fangle(xmin, ymin)
-	f12 = fangle(xmin, ymax)
-	f21 = fangle(xmax, ymin)
-	f22 = fangle(xmax, ymax)
-	α = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
-	β = (-f11 * ymax + f21 * ymax + f12 * ymin - f22 * ymin) / (xmax - xmin) / (ymax - ymin)
-	γ = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
-	δ = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
+function integrate_xy_x_y_d_exp_xy_xy_y(fabs::Function, fangle::Function, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
+	f11, f12, f21, f22 = fabs(xmin, ymin), fabs(xmin, ymax), fabs(xmax, ymin), fabs(xmax, ymax)
+	(a,b,c,d) = bilinearinterpolation(f11, f12, f21, f22, xmin, xmax, ymin, ymax)
+
+	f11, f12, f21, f22 = fangle(xmin, ymin), fangle(xmin, ymax), fangle(xmax, ymin), fangle(xmax, ymax)
+	(α, β, γ, δ) = bilinearinterpolation(f11,f12,f21,f22, xmin, xmax, ymin, ymax)
 	return integrate_xy_x_y_d_exp_xy_xy_y(a, b, c, d, α, β, γ, δ, xmin, xmax, ymin, ymax)
 end
