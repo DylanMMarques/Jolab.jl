@@ -6,6 +6,10 @@ struct FourierTransform{T, X <:Union{AbstractVector{T}, Nothing}, Y<:Union{Refer
 	ref::Y
 end
 
+function FourierTransform(x_X::X1, y_Y::X2, nsx_X::X3, nsy_Y::X4, ref::R) where {X1 <: AbstractVector{T}, X2 <: AbstractVector{T}, X3 <: AbstractVector{T}, X4 <: AbstractVector{T}, R <: ReferenceFrame{T}} where T <: Real
+	X = promote_type(X1, X2, X3, X4)
+	return FourierTransform{T, X ,R}(x_X, y_Y, nsx_X, nsy_Y, ref)
+end
 function FourierTransform(x_X::X1, y_Y::X2, nsx_X::X3, nsy_Y::X4) where {X1 <: AbstractVector{T}, X2 <: AbstractVector{T}, X3 <: AbstractVector{T}, X4 <: AbstractVector{T}} where T <: Real
 	X = promote_type(X1, X2, X3, X4)
 	return FourierTransform{T, X, Nothing}(x_X, y_Y, nsx_X, nsy_Y, nothing)
@@ -64,10 +68,10 @@ end
 	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
 
 	if imagina_waves
-		f(nsr) = k * ((fourier.x_X[iA] + refΔx2) * nsr[1] + (fourier.y_Y[iB] + refΔy2) * nsr[2] + dir(field) * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
-		t12 = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))[1]
+		f(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx2) * nsx + (fourier.y_Y[iB] + refΔy2) * nsy)
+		t12 = exp(im * k * dir(field) * √(complex(field.n^2 - field.nsx_X[iX]^2 - field.nsy_Y[iY]^2)) * refΔz2) * k^2 *  integrate_exp_xy_x_y(f, nsxmin, nsxmax, nsymin, nsymax)
 	else
-		@inline g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx2) * nsx + (fourier.y_Y[iB] + refΔy2) * nsy + dir(field) * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
+		g(nsx, nsy) = k * ((fourier.x_X[iA] + refΔx2) * nsx + (fourier.y_Y[iB] + refΔy2) * nsy + dir(field) * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
 		t12 = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
 	end
 	return t12
@@ -112,10 +116,10 @@ end
 
 	imagina_waves = (imag(field.n) > @tol) || nsxmin^2 + nsymin^2 > real(field.n)^2 || nsxmin^2 + nsymax^2 > real(field.n)^2 || nsxmax^2 + nsymin^2 > real(field.n)^2 || nsxmax^2 + nsymax^2 > real(field.n)^2
 	if imagina_waves
-		@inline f(nsr) = k * ((fourier.x_X[iX] + refΔx2) * nsr[1] + (fourier.y_Y[iY] + refΔy2) * nsr[2] - dir(field) * √(complex(field.n^2 - nsr[1]^2 - nsr[2]^2)) * refΔz2)
-		t = k^2 * hcubature(f, SVector(nsxmin, nsymin), SVector(nsxmax, nsymax))
+		f(nsx, nsy) = k * ((fourier.x_X[iX] + refΔx2) * nsx + (fourier.y_Y[iY] + refΔy2) * nsy)
+		t = exp(-im * k * dir(field) * √(complex(field.n^2 - fourier.nsx_X[iA]^2 - fourier.nsy_Y[iB]^2)) * refΔz2) * k^2 *  integrate_exp_xy_x_y(f, nsxmin, nsxmax, nsymin, nsymax)
 	else
-		@inline g(nsx, nsy) = k * ((fourier.x_X[iX] + refΔx2) * nsx + (fourier.y_Y[iY] + refΔy2) * nsy + dir(field) * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
+		g(nsx, nsy) = k * ((fourier.x_X[iX] + refΔx2) * nsx + (fourier.y_Y[iY] + refΔy2) * nsy + dir(field) * √(real(field.n)^2 - nsx^2 - nsy^2) * refΔz2)
 		t = k^2 * integrate_exp_xy_x_y(g, nsxmin, nsxmax, nsymin, nsymax)
 	end
 	return t
@@ -233,7 +237,7 @@ end
 
 function getfields_lr(fourier::FourierTransform{T,Y,R}, fieldi::FieldSpace{T,D,X}) where {T,D,Y, X<:AbstractVector, R<:ReferenceFrame}
 	(sizeX, sizeY) = size(fieldi.e_SXY)[2:3]
-	(sizeA, sizeB) = getsizes(fourier, field)
+	(sizeA, sizeB) = getsizes(fourier, fieldi)
 
 	m = Array{Complex{T},3}(undef,1,sizeA, sizeB)
 	if dir(fieldi) > 0

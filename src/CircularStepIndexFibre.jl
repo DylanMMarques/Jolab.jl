@@ -170,28 +170,42 @@ function circularstepindex_modeconstant(fibre::CircularStepIndexFibre{T}, λ::Re
     return (C, D)
 end
 
-function circularstepindex_modefield!(e_SXY::AbstractArray{<:Number,3}, r::Real, ncore::Number, na::Real, λ::Real, m::Integer, β::Number, C::Number, D::Number, weigth::Number, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, z=0::Real)
+function modefield(fieldmodes::CircularStepIndexModes{T}, index, x, y)::Complex{T} where T
+    α_1 = α1(fieldmodes.modes.na, fibre.ncore(fieldmodes.modes.λ), fieldmodes.modes.λ, fieldmodes.modes.β[index])
+    α_2 = α2(fieldmodes.modes.na, fibre.ncore(fieldmodes.modes.λ), fieldmodes.modes.λ, fieldmodes.modes.β[index])
+    r_var = √(x^2 + y^2)
+    ϕ = atan(y, x)
+    if (r_var < fieldmodes.r)
+        return fieldmodes.C[index] * besselj(fieldmodes.m[index], α_1 * r_var) * exp(im * fieldmodes.m[index] * ϕ)
+    else
+        return  fieldmodes.D[index] * besselk(fieldmodes.m[index], α_2 * r_var) * exp(im * fieldmodes.m[index] * ϕ)
+    end
+end
 
-    size(e_SXY, 2) == length(x_X) || error("Wrong sizes");
-    size(e_SXY, 3) == length(y_Y) || error("Wrong sizes");
-    size(e_SXY, 1) == 1 || error("Wrong sizes")
-
-    α_1 = α1(na, ncore, λ, β)
-    α_2 = α2(na, ncore, λ, β)
-
-    @inbounds Threads.@threads for iY in eachindex(y_Y)
-        @simd for iX in eachindex(x_X)
-            r_var = √(x_X[iX]^2 + y_Y[iY]^2)
-            ϕ = atan(y_Y[iY], x_X[iX])
-            if (r_var < r)
-                e_SXY[1,iX,iY] = weigth * C * besselj(m, α_1 * r_var) * exp(im * (m * ϕ + β * z))
-            else
-                e_SXY[1,iX,iY] = weigth * D * besselk(m, α_2 * r_var) * exp(im * (m * ϕ + β * z))
+function fieldmodestospace!(space::FieldSpace{T}, fieldmodes::FieldModes) where T
+    space.e_SXY .= zero(Complex{T})
+    @inbounds Threads.@threads for iM in eachindex(fieldmodes.modes.β)
+        @simd for iY in eachindex(y_Y)
+            for iX in eachindex(x_X)
+                space.e_SXY[1,iX,iY] += modefield(fibre.modes, iM, space.x_X[iX], space.y_Y[iY])
             end
         end
     end
 end
 
+function calculatecoupling!(fieldmodes::FieldModes{T}, space::FieldSpace) where T
+    modeshape_XY = Array{Complex{T}}(undef, length(space.x_X), length(space.y_Y))
+
+    @inbounds for iM in eachindex(fieldmodes.modes.β)
+        Threads.@threads for iY in eachindex(y_Y)
+            for iX in eachindex(x_X)
+                modeshape_XY[iX,iY] = conj(modefield(fibre.modes, iM, space.x_X[iX], space.y_Y[iY]))
+                modeshape_XY[iX,iY] *= space.E_SXY
+            end
+        end
+        fieldmodes.modesamplitude[iM] = ∫∫(modeshape_XY, field.x_X, field.y_Y)
+    end
+end
 function circularstepindex_calculatecoupling!(emodes_A::AbstractArray{Complex{T}}, modes::CircularStepIndexModes{T}, e_SXY::AbstractArray{<:Number,3}, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}) where T
 
     size(e_SXY, 1) == 1 || error("Wrong sizes")
@@ -262,14 +276,10 @@ function lightinteraction_interface(fibre::CircularStepIndexFibre{A}, fieldmodes
     return FieldSpace{T,D}(x_X, y_Y, e_SXY, fieldmodes.modes.λ, n, ref)
 end
 
-function refractiveindex_distribution(modes::CircularStepIndexModes{T}) where T
-    n(x,y) = (x^2 + y^2) < modes.r^2 ? modes.ncore : nclad(modes.ncore, modes.na)
-    return JolabFunction2D{T,Complex{T}}(n)
-end
-
 function Base.getindex(modes::CircularStepIndexModes{T}, i) where T
     return CircularStepIndexModes{T}(modes.r, modes.ncore, modes.na, modes.λ, [modes.m[i]], [modes.β[i]], [modes.C[i]], [modes.D[i]])
 end
+
 Base.lastindex(modes::CircularStepIndexModes{T}) where T = numberofmodes(modes)
 numberofmodes(modes::CircularStepIndexModes{T}) where T = length(modes.m)
 
@@ -288,47 +298,6 @@ function getmodes(fibre::CircularStepIndexFibre, λ::Real)
     end
     findmodes!(fibre, λ)
     return fibre.modes[end]
-end
-
-function t(fibre::CircularStepIndexFibre{T}, field::FieldSpace{T}, iX, iY, iA, iB) where T
-	(xmin, xmax) = integralExtremes(space.x_X, iX)
-	(ymin, ymax) = integralExtremes(space.y_Y, iY)
-
-    sizeM = numberofmodes(modes)
-    t = zero(Complex{T})
-    @inbounds for iM in 1:sizeM
-        α_1 = α1(modes.na, modes.ncore, modes.λ, modes.β[iM])
-        α_2 = α2(modes.na, modes.ncore, modes.λ, modes.β[iM])
-        anglePhaseTerm = modes.β[iM] * fibrelength
-        i = 1
-        function fabs(x,y)::T
-            r = √(x^2 + y^2)
-            ϕ = atan(y, x)
-            if r < modes.r
-                return abs(modes.C[iM]) * besselj(modes.m[iM], α_1 * r)
-            else
-                return abs(modes.D[iM]) * besselk(modes.m[iM], α_2 * r)
-            end
-        end
-        function fangle(x,y)::T
-            r = √(x^2 + y^2)
-            ϕ = atan(y, x)
-            if r < modes.r
-                return -angle(modes.C[iM]) - modes.m[iM] * ϕ - anglePhaseTerm
-            else
-                return -angle(modes.D[iM]) - modes.m[iM] * ϕ - anglePhaseTerm
-            end
-        end
-        modeweigth = integrate_xy_x_y_d_exp_xy_xy_y(fabs, fangle, xmin, xmax, ymin, ymax)
-
-        r = √(field.x_X[iA]^2 + field.y_Y[iB]^2)
-        ϕ = atan(field.y_Y[iB], field.x_X[iA])
-        if (r_var < modes.r)
-            t += modeweigth * modes.C[iM] * besselj(modes.m[iM], α_1 * r_var) * exp(im * modes.m[iM] * ϕ)
-        else
-            t += modeweigth * besselk(modes.m[iM], α_2 * r_var) * exp(im * modes.m[iM] * ϕ)
-        end
-    end
 end
 
 function coefficient_general(fibre::CircularStepIndexFibre{T}, field::FieldSpace{X,D,Y}) where {T,X,Y,D}
@@ -384,4 +353,70 @@ function coefficient_general(fibre::CircularStepIndexFibre{T}, field::FieldSpace
     r = UniformScaling(zero(Complex{T}))
 
     return ScatteringMatrix{T, FieldSpace{T,-1,Y}, FieldSpace{T,1,Y}, typeof(r), Matrix{Complex{T}}}(r, t13, r, t13, fieldl, fieldr)
+end
+
+function t_fieldspace(modes::CircularStepIndexModes{T}, field::FieldSpace{T}, iX, iY, iM) where T
+    α_1 = α1(modes.na, modes.ncore, modes.λ, modes.β[iM])
+    α_2 = α2(modes.na, modes.ncore, modes.λ, modes.β[iM])
+
+    r = √(field.x_X[iX]^2 + field.y_Y[iY]^2)
+    ϕ = atan(field.y_Y[iY], field.x_X[iX])
+    if r < modes.r
+        return modes.C[iM] * besselj(modes.m[iM], α_1 * r) * exp(im * modes.m[iM] * ϕ)
+    else
+        return modes.D[iM] * besselk(modes.m[iM], α_2 * r) * exp(im * modes.m[iM] * ϕ)
+    end
+end
+
+function t_coupling(modes::CircularStepIndexModes{T}, field::FieldSpace{T}, iX, iY, iM) where T
+	(xmin, xmax) = integralExtremes(field.x_X, iX)
+	(ymin, ymax) = integralExtremes(field.y_Y, iY)
+
+    α_1 = α1(modes.na, modes.ncore, modes.λ, modes.β[iM])
+    α_2 = α2(modes.na, modes.ncore, modes.λ, modes.β[iM])
+
+    r = √(field.x_X[iX]^2 + field.y_Y[iY]^2)
+    ϕ = atan(field.y_Y[iY], field.x_X[iX])
+    if r < modes.r
+        fabs = modes.C[iM] * besselj(modes.m[iM], α_1 * r)
+    else
+        fabs = modes.D[iM] * besselk(modes.m[iM], α_2 * r)
+    end
+    function fangle(modes, x, y)::T
+        ϕ = atan(y, x)
+        return - modes.m[iM] * ϕ
+    end
+    return fabs * integrate_exp_xy_xy_y(fangle, xmin, xmax, ymin, ymax)
+end
+
+function lightinteraction(fibre::CircularStepIndexFibre, space::FieldSpace{T}) where T
+    checkapplicability(fibre, space)
+    fieldi_newref = changereferenceframe(space, dir(space) > 0 ? ref1(fibre) : ref2(fibre))
+    fibre_length = (fibre.ref₂.z - fibre.ref₁.z) / cos(fibre.ref₁.θ)
+
+	modes = getmodes(fibre, field.λ)
+    sizeM = numberofmodes(modes)
+
+	(fieldl, fieldr) = getfields_lr(fibre, field)
+    fieldl.e_SXY .= zero(Complex{T})
+    fieldr.e_SXY .= zero(Complex{T})
+
+    for iM in 1:sizeM
+        for iY in eachindex(fieldi.y_Y)
+            for iX in eachindex(fieldi.x_X)
+                modesamplitude += t_coupling(modes, fieldi_newref, iX, iY, iM)
+            end
+        end
+        modesamplitude *= exp(im * modes.β[iM] * fibre_length)
+        for iY in eachindex(fieldi.y_Y)
+            for iX in eachindex(fieldi.x_X)
+                if dir(space) > 0
+                    fieldr.e_SXY[1,iX,iY] += modesamplitude * t_fieldspace(modes, fieldi_newref, iX, iY, iM)
+                else
+                    fieldl.e_SXY[1,iX,iY] += modesamplitude * t_fieldspace(modes, fieldi_newref, iX, iY, iM)
+                end
+            end
+        end
+    end
+    return (fieldl, fieldr)
 end

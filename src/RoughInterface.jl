@@ -46,17 +46,17 @@ function coefficient_specific(rmls::RoughInterface{T}, fieldi::FieldAngularSpect
 			t12[iX,iY] = transmissioncoefficientinterfaces(n1, sz1, n2, sz2)
 
 			ir12[iX,iY] = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12[iX,iY])
-			sr12[iX,iY] = (1 + r12[iX,iY]) / n1 / sz1
+			sr12[iX,iY] = (1 + r12[iX,iY]) / (n1 * sz1)
 			Δ[iX,iY] = rmls.Δz(x_X[iX], y_Y[iY]) * fftconst
 
 			it12[iX,iY] = -im * k / 2 * (n2^2 - n1^2)  * (1 + r12[iX,iY])
-			st12[iX,iY] = t21[iX,iY] / n2 / sz2
+			st12[iX,iY] = t21[iX,iY] / (n2 * sz2)
 
 			ir21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 + r21[iX,iY])
-			sr21[iX,iY] = (1 + r21[iX,iY]) / n2 / sz2
+			sr21[iX,iY] = (1 + r21[iX,iY]) / (n2 * sz2)
 
 			it21[iX,iY] = im * k / 2 * (n1^2 - n2^2)  * (1 + r21[iX,iY])
-			st21[iX,iY] = t12[iX,iY] / n1 / sz1
+			st21[iX,iY] = t12[iX,iY] / (n1 * sz1)
 		end
 	end
 
