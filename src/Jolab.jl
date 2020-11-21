@@ -9,7 +9,7 @@ module Jolab
 	using HCubature
 	import FunctionWrappers
 	import FunctionWrappers: FunctionWrapper
-	using Random
+	using Random, Statistics
 
 	export FieldAngularSpectrum, FieldAngularSpectrum_fromspace, FieldAngularSpectrum_fromspacefft, FieldAngularSpectrum_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar
 	export FieldSpace, FieldSpace_gaussian, FieldSpace_uniform, FieldSpace_fromangspe, FieldSpace_fromangspefft

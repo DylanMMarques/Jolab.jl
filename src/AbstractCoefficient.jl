@@ -6,7 +6,7 @@ function lightinteraction(coef::AbstractCoefficient, fieldi::AbstractFieldMonoch
 	(fieldl, fieldr) = getfields_lr(coef)
 
 	changereferenceframe!(fieldi, dir(fieldi) > 0 ? fieldl.ref : fieldr.ref)
-	samedefinitions(fieldi, dir(fieldi) > 0 ? fieldl : fieldr)
+	samedefinitions(fieldi, dir(fieldi) > 0 ? fieldl : fieldr) || error("cannot do")
 	lightinteraction!(fieldl, fieldr, coef, fieldi)
 	return (fieldl, fieldr)
 end

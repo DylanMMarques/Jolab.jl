@@ -92,12 +92,12 @@ function propagationmatrix(fieldl::L, fieldr::L) where {L <: AbstractFieldSpace}
 	error("A field in space cannot be propagated")
 end
 
-function samedefinitions(fieldl::L, fieldr::L) where L <: FieldSpace
-	isapprox(fieldl.x_X, fieldr.x_X, atol = @tol) || return false
-	isapprox(fieldl.y_Y, fieldr.y_Y, atol = @tol) || return false
-	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
-	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
-	fieldl.ref == fieldr.ref || return false
+function samedefinitions(fieldl::L, fieldr::R) where {L<:FieldSpace, R<:FieldSpace}
+	isapprox(fieldl.x_X, fieldr.x_X, atol = @tol) || error("x_X are different")
+	isapprox(fieldl.y_Y, fieldr.y_Y, atol = @tol) || error("y_Y are different")
+	isapprox(fieldl.n, fieldr.n, atol = @tol) || error("n are different")
+	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || error("λ are different")
+	fieldl.ref == fieldr.ref || error("reference frames are different")
 	return true
 end
 

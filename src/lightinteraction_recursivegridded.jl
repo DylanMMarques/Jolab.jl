@@ -53,43 +53,38 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			iE_r = fields_r
 		end
 
-		for mls in 1:sizeL
-			if mls < sizeL
-				if int_r[mls] > initial_int * @tol
-					iE_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
-					lightinteraction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], iE_r[mls])
-					add_inplace!(toSave_l[mls], fields_aux_l[mls])
-					add_inplace!(toSave_r[mls+1], fields_aux_r[mls+1])
-				else
-					# add_inplace!(toSave_r[mls], iE_r[mls])
-				end
-				vec(iE_r[mls].e_SXY) .= zero(Complex{T})
+		for mls in 1:sizeL-1
+			if int_r[mls] > initial_int * @tol
+				iE_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
+				lightinteraction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], iE_r[mls])
+				add_inplace!(toSave_l[mls], fields_aux_l[mls])
+				add_inplace!(toSave_r[mls+1], fields_aux_r[mls+1])
+			else
+				# add_inplace!(toSave_r[mls], iE_r[mls])
 			end
+			vec(iE_r[mls].e_SXY) .= zero(Complex{T})
 		end
-		for mls in 1:sizeL
-			if mls > 1
-				if int_l[mls] > initial_int * @tol
-					iE_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()
-					lightinteraction!(fields_aux_l[mls-1], fields_aux_r[mls], coefs[mls-1], iE_l[mls])
-					add_inplace!(toSave_l[mls-1], fields_aux_l[mls-1])
-					add_inplace!(toSave_r[mls], fields_aux_r[mls])
-				else
-					# add_inplace!(toSave_l[mls], iE_l[mls])
-				end
-				vec(iE_l[mls].e_SXY) .= zero(Complex{T})
+		for mls in 2:sizeL
+			if int_l[mls] > initial_int * @tol
+				iE_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()
+				lightinteraction!(fields_aux_l[mls-1], fields_aux_r[mls], coefs[mls-1], iE_l[mls])
+				add_inplace!(toSave_l[mls-1], fields_aux_l[mls-1])
+				add_inplace!(toSave_r[mls], fields_aux_r[mls])
+			else
+				# add_inplace!(toSave_l[mls], iE_l[mls])
 			end
+			vec(iE_l[mls].e_SXY) .= zero(Complex{T})
 		end
 		Threads.@threads for mls in 1:sizeL
 			int_l[mls] = intensity_p(toSave_l[mls])
 			int_r[mls] = intensity_p(toSave_r[mls])
 		end
 
-		sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1)) < rtol && break
-		sum(int_l) + sum(int_r) > 10initial_int && (println("lightinteraction_recursivegridded is not converging."); break)
+		sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1)) < rtol && (println("Interactions until convergence: ", i); break)
+		sum(int_l) + sum(int_r) > 100 * initial_int && (println("lightinteraction_recursivegridded is not converging. Current number of iterations:", i); break)
 		i > 10000 && (println("Max number of iterations achieved"); break)
 		i += 1
 	end
-	println("Interactions until convergence: ", i)
 	vec(fieldl.e_SXY) .= vec(toSave_l[1].e_SXY)
 	vec(fieldr.e_SXY) .= vec(toSave_r[sizeL].e_SXY)
 end

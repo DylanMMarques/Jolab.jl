@@ -343,11 +343,11 @@ function centerangspereferenceframe!(angspe::FieldAngularSpectrum{T}) where T
 end
 
 function samedefinitions(fieldl::L, fieldr::R) where {L <: FieldAngularSpectrum, R <: FieldAngularSpectrum}
-	isapprox(fieldl.nsx_X, fieldr.nsx_X, atol = @tol) || return false
-	isapprox(fieldl.nsy_Y, fieldr.nsy_Y, atol = @tol) || return false
-	isapprox(fieldl.n, fieldr.n, atol = @tol) || return false
-	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || return false
-	fieldl.ref == fieldr.ref || return false
+	isapprox(fieldl.nsx_X, fieldr.nsx_X, atol = @tol) || error("nsx_X are different")
+	isapprox(fieldl.nsy_Y, fieldr.nsy_Y, atol = @tol) || error("nsy_Y are different")
+	isapprox(fieldl.n, fieldr.n, atol = @tol) || error("n are different")
+	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || error("λ is different")
+	fieldl.ref == fieldr.ref || error("reference frames are different")
 	return true
 end
 
