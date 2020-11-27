@@ -67,6 +67,18 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 			for iY in eachindex(fieldi.nsy_Y)
 				for iX in eachindex(fieldi.nsx_X)
 					nsr = √(fieldi.nsx_X[iX]^2 + fieldi.nsy_Y[iY]^2)
+					if nsr >= real(n_M[iM]) || nsr >= real(n_M[iM+1])
+						ir[iX,iY,iM] = zero(Complex{T})
+						sr[iX,iY,iM] = zero(Complex{T})
+
+						it[iX,iY,iM] = zero(Complex{T})
+						st[iX,iY,iM] = zero(Complex{T})
+
+						r[iX, iY] = zero(Complex{T})
+						t[iX,iY] = zero(Complex{T})
+						continue
+					end
+
 					sz_m = √(1 - nsr^2 / n_M[iM]^2)
 					sz_m1 = √(1 - nsr^2 / n_M[iM+1]^2)
 					(rm_m1, tm_m1) =  rtss₁₂(nsr, view(n_M, iM:sizeM), view(h_M, iM:sizeM-2), fieldi.λ)
@@ -82,6 +94,7 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 						tm_0 = one(Complex{T})
 						M_m = one(Complex{T})
 					end
+
 					ir[iX,iY,iM] = -im * k / 2 * (n_M[iM+1]^2 - n_M[iM]^2) * t0_m * (1 + rm_m1)
 					sr[iX,iY,iM] = tm_0 * (1 + rm_m1) / n_M[iM] / sz_m / M_m
 
