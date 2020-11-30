@@ -102,7 +102,7 @@ function lightinteraction!(fieldl::AbstractFieldMonochromatic{T,-1}, fieldr::Abs
 end
 
 function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix, comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic)
-	ref = (dir(fieldi) > 0 ? ref1(comp) : ref2(comp))
+	ref = (dir(fieldi) > 0 ? ref1(comp, fieldi.λ) : ref2(comp, fieldi.λ))
 	checkorientation(fieldi.ref, ref) || errorToDo()
 	if !checkposition(fieldi.ref, ref)
 		propM = propagationmatrix(fieldi, ref)

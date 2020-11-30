@@ -79,3 +79,5 @@ end
 
 ref1(comp::AbstractOpticalComponent) = comp.ref
 ref2(comp::AbstractOpticalComponent) = comp.ref
+ref1(comp::AbstractOpticalComponent, λ) = ref1(comp)
+ref2(comp::AbstractOpticalComponent, λ) = ref2(comp)

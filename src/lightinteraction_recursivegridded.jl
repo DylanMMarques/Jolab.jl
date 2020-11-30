@@ -6,7 +6,7 @@ function intensity_p(field::Union{FieldAngularSpectrum{T}, FieldSpace{T}}) where
 	return int * real(field.n)
 end
 
-function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T}, fieldr::AbstractFieldMonochromatic{T}, coefs::AbstractVector{<:AbstractCoefficient{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = 1E-3one(T)::Real) where {T<:Real}
+function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T}, fieldr::AbstractFieldMonochromatic{T}, coefs::AbstractVector{<:AbstractCoefficient{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = 1E-3one(T)::Real, printBool = true) where {T<:Real}
 	# miss check if this can be done
 	sizeL = length(coefs) + 1;
 
@@ -36,6 +36,8 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	dir(fieldi) > 0 ? int_r[1] = initial_int : int_l[sizeL] = initial_int
 	fields2_l = deepcopy(fields_l)
 	fields2_r = deepcopy(fields_r)
+	# fields2_r[end] = fields_r[end]
+	# fields2_l[1] = fields_l[1]
 
 	i = 1
 	toSave_l = fields_l
@@ -91,7 +93,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 		end
 		i > 10000 && (println("Max number of iterations achieved. Current light intensity:", (sum(int_l) + sum(int_r)) / initial_int); converge = false; break)
 		i += 1
-		if i % 100 == 99
+		if (i % 100 == 99) && printBool
 			println("")
 			println("Light intensity propagating forward:", int_r)
 			println("Light intensity propagating backward:", int_l)
@@ -103,16 +105,16 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	return converge
 end
 
-function lightinteraction_recursivegridded(coefs::AbstractVector{<:AbstractCoefficient{T}}, field_inc::AbstractFieldMonochromatic{T}; rtol = 1E-3) where T
+function lightinteraction_recursivegridded(coefs::AbstractVector{<:AbstractCoefficient{T}}, field_inc::AbstractFieldMonochromatic{T}; rtol = 1E-3, printBool = true) where T
 	(fieldl, tmp) = getfields_lr(coefs[1])
 	(tmp, fieldr) = getfields_lr(coefs[end])
 
 	samedefinitions(field_inc, dir(field_inc) > 0 ? fieldl : fieldr) || error("Cannot do this")
-	converge = lightinteraction_recursivegridded!(fieldl, fieldr, coefs, field_inc, rtol = rtol)
+	converge = lightinteraction_recursivegridded!(fieldl, fieldr, coefs, field_inc, rtol = rtol, printBool = printBool)
 	return (fieldl, fieldr, converge)
 end
 
-function lightinteraction_recursivegridded(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = 1E-3) where T
+function lightinteraction_recursivegridded(comps::AbstractVector{<:AbstractOpticalComponent{T}}, fieldi::AbstractFieldMonochromatic{T}; rtol = 1E-3, printBool = true) where T
 	coefs = coefficient_specific(comps, fieldi)
-	return lightinteraction_recursivegridded(coefs, fieldi, rtol = rtol)
+	return lightinteraction_recursivegridded(coefs, fieldi, rtol = rtol, printBool = printBool)
 end
