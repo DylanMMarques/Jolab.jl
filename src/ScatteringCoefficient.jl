@@ -158,3 +158,44 @@ end
 		end
 	end
 end
+
+function correctscatteringmatrix_referenceframes!(scat::RoughInterfaceConvolutionCoefficient, comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic)
+	ref = dir(fieldi) > 0 ? ref1(comp) : ref2(comp)
+	(sizeX, sizeY) = (length(fieldi.nsx_X), length(fieldi.nsy_Y))
+	if !checkposition(fieldi.ref, ref)
+		propM = propagationmatrix(fieldi, ref)
+		ind = LinearIndices((sizeX, sizeY))
+		if dir(fieldi) > 0
+			vec(scat.r₁₂) .*= propM.diag .* propM.diag
+			vec(scat.t₁₂) .*= propM.diag
+			vec(scat.t₂₁) .*= propM.diag
+			@inbounds @simd for iM in 1:size(scat.ir₁₂, 3)
+				for iY in 1:sizeY
+					for iX in 1:sizeX
+						i = ind[iX,iY]
+						scat.ir₁₂[iX,iY,iM] *= propM.diag[i]
+						scat.sr₁₂[iX,iY,iM] *= propM.diag[i]
+						scat.it₁₂[iX,iY,iM] *= propM.diag[i]
+						scat.st₂₁[iX,iY,iM] *= propM.diag[i]
+					end
+				end
+			end
+		else
+			conj!(propM.diag)
+			vec(scat.r₂₁) .*= propM.diag .* propM.diag
+			vec(scat.t₁₂) .*= propM.diag
+			vec(scat.t₂₁) .*= propM.diag
+			@inbounds @simd for iM in 1:size(scat.ir₁₂, 3)
+				for iY in 1:sizeY
+					for iX in 1:sizeX
+						i = ind[iX,iY]
+						scat.ir₂₁[iX,iY,iM] *= propM.diag[i]
+						scat.sr₂₁[iX,iY,iM] *= propM.diag[i]
+						scat.st₁₂[iX,iY,iM] *= propM.diag[i]
+						scat.it₂₁[iX,iY,iM] *= propM.diag[i]
+					end
+				end
+			end
+		end
+	end
+end

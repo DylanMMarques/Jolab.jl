@@ -42,6 +42,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 	i = 1
 	toSave_l = fields_l
 	toSave_r = fields_r
+	min_int = initial_int
 	converge = false
 	@inbounds while true
 		if i % 2 == 1
@@ -82,8 +83,12 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			int_l[mls] = intensity_p(toSave_l[mls])
 			int_r[mls] = intensity_p(toSave_r[mls])
 		end
-		sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1)) < rtol && (println(""); println("Interactions until convergence: ", i); converge = true; break)
-		if sum(int_l) + sum(int_r) > 10 * initial_int
+		now_int = sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1))
+		now_int < rtol && (println(""); println("Interactions until convergence: ", i); converge = true; break)
+
+		(now_int < min_int) && (min_int = now_int)
+
+		if sum(int_l) + sum(int_r) > 10 * initial_int || now_int > 10 * min_int
 			println("")
 			println("Light intensity propagating forward:", int_r)
 			println("Light intensity propagating backward:", int_l)
@@ -91,6 +96,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			converge = false
 			break
 		end
+
 		i > 10000 && (println("Max number of iterations achieved. Current light intensity:", (sum(int_l) + sum(int_r)) / initial_int); converge = false; break)
 		i += 1
 		if (i % 100 == 99) && printBool

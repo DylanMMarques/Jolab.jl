@@ -105,7 +105,7 @@ function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpect
 			else
 				(r, t) = rtss₁₂(nsr, inv_n_A, inv_h_A, fieldi.λ)
 				fieldl.e_SXY[i] = fieldi_newref.e_SXY[i] * t
-				fieldr.e_SXY[i] = fieldi_new.e_SXY[i] * r
+				fieldr.e_SXY[i] = fieldi_newref.e_SXY[i] * r
 			end
 		end
 	end
@@ -127,7 +127,7 @@ function get_scatteringmatrixtype(mls::MultilayerStructure{T}, fieldi::FieldAngu
 	return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,X}, FieldAngularSpectrum{T,1,X}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-function getfields_lr(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,1,X}) where {T,X}
+function getfields_lr(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum{T,A,X}) where {T,X,A}
 	fieldl = FieldAngularSpectrum{T,-1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), ref1(mls))
 	fieldr = FieldAngularSpectrum{T,1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), ref2(mls))
 	return (fieldl, fieldr)
