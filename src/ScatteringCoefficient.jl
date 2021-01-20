@@ -94,7 +94,7 @@ end
 			mul!(view(coef.tmp2,:,:,iM), coef.planfft, view(coef.tmp1,:,:,iM))
 			@simd for iY in 1:sizeY
 				for iX in 1:sizeX
-					coef.tmp2[iX,iY,iM] *= coef.Δ[iX,iY,iM]
+					coef.tmp2[iX,iY,iM] *= coef.Δ[iX,iY,sizeM-iM+1]
 				end
 			end
 			ldiv!(view(coef.tmp1,:,:,iM), coef.planfft, view(coef.tmp2,:,:,iM))
@@ -124,7 +124,7 @@ end
 			mul!(view(coef.tmp2,:,:,iM), coef.planfft, view(coef.tmp1,:,:,iM))
 			@simd for iY in 1:sizeY
 				for iX in 1:sizeX
-					coef.tmp2[iX,iY,iM] *= coef.Δ[iX,iY,iM]
+					coef.tmp2[iX,iY,iM] *= coef.Δ[iX,iY,sizeM-iM+1]
 				end
 			end
 			ldiv!(view(coef.tmp1,:,:,iM), coef.planfft, view(coef.tmp2,:,:,iM))

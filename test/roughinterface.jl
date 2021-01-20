@@ -20,17 +20,20 @@ changereferenceframe!(rfield2, rfield1.ref)
 @test isapprox(lfield1.e_SXY[1,5,5], lfield3.e_SXY[1,5,5], rtol = 1E-10)
 @test isapprox(rfield1.e_SXY[1,5,5], rfield3.e_SXY[1,5,5], rtol = 1E-10)
 
-field = FieldAngularSpectrum_gaussian(sx, sx, 50E-6, 1500E-9, 2., -1, ReferenceFrame(0.,0,10E-9,0,0))
+rmls = Jolab.RoughMultilayerStructure([2, 1.],zeros(0), [z_f], ReferenceFrame(0.,0,0,0,0))
+mls = MultilayerStructure([2., 2, 1], [z_f(0,0)], ReferenceFrame(0.,0,0,0,0))
+field = FieldAngularSpectrum_gaussian(sx, sx, 50E-6, 1500E-9, 1., -1, ReferenceFrame(0.,0,10E-9,0,0))
 
 (lfield1, rfield1) = lightinteraction(rmls, field)
 (lfield2, rfield2) = lightinteraction(mls, field)
 changereferenceframe!(lfield2, lfield1.ref)
 changereferenceframe!(rfield2, rfield1.ref)
 
-@test isapprox(rfield1.e_SXY[1,5,5], rfield2.e_SXY[1,5,5], rtol = 1E-2)
-@test isapprox(lfield1.e_SXY[1,5,5], lfield2.e_SXY[1,5,5], rtol = 1E-2)
+@test isapprox(rfield1.e_SXY[1,5,5], rfield2.e_SXY[1,5,5], rtol = 1E-4)
+@test isapprox(lfield1.e_SXY[1,5,5], lfield2.e_SXY[1,5,5], rtol = 1E-4)
 
 (coef) = Jolab.coefficient_general(rmls, field)
+coef2 = Jolab.coefficient_general(mls, field)
 (lfield3, rfield3) = lightinteraction(coef, field)
 @test isapprox(lfield1.e_SXY[1,5,5], lfield3.e_SXY[1,5,5], rtol = 1E-10)
 @test isapprox(rfield1.e_SXY[1,5,5], rfield3.e_SXY[1,5,5], rtol = 1E-10)

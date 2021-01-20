@@ -21,7 +21,7 @@ module Jolab
 	export numberofmodes
 	export adddims
 	export Lens
-	export RoughInterface, lightinteraction_recursive, lightinteraction_recursivegridded
+	export RoughMultilayerStructure, lightinteraction_recursive, lightinteraction_recursivegridded
 	export PropagationCoefficientScalar
 	export Mirror, rotatestructure, translatestructure
 	export SpatialLightModulator, SpatialLightModulator_slm, SpatialLightModulator_mask, SpatialLightModulator_reflectivemask
@@ -68,7 +68,6 @@ module Jolab
 	include("ScatteringMatrix.jl")
 	include("ScatteringCoefficient.jl")
 	include("MultilayerStructure.jl")
-	include("RoughInterface.jl")
 	include("Lens.jl")
 	include("SingleModeFibre.jl")
 	include("Mirror.jl")

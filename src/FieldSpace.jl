@@ -25,8 +25,7 @@ function FieldSpace_uniform(x_X, y_Y, λ, n, dir, ref)
 	T = Float64
 	e_SXY = ones(Complex{T}, 1, length(x_X), length(y_Y))
 	space = FieldSpace{T}(x_X, y_Y, e_SXY, λ, n, dir, ref);
-	int = √(intensity(space))
-	space.e_SXY ./= int
+	space.e_SXY ./= √(intensity(space))
 	return space
 end
 
@@ -89,7 +88,7 @@ function intensity(fieldspace::FieldSpace)
 end
 
 function propagationmatrix(fieldl::L, fieldr::L) where {L <: AbstractFieldSpace}
-	error("A field in space cannot be propagated")
+	error("A field in space cannot be propagated transform to angular spectrum")
 end
 
 function samedefinitions(fieldl::L, fieldr::R) where {L<:FieldSpace, R<:FieldSpace}
