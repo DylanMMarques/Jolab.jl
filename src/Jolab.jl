@@ -38,6 +38,7 @@ module Jolab
 		error("Sorry, function not implemented yet.")
 	end
 
+	abstract type AbstractField{T<:Real, D} end
 	abstract type AbstractFieldMonochromatic{T<:Real, D} end
 	abstract type AbstractFieldAngularSpectrum{T,D} <: AbstractFieldMonochromatic{T,D} end
 	abstract type AbstractFieldSpace{T,D} <: AbstractFieldMonochromatic{T,D} end
@@ -63,6 +64,7 @@ module Jolab
 	include("AngularSpectrum.jl");
 	include("FieldSpace.jl")
 	include("FieldModes.jl")
+	include("PolichromaticField.jl")
 	include("PointDetector.jl")
 	include("PropagationCoefficient.jl")
 	include("ScatteringMatrix.jl")

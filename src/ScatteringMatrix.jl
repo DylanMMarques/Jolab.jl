@@ -101,7 +101,39 @@ function lightinteraction!(fieldl::AbstractFieldMonochromatic{T,-1}, fieldr::Abs
 	end
 end
 
-function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix, comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic)
+function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X1,X2}, comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic) where {T,L,R,X1,X2<:Nothing}
+	ref = (dir(fieldi) > 0 ? ref1(comp, fieldi.λ) : ref2(comp, fieldi.λ))
+	checkorientation(fieldi.ref, ref) || errorToDo()
+	if !checkposition(fieldi.ref, ref)
+		propM = propagationmatrix(fieldi, ref)
+		if dir(fieldi) > 0
+			rmul!(scat.r₁₂, propM)
+			lmul!(propM, scat.r₁₂)
+		else
+			conj!(propM.diag)
+			rmul!(scat.r₂₁, propM)
+			lmul!(propM, scat.r₂₁)
+		end
+	end
+end
+
+function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X1,X2}, comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic) where {T,L,R,X1<:Nothing,X2}
+	ref = (dir(fieldi) > 0 ? ref1(comp, fieldi.λ) : ref2(comp, fieldi.λ))
+	checkorientation(fieldi.ref, ref) || errorToDo()
+	if !checkposition(fieldi.ref, ref)
+		propM = propagationmatrix(fieldi, ref)
+		if dir(fieldi) > 0
+			rmul!(scat.t₁₂, propM)
+			lmul!(propM, scat.t₂₁)
+		else
+			conj!(propM.diag)
+			rmul!(scat.t₂₁, propM)
+			lmul!(propM, scat.t₁₂)
+		end
+	end
+end
+
+function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X1,X2}, comp::AbstractOpticalComponent, fieldi::AbstractFieldMonochromatic) where {T,L,R,X1,X2}
 	ref = (dir(fieldi) > 0 ? ref1(comp, fieldi.λ) : ref2(comp, fieldi.λ))
 	checkorientation(fieldi.ref, ref) || errorToDo()
 	if !checkposition(fieldi.ref, ref)

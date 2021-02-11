@@ -155,7 +155,7 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum{T,D,X})
 			i += 1
 		end
 	end
-
+	
 	correctscatteringmatrix_referenceframes!(scat, lens, fieldi)
 	return scat
 end

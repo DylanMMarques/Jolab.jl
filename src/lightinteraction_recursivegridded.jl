@@ -57,25 +57,25 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			iE_r = fields_r
 		end
 
-		for mls in 1:sizeL-1
+		Threads.@threads for mls in 1:sizeL-1
 			if int_r[mls] > initial_int * @tol
 				iE_r[mls].ref == coefs[mls].fieldl.ref || tobedone()
 				lightinteraction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], iE_r[mls])
 				add_inplace!(toSave_l[mls], fields_aux_l[mls])
 				add_inplace!(toSave_r[mls+1], fields_aux_r[mls+1])
 			else
-				# add_inplace!(toSave_r[mls], iE_r[mls])
+				add_inplace!(toSave_r[mls], iE_r[mls])
 			end
 			vec(iE_r[mls].e_SXY) .= zero(Complex{T})
 		end
-		for mls in 2:sizeL
+		Threads.@threads for mls in 2:sizeL
 			if int_l[mls] > initial_int * @tol
 				iE_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()
 				lightinteraction!(fields_aux_l[mls-1], fields_aux_r[mls], coefs[mls-1], iE_l[mls])
 				add_inplace!(toSave_l[mls-1], fields_aux_l[mls-1])
 				add_inplace!(toSave_r[mls], fields_aux_r[mls])
 			else
-				# add_inplace!(toSave_l[mls], iE_l[mls])
+				add_inplace!(toSave_l[mls], iE_l[mls])
 			end
 			vec(iE_l[mls].e_SXY) .= zero(Complex{T})
 		end

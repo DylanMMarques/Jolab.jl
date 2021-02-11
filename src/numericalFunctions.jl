@@ -387,8 +387,8 @@ end
 		return integrate_exp_x_y(β, γ, δ, xmin, xmax, ymin, ymax)
 	else
 		if (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
-			b(r) = exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
-			return hcubature(b, SVector(xmin, ymin), SVector(xmax, ymax), maxevals = 2000)[1]
+			b(x,y) = exp(im * (α * x * y + β * x + γ * y + δ))
+			return (xmax - xmin) * (ymax - ymin) * (b(xmax,ymax) + b(xmax, ymin) + b(xmin, ymax) + b(xmin, ymin)) / 4
 		else
 			@inline Pf(x::T, y::T)::Complex{T} = begin
 				aux = (γ + α * x) * (β + α * y) / α
