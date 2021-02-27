@@ -1,24 +1,22 @@
 mutable struct Lens{T} <: AbstractOpticalComponent{T}
-	f::JolabFunction1D{T,T}
+	f::JolabFunction{T}
 	na::T
 	ref::ReferenceFrame{T}
-	function Lens{A}(f, na, ref) where A
-		return new{A}(f, na, ref)
-	end
 end
 Lens(f, na, ref) = Lens{Float64}(f, na, ref)
+f(lens::Lens, λ) = lens.f(λ)
 
 function ref1(lens::Lens{T}, λ::Real) where T
-	x = lens.ref.x - lens.f(λ) * sin(lens.ref.θ) * cos(lens.ref.ϕ)
-	y = lens.ref.y - lens.f(λ) * sin(lens.ref.θ) * sin(lens.ref.ϕ)
-	z = lens.ref.z - lens.f(λ) * cos(lens.ref.θ)
+	x = lens.ref.x - f(lens, λ) * sin(lens.ref.θ) * cos(lens.ref.ϕ)
+	y = lens.ref.y - f(lens, λ) * sin(lens.ref.θ) * sin(lens.ref.ϕ)
+	z = lens.ref.z - f(lens, λ) * cos(lens.ref.θ)
 	return ReferenceFrame{T}(x, y, z, lens.ref.θ, lens.ref.ϕ)
 end
 
 function ref2(lens::Lens{T}, λ::Real) where T
-	x = lens.ref.x + lens.f(λ) * sin(lens.ref.θ) * cos(lens.ref.ϕ)
-	y = lens.ref.y + lens.f(λ) * sin(lens.ref.θ) * sin(lens.ref.ϕ)
-	z = lens.ref.z + lens.f(λ) * cos(lens.ref.θ)
+	x = lens.ref.x + f(lens, λ) * sin(lens.ref.θ) * cos(lens.ref.ϕ)
+	y = lens.ref.y + f(lens, λ) * sin(lens.ref.θ) * sin(lens.ref.ϕ)
+	z = lens.ref.z + f(lens, λ) * cos(lens.ref.θ)
 	return ReferenceFrame{T}(x, y, z, lens.ref.θ, lens.ref.ϕ)
 end
 
@@ -31,14 +29,14 @@ function t(lens::Lens, field::FieldAngularSpectrum{T}, iX, iY) where T
 		if (1 - cosθ² > lens.na^2) # above the lens NA
 			return (zero(Complex{T}), zero(Complex{T}))
 		else
-			aux = lens.f(field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
+			aux = f(lens, field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
 			return (1 / aux, aux)
 		end
 	end
 end
 
 function t(lens::Lens, field::FieldSpace{T}, iX, iY) where T
-	cosθ² = 1 - (field.x_X[iX] / lens.f(field.λ))^2 - (field.y_Y[iY] / lens.f(field.λ))^2
+	cosθ² = 1 - (field.x_X[iX] / f(lens, field.λ))^2 - (field.y_Y[iY] / f(lens, field.λ))^2
 	k = 2π / field.λ
 	if cosθ² < 0 # Evasnecent waves
 		return (zero(Complex{T}), zero(Complex{T}))
@@ -46,7 +44,7 @@ function t(lens::Lens, field::FieldSpace{T}, iX, iY) where T
 		if (1 - cosθ² > lens.na^2) # above the lens NA
 			return (zero(Complex{T}), zero(Complex{T}))
 		else
-			aux = lens.f(field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
+			aux = f(lens, field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
 			return (aux, 1 / aux)
 		end
 	end
@@ -65,9 +63,9 @@ function checkapplicability(lens::Lens, field::FieldSpace)
 end
 
 function getfields_lr(lens::Lens, fieldi::FieldAngularSpectrum{T,1,X}) where {T,X}
-	f = lens.f(fieldi.λ)
-	x_X = fieldi.nsx_X / real(fieldi.n) * f
-	y_Y = fieldi.nsy_Y / real(fieldi.n) * f
+	f_val = f(lens, fieldi.λ)
+	x_X = fieldi.nsx_X / real(fieldi.n) * f_val
+	y_Y = fieldi.nsy_Y / real(fieldi.n) * f_val
 
 	fieldl = FieldAngularSpectrum{T,-1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
 	fieldr = FieldSpace{T,1,X}(x_X, y_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
@@ -75,9 +73,9 @@ function getfields_lr(lens::Lens, fieldi::FieldAngularSpectrum{T,1,X}) where {T,
 end
 
 function getfields_lr(lens::Lens, fieldi::FieldAngularSpectrum{T,-1,X}) where {T,X}
-	f = lens.f(fieldi.λ)
-	x_X = fieldi.nsx_X / real(fieldi.n) * f
-	y_Y = fieldi.nsy_Y / real(fieldi.n) * f
+	f_val = f(lens, fieldi.λ)
+	x_X = fieldi.nsx_X / real(fieldi.n) * f_val
+	y_Y = fieldi.nsy_Y / real(fieldi.n) * f_val
 
 	fieldl = FieldSpace{T,-1,X}(x_X, y_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
 	fieldr = FieldAngularSpectrum{T,1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
@@ -85,9 +83,9 @@ function getfields_lr(lens::Lens, fieldi::FieldAngularSpectrum{T,-1,X}) where {T
 end
 
 function getfields_lr(lens::Lens, fieldi::FieldSpace{T,1,X}) where {T,X}
-	f = lens.f(fieldi.λ)
-	nsx_X = -fieldi.x_X / f * real(fieldi.n)
-	nsy_Y = -fieldi.y_Y / f * real(fieldi.n)
+	f_val = f(lens, fieldi.λ)
+	nsx_X = -fieldi.x_X / f_val * real(fieldi.n)
+	nsy_Y = -fieldi.y_Y / f_val * real(fieldi.n)
 
 	fieldl = FieldSpace{T,-1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
 	fieldr = FieldAngularSpectrum{T,1,X}(nsx_X, nsy_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
@@ -95,9 +93,9 @@ function getfields_lr(lens::Lens, fieldi::FieldSpace{T,1,X}) where {T,X}
 end
 
 function getfields_lr(lens::Lens, fieldi::FieldSpace{T,-1,X}) where {T,X}
-	f = lens.f(fieldi.λ)
-	nsx_X = -fieldi.x_X / f * real(fieldi.n)
-	nsy_Y = -fieldi.y_Y / f * real(fieldi.n)
+	f_val = f(lens, fieldi.λ)
+	nsx_X = -fieldi.x_X / f_val * real(fieldi.n)
+	nsy_Y = -fieldi.y_Y / f_val * real(fieldi.n)
 
 	fieldl = FieldAngularSpectrum{T,-1,X}(nsx_X, nsy_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
 	fieldr = FieldSpace{T,1,X}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
@@ -155,7 +153,7 @@ function coefficient_general(lens::Lens{T}, fieldi::FieldAngularSpectrum{T,D,X})
 			i += 1
 		end
 	end
-	
+
 	correctscatteringmatrix_referenceframes!(scat, lens, fieldi)
 	return scat
 end

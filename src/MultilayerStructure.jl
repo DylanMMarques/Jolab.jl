@@ -1,5 +1,5 @@
 mutable struct MultilayerStructure{T} <: AbstractPropagationComponent{T}
-	n_A::Vector{JolabFunction1D{T,Complex{T}}}
+	n_A::Vector{Material{T}}
 	h_A::Vector{T}
 	ref::ReferenceFrame{T}
 	function MultilayerStructure{T}(n_A, h_A, ref) where T
@@ -7,6 +7,11 @@ mutable struct MultilayerStructure{T} <: AbstractPropagationComponent{T}
 		new{T}(n_A, h_A, ref)
 	end
 end
+
+n1(mls::MultilayerStructure, λ) = first(mls.n_A)(λ)
+n2(mls::MultilayerStructure, λ) = last(mls.n_A)(λ)
+
+n(mls::MultilayerStructure, λ) = [ni(λ) for ni in mls.n_A]
 
 MultilayerStructure(n_A, h_A, ref) = MultilayerStructure{Float64}(n_A, h_A, ref)
 
@@ -61,7 +66,7 @@ end
 function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrum) where {T<:Real}
 	checkapplicability(mls, fieldi)
 
-	n_A = [mls.n_A[i](fieldi.λ) for i in eachindex(mls.n_A)]
+	n_A = n(mls, fieldi.λ)
 	inv_n_A = n_A[end:-1:1]
 	inv_h_A = mls.h_A[end:-1:1]
 
@@ -87,7 +92,7 @@ function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpect
 	(fieldl, fieldr) = getfields_lr(mls, fieldi)
 	fieldi_newref = changereferenceframe(fieldi, dir(fieldi) > 0 ? ref1(mls) : ref2(mls))
 
-	n_A = [mls.n_A[i](fieldi.λ) for i in eachindex(mls.n_A)]
+	n_A = n(mls, fieldi.λ)
 	inv_n_A = n_A[end:-1:1]
 	inv_h_A = mls.h_A[end:-1:1]
 
@@ -121,8 +126,8 @@ function get_scatteringmatrixtype(mls::MultilayerStructure{T}, fieldi::FieldAngu
 	sizeX = length(fieldi.nsx_X)
 	sizeY = length(fieldi.nsy_Y)
 
-	fieldl = FieldAngularSpectrum{T,-1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(mls.n_A)(fieldi.λ), dir(fieldi) > 0 ? fieldi.ref : ref1(mls))
-	fieldr = FieldAngularSpectrum{T,1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(mls.n_A)(fieldi.λ), dir(fieldi) > 0 ? ref2(mls) : fieldi.ref)
+	fieldl = FieldAngularSpectrum{T,-1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n1(mls, fieldi.λ), dir(fieldi) > 0 ? fieldi.ref : ref1(mls))
+	fieldr = FieldAngularSpectrum{T,1,X}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n2(mls, fieldi.λ), dir(fieldi) > 0 ? ref2(mls) : fieldi.ref)
 
 	return ScatteringMatrix{T, FieldAngularSpectrum{T,-1,X}, FieldAngularSpectrum{T,1,X}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
@@ -139,6 +144,6 @@ end
 end
 
 function checkapplicability(mls::MultilayerStructure, fieldi::AbstractFieldAngularSpectrum)
-	isapprox(fieldi.n, dir(fieldi) > 0 ? mls.n_A[1](fieldi.λ) : mls.n_A[end](fieldi.λ), atol = @tol) || error("Field medium and multilayer structure medium are different")
+	isapprox(fieldi.n, dir(fieldi) > 0 ? n1(mls, fieldi.λ) : n2(mls, fieldi.λ), atol = @tol) || error("Field medium and multilayer structure medium are different")
 	checkorientation(fieldi.ref, mls.ref) || errorToDo()
 end

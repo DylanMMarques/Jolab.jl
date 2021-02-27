@@ -1,7 +1,7 @@
 struct RoughMultilayerStructure{T<:Real} <: AbstractOpticalComponent{T}
-	n::Vector{JolabFunction1D{T,Complex{T}}}
+	n::Vector{Material{T}}
 	h::Vector{T}
-	Δz::Vector{JolabFunction2D{T,T}}
+	Δz::Vector{JolabFunction2D{T}}
 	ref::ReferenceFrame{T}
 	function RoughMultilayerStructure{T}(n, h, Δz, ref) where T
 		length(n) == length(h) + 2 == length(Δz) + 1 || error("wrong sizes")

@@ -133,7 +133,7 @@ end
 distance(ref1::ReferenceFrame, ref2::ReferenceFrame) = √((ref1.x - ref2.x)^2 + (ref1.y - ref2.y)^2 + (ref1.z - ref2.z)^2)
 
 function Base.convert(::Type{ReferenceFrame{A}}, ref::ReferenceFrame{B}) where {A<:Real, B<:Real}
-	return ReferenceFrame(convert(A, ref.x), convert(A, ref.y), convert(A, ref.z), convert(A, ref.θ), convert(A, ref.ϕ))
+	return ReferenceFrame{A}(A(ref.x), A(ref.y), A(ref.z), A(ref.θ), A(ref.ϕ))
 end
 
 function planelineintersection(refPlane::ReferenceFrame, refLine::ReferenceFrame)

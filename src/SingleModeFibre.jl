@@ -1,10 +1,10 @@
 mutable struct SingleModeFibre{T} <: AbstractOpticalComponent{T}
 	mfd::T
-	n1::JolabFunction1D{T,Complex{T}}
+	n1::Material{T}
 	dir1::Int8
 	ref1::ReferenceFrame{T}
 	length::T
-	n2::JolabFunction1D{T,Complex{T}}
+	n2::Material{T}
 	dir2::Int8
 	ref2::ReferenceFrame{T}
 	function SingleModeFibre{T}(mfd, n1, dir1 = 1, ref1 = ReferenceFrame(), length=0, n2=n1, dir2=dir1, ref2=ref1) where T

@@ -13,14 +13,14 @@ CircularStepIndexModes(r, ncore, na, λ, m, β, C, D) = CircularStepIndexModes{F
 
 mutable struct CircularStepIndexFibre{T} <: AbstractOpticalComponent{T}
     r::T
-    ncore::JolabFunction1D{T,Complex{T}}
+    ncore::Material{T}
     na::T
-    n₁::JolabFunction1D{T,Complex{T}}
+    n₁::Material{T}
     ref₁::ReferenceFrame{T}
-    n₂::JolabFunction1D{T,Complex{T}}
+    n₂::Material{T}
     ref₂::ReferenceFrame{T}
     modes::Vector{CircularStepIndexModes{T}}
-    function CircularStepIndexFibre{T}(r, na, ncore, n₁, ref₁, n₂, length) where T
+    function CircularStepIndexFibre{T}(r, na, ncore::A, n₁::B, ref₁, n₂::C, length) where {T,A,B,C}
         modes = Vector{CircularStepIndexModes{T}}(undef, 0)
         ref₂ = ReferenceFrame(ref₁.x + length * sin(ref₁.θ) * cos(ref₁.ϕ), ref₁.y + length * sin(ref₁.θ) * sin(ref₁.ϕ), ref₁.z + length * cos(ref₁.θ), ref₁.θ, ref₁.ϕ)
         new{T}(r, ncore, na, n₁, ref₁, n₂, ref₂, modes)

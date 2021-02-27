@@ -7,8 +7,6 @@ module Jolab
 	using DSP
 	using FFTW
 	using HCubature
-	import FunctionWrappers
-	import FunctionWrappers: FunctionWrapper
 	using Random, Statistics
 
 	export FieldAngularSpectrum, FieldAngularSpectrum_fromspace, FieldAngularSpectrum_fromspacefft, FieldAngularSpectrum_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar
@@ -30,7 +28,6 @@ module Jolab
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
 
-
 	macro tol(T=1.)
     	return convert(typeof(T), 1E-15)
 	end
@@ -51,6 +48,8 @@ module Jolab
 	abstract type AbstractModes{T<:Real} end
 	abstract type AbstractPropagationComponent{T<:Real} <: AbstractOpticalComponent{T} end
 
+	include("JolabFunction.jl")
+	include("Material.jl")
 	include("ReferenceFrame.jl")
 
 	include("AbstractFieldMonochromatic.jl")
@@ -59,14 +58,12 @@ module Jolab
 	include("AbstractDetector.jl")
 
 	include("numericalFunctions.jl");
-	include("JolabFunction.jl")
 	include("RefractiveIndexDatabase.jl")
 	include("AngularSpectrum.jl");
 	include("FieldSpace.jl")
 	include("FieldModes.jl")
 	include("PolichromaticField.jl")
 	include("PointDetector.jl")
-	include("PropagationCoefficient.jl")
 	include("ScatteringMatrix.jl")
 	include("ScatteringCoefficient.jl")
 	include("MultilayerStructure.jl")
