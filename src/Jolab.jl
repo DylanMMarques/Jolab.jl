@@ -1,5 +1,5 @@
 module Jolab
-	using LinearAlgebra, SparseArrays
+	using LinearAlgebra, SparseArrays, ProgressMeter
 	using SpecialFunctions
 	using Roots
 	using Interpolations
@@ -9,8 +9,8 @@ module Jolab
 	using HCubature
 	using Random, Statistics
 
-	export FieldAngularSpectrum, FieldAngularSpectrum_fromspace, FieldAngularSpectrum_fromspacefft, FieldAngularSpectrum_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar
-	export FieldSpace, FieldSpace_gaussian, FieldSpace_uniform, FieldSpace_fromangspe, FieldSpace_fromangspefft
+	export FieldAngularSpectrumScalar, FieldAngularSpectrumScalar_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar
+	export FieldSpaceScalar, FieldSpaceScalar_gaussian, FieldSpaceScalar_uniform
 	export angspeto3Dspace
 	export PointDetector, signal
 	export ReferenceFrame
@@ -57,10 +57,15 @@ module Jolab
 	include("AbstractOpticalComponent.jl")
 	include("AbstractDetector.jl")
 
+
+	include("FieldSpaceScalar.jl")
+	include("AngularSpectrumScalar.jl")
+	include("iterators.jl")
+
 	include("numericalFunctions.jl");
 	include("RefractiveIndexDatabase.jl")
-	include("AngularSpectrum.jl");
-	include("FieldSpace.jl")
+	# include("AngularSpectrum.jl");
+	# include("FieldSpace.jl")
 	include("FieldModes.jl")
 	include("PolichromaticField.jl")
 	include("PointDetector.jl")

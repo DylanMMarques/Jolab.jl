@@ -87,7 +87,7 @@ function intensity(fieldspace::FieldSpace)
 	return real(fieldspace.n) * ∫∫(e_SXY, fieldspace.x_X, fieldspace.y_Y);
 end
 
-function propagationmatrix(fieldl::L, fieldr::L) where {L <: AbstractFieldSpace}
+function propagationmatrix(fieldl::L, fieldr::L) where {L <: FieldSpace}
 	error("A field in space cannot be propagated transform to angular spectrum")
 end
 

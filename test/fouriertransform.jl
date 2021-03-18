@@ -6,8 +6,8 @@ x = range(-15E-6, 15E-6, length = 51)
 ref = ReferenceFrame(0.,0,0,0,0)
 λ = 1550E-9
 dir = 1
-angsperef = FieldAngularSpectrum_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
-spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., dir, ref)
+angsperef = FieldAngularSpectrumScalar_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
+spaceref = FieldSpaceScalar_gaussian(x, x, 10E-6,λ, 1., dir, ref)
 fourier = Jolab.FourierTransform(x, x, sx, sx)
 
 coef = Jolab.coefficient_general(fourier, spaceref)
@@ -22,11 +22,11 @@ coef2 = Jolab.coefficient_general(fourier2, spaceref)
 (tmp, angspe) = lightinteraction(coef, spaceref)
 @test isapprox(angsperef.e_SXY, angspe.e_SXY, rtol = .5E-2)
 
-angsperef = FieldAngularSpectrum_gaussian(sx, sx, 10E-6,λ, 1., -dir, ref)
+angsperef = FieldAngularSpectrumScalar_gaussian(sx, sx, 10E-6,λ, 1., -dir, ref)
 (space, tmp) = lightinteraction(coef, angsperef)
 @test isapprox(spaceref.e_SXY, space.e_SXY, rtol = .5E-2)
 
-spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., -dir, ref)
+spaceref = FieldSpaceScalar_gaussian(x, x, 10E-6,λ, 1., -dir, ref)
 coef = Jolab.coefficient_general(fourier, spaceref)
 
 fourier2 = Jolab.FourierTransform(x, x, sx, sx, ref)
@@ -37,32 +37,32 @@ coef2 = Jolab.coefficient_general(fourier2, spaceref)
 (angspe, tmp) = lightinteraction(coef, spaceref)
 @test isapprox(angsperef.e_SXY, angspe.e_SXY, rtol = .5E-2)
 
-angsperef = FieldAngularSpectrum_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
+angsperef = FieldAngularSpectrumScalar_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
 (tmp, space) = lightinteraction(coef, angsperef)
 @test isapprox(spaceref.e_SXY, space.e_SXY, rtol = .5E-2)
 
 # Checking angular spectrum to space
 dir = 1
-angsperef = FieldAngularSpectrum_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
-spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., dir, ref)
+angsperef = FieldAngularSpectrumScalar_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
+spaceref = FieldSpaceScalar_gaussian(x, x, 10E-6,λ, 1., dir, ref)
 fourier = Jolab.FourierTransform(x, x, sx, sx)
 
 (tmp, space) = lightinteraction(fourier, angsperef)
 @test isapprox(spaceref.e_SXY, space.e_SXY, rtol = .5E-2)
 
-spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., -dir, ref)
+spaceref = FieldSpaceScalar_gaussian(x, x, 10E-6,λ, 1., -dir, ref)
 (angspe, tmp) = lightinteraction(fourier, spaceref)
 @test isapprox(angsperef.e_SXY, angspe.e_SXY, rtol = .5E-2)
 
 dir = -1
-angsperef = FieldAngularSpectrum_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
-spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., dir, ref)
+angsperef = FieldAngularSpectrumScalar_gaussian(sx, sx, 10E-6,λ, 1., dir, ref)
+spaceref = FieldSpaceScalar_gaussian(x, x, 10E-6,λ, 1., dir, ref)
 fourier = Jolab.FourierTransform(x, x, sx, sx)
 
 (space, tmp) = lightinteraction(fourier, angsperef)
 @test isapprox(spaceref.e_SXY, space.e_SXY, rtol = .5E-2)
 
-spaceref = FieldSpace_gaussian(x, x, 10E-6,λ, 1., -dir, ref)
+spaceref = FieldSpaceScalar_gaussian(x, x, 10E-6,λ, 1., -dir, ref)
 (tmp, angspe) = lightinteraction(fourier, spaceref)
 @test isapprox(angsperef.e_SXY, angspe.e_SXY, rtol = .5E-2)
 
@@ -76,7 +76,7 @@ z = 1E-5
 ref = ReferenceFrame(0.,0,0,0,0)
 ref2 = ReferenceFrame(0.,0,z,0,0)
 dir = 1
-angsperef = FieldAngularSpectrum_gaussian(sx, sy, 10E-6, λ, 1., dir, ref)
+angsperef = FieldAngularSpectrumScalar_gaussian(sx, sy, 10E-6, λ, 1., dir, ref)
 fourier = Jolab.FourierTransform(x, y, sx, sy, ref2)
 
 (tmp, space) = lightinteraction(fourier, angsperef)
@@ -90,14 +90,14 @@ gauss(ω0, z, r) = ω0 / ω(z,ω0) * exp(-r^2 / (ω(z,ω0))^2) * exp(im * (2π/�
 
 refbeam = gauss.(5E-6, z, x)
 refbeam .*= maximum(abs.(space.e_SXY[1,:,1])) ./ maximum(abs.(refbeam))
-@test isapprox(refbeam, space.e_SXY[1,:,1], rtol = .5E-2)
+@test isapprox(refbeam[:], space.e_SXY[1:10], rtol = .5E-2)
 
 dir = -1
-angsperef = FieldAngularSpectrum_gaussian(sx, sy, 10E-6, λ, 1., dir, ref)
+angsperef = FieldAngularSpectrumScalar_gaussian(sx, sy, 10E-6, λ, 1., dir, ref)
 fourier = Jolab.FourierTransform(x, y, sx, sy, ref2)
 
 (space, tmp) = lightinteraction(fourier, angsperef)
 refbeam = gauss.(5E-6, -z, x)
-refbeam .*= maximum(abs.(space.e_SXY[1,:,1])) ./ maximum(abs.(refbeam))
-@test isapprox(refbeam, space.e_SXY[1,:,1], rtol = .5E-2)
+refbeam .*= maximum(abs.(space.e_SXY[:])) ./ maximum(abs.(refbeam))
+@test isapprox(refbeam, space.e_SXY[1:10], rtol = .5E-2)
 return true

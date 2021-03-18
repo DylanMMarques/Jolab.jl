@@ -85,19 +85,19 @@ end
 
 function lightinteraction!(fieldl::AbstractFieldMonochromatic{T,-1}, fieldr::AbstractFieldMonochromatic{T,1}, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{A,B}) where {T,X,L,R, A<:AbstractFieldMonochromatic{T,1}, B<:AbstractFieldMonochromatic{T,-1}}
 	if dir(fieldi) > 0
-		mul!(vec(fieldl.e_SXY), scatM.r₁₂, vec(fieldi.e_SXY))
-		mul!(vec(fieldr.e_SXY), scatM.t₁₂, vec(fieldi.e_SXY))
+		mul!(fieldl.e_SXY, scatM.r₁₂, fieldi.e_SXY)
+		mul!(fieldr.e_SXY, scatM.t₁₂, fieldi.e_SXY)
 	else
-		mul!(vec(fieldr.e_SXY), scatM.r₂₁, vec(fieldi.e_SXY))
-		mul!(vec(fieldl.e_SXY), scatM.t₂₁, vec(fieldi.e_SXY))
+		mul!(fieldr.e_SXY, scatM.r₂₁, fieldi.e_SXY)
+		mul!(fieldl.e_SXY, scatM.t₂₁, fieldi.e_SXY)
 	end
 end
 
 function lightinteraction!(fieldl::AbstractFieldMonochromatic{T,-1}, fieldr::AbstractFieldMonochromatic{T,1}, scatM::ScatteringMatrix{T,L,R,X}, fieldi::Union{A,B}) where {T,X<:Nothing,L,R, A<:AbstractFieldMonochromatic{T,1}, B<:AbstractFieldMonochromatic{T,-1}}
 	if dir(fieldi) > 0
-		mul!(vec(fieldr.e_SXY), scatM.t₁₂, vec(fieldi.e_SXY))
+		mul!(fieldr.e_SXY, scatM.t₁₂, fieldi.e_SXY)
 	else
-		mul!(vec(fieldl.e_SXY), scatM.t₂₁, vec(fieldi.e_SXY))
+		mul!(fieldl.e_SXY, scatM.t₂₁, fieldi.e_SXY)
 	end
 end
 

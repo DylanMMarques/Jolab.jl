@@ -1,78 +1,33 @@
 using RecipesBase
 
-function complextoplot(z::Array{<:Number, 3}; type = :abs2)
+function complextoplot(z::Array{<:Number, 2}; type = :abs2)
 	if type == :abs2
-		if size(z, 1) == 1
-			zp = abs2.(z[1,:,:]);
-		else
-			zp = dotdim(z, z, 1);
-		end
+		zp = abs2.(z)
 	elseif type == :abs
-		if size(z, 1) == 1
-			zp = norm.(z[1,:,:]);
-		else
-			zp = .√(dotdim(z, z, 1));
-		end
-	elseif type == :realx
-		zp = real.(z[1,:,:]);
-	elseif type == :realy
-		if size(z, 1) == 1
-			zp = real.(z[1,:,:]);
-		else
-			zp = real.(z[2,:,:]);
-		end
-	elseif type == :realz
-		if size(z, 1) == 1
-			zp = real.(z[1,:,:]);
-		else
-			zp = real.(z[3,:,:]);
-		end
-	elseif type == :imagx
-		zp = imag.(z[1,:,:]);
-	elseif type == :imagy
-		if size(z, 1) == 1
-			zp = imag.(z[1,:,:]);
-		else
-			zp = imag.(z[2,:,:]);
-		end
-	elseif type == :imagz
-		if size(z, 1) == 1
-			zp = imag.(z[1,:,:]);
-		else
-			zp = imag.(z[3,:,:]);
-		end
-	elseif type == :anglex
-		zp = angle.(z[1,:,:]);
-	elseif type == :angley
-		if size(z, 1) == 1
-			zp = angle.(z[1,:,:]);
-		else
-			zp = angle.(z[2,:,:]);
-		end
-
-	elseif type == :anglez
-		if size(z, 1) == 1
-			zp = angle.(z[1,:,:]);
-		else
-			zp = angle.(z[3,:,:]);
-		end
+		zp = abs.(z)
+	elseif type == :real
+		zp = real.(z)
+	elseif type == :imag
+		zp = imag.(z)
+	elseif type == :angle
+		zp = angle.(z)
 	else
-		error("Type not known. Use abs2, abs, realx, realy, realz, imagx, imagy, imagz, anglex, angley, anglez")
+		error("Type not known. Use abs2, abs, real, imag, angle")
 	end
 	return zp;
 end
-@recipe f(angspe::FieldAngularSpectrum; type= :abs2) = (angspe.nsx_X, angspe.nsy_Y, complextoplot(angspe.e_SXY, type=type)')
+@recipe f(angspe::AbstractFieldAngularSpectrum; type= :abs2) = (angspe.nsx_X, angspe.nsy_Y, complextoplot(reshape(angspe.e_SXY,length(angspe.nsx_X), length(angspe.nsy_Y)), type=type)')
 
-@recipe f(space::FieldSpace; type= :abs2) = (space.x_X, space.y_Y, complextoplot(space.e_SXY, type=type)')
-@recipe f(modes::CircularStepIndexModes{T}; type= :abs2) where {T<:Real} = begin
-		sizeX = 200;
-		sizeY = 200;
-		x_X = range(- 2 * modes.r, 2 * modes.r, length = sizeX)
-		y_Y = range(- 2 * modes.r, 2 * modes.r, length = sizeY)
-		e_SXY = Array{Complex{T},3}(undef, 1, sizeX, sizeY)
-		circularstepindex_modefield!(e_SXY, modes.r, modes.ncore, modes.na, modes.λ, modes.m[1], modes.β[1], modes.C[1], modes.D[1], 1, x_X, y_Y, 0)
-		(x_X, y_Y, complextoplot(e_SXY, type = type)')
-	end
+@recipe f(space::FieldSpaceScalar; type= :abs2) = (space.x_X, space.y_Y, complextoplot(reshape(space.e_SXY,length(space.x_X), length(space.y_Y)), type=type)')
+@recipe function f(modes::CircularStepIndexModes{T}; type= :abs2) where {T<:Real}
+	sizeX = 200;
+	sizeY = 200;
+	x_X = range(- 2 * modes.r, 2 * modes.r, length = sizeX)
+	y_Y = range(- 2 * modes.r, 2 * modes.r, length = sizeY)
+	e_SXY = Array{Complex{T},3}(undef, 1, sizeX, sizeY)
+	circularstepindex_modefield!(e_SXY, modes.r, modes.ncore, modes.na, modes.λ, modes.m[1], modes.β[1], modes.C[1], modes.D[1], 1, x_X, y_Y, 0)
+	(x_X, y_Y, complextoplot(e_SXY, type = type)')
+end
 
 @recipe function f(ref::ReferenceFrame{T}; length = 1::Real) where {T<:Real}
 	seriestype = :path3d
