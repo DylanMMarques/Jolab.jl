@@ -6,3 +6,4 @@ using Jolab, Test
 @testset "Axicon" begin include("axicon.jl") end
 @testset "Mirror" begin include("mirror.jl") end
 @testset "Lens" begin include("lens.jl") end
+@testset "Recursive Algorithms" begin include("lightinteraction_recursive.jl") end

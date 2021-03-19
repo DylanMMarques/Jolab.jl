@@ -65,9 +65,9 @@ function intensity(angspe::FieldAngularSpectrumScalar{T}) where T
 	int = zero(T)
 	cart = CartesianIndices(angspe)
 	@inbounds @simd for i in iterator_index(angspe)
-		(xmin, xmax) = integralExtremes(angspe.nsx_X, cart[i][2])
-		(ymin, ymax) = integralExtremes(angspe.nsy_Y, cart[i][3])
-		int += abs2(angspe.e_SXY[i]) * (xmax - xmin) * (ymax - ymin)
+		Δx = Δvector(angspe.nsx_X, cart[i][2])
+		Δy = Δvector(angspe.nsy_Y, cart[i][3])
+		int += abs2(angspe.e_SXY[i]) * Δx * Δy
 	end
 	return 16π^4 / angspe.λ^2 * real(angspe.n) * int
 end
@@ -114,7 +114,7 @@ function propagationmatrix(fieldl::AbstractFieldAngularSpectrum{T}, ref::Referen
 	propMatrix = Diagonal(Vector{Complex{T}}(undef, length(fieldl.e_SXY)))
 	cart = CartesianIndices(fieldl)
 	@inbounds for i in iterator_index(fieldl)
-		nsz = √(complex(fieldl.n^2 - fieldl.nsx_X[cart[i][2]]^2 - fieldl.nsy_Y[cart[i][3]]^2))
+		nsz = dir(fieldl) * √(complex(fieldl.n^2 - fieldl.nsx_X[cart[i][2]]^2 - fieldl.nsy_Y[cart[i][3]]^2))
 		propMatrix.diag[i] = exp(imk * (fieldl.nsx_X[cart[i][2]] * refΔx + fieldl.nsy_Y[cart[i][3]] * refΔy + nsz * refΔz))
 	end
 	return propMatrix

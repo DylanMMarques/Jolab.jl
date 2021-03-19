@@ -93,7 +93,7 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 	fftconst = (x_X[2] - x_X[1]) * (y_Y[2] - y_Y[1]) / 4π^2 * sizeX * sizeY * (fieldi.nsx_X[2] - fieldi.nsx_X[1]) * (fieldi.nsy_Y[2] - fieldi.nsy_Y[1]) * k^2
 
 	in_M = n_M[end:-1:1]
-	ih_M = rmls.h[end-2:-1:1]
+	ih_M = rmls.h[end:-1:1]
 	cart = CartesianIndices(fieldi)
 	for iM in eachindex(rmls.Δz)
 		for i in eachindex(fieldi.e_SXY)
@@ -112,7 +112,7 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 			scat.it₂₁[i,iM] = -t12_i(in_M, ih_M, nsr, fieldi.λ, iM) # MINUS BECAUSE PERTURBATION LOOKS INVERTED
 			scat.st₂₁[i,iM] = t12_s(in_M, ih_M, nsr, fieldi.λ, iM)
 
-			scat.Δ[i,iM] = rmls.Δz[iM](x_X[cart[i][2]], y_Y[cart[i][2]]) * fftconst
+			scat.Δ[i,iM] = rmls.Δz[iM](x_X[cart[i][2]], y_Y[cart[i][3]]) * fftconst
 		end
 	end
 
@@ -154,7 +154,7 @@ function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAng
 	sizeI = length(fieldi.e_SXY)
 	n_M = n(rmls, fieldi.λ)
 	in_M = n_M[end:-1:1]
-	ih_M = rmls.h[end-2:-1:1]
+	ih_M = rmls.h[end:-1:1]
 
 	k = 2π / fieldi.λ
 	cons = (fieldi.nsx_X[2]- fieldi.nsx_X[1]) * (fieldi.nsy_Y[2] - fieldi.nsy_Y[1]) * k^2

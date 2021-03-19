@@ -110,7 +110,7 @@ function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X
 			rmul!(scat.r₁₂, propM)
 			lmul!(propM, scat.r₁₂)
 		else
-			conj!(propM.diag)
+			# conj!(propM.diag)
 			rmul!(scat.r₂₁, propM)
 			lmul!(propM, scat.r₂₁)
 		end
@@ -126,7 +126,7 @@ function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X
 			rmul!(scat.t₁₂, propM)
 			lmul!(propM, scat.t₂₁)
 		else
-			conj!(propM.diag)
+			# conj!(propM.diag)
 			rmul!(scat.t₂₁, propM)
 			lmul!(propM, scat.t₁₂)
 		end
@@ -144,7 +144,7 @@ function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X
 			rmul!(scat.t₁₂, propM)
 			lmul!(propM, scat.t₂₁)
 		else
-			conj!(propM.diag)
+			# conj!(propM.diag)
 			rmul!(scat.r₂₁, propM)
 			lmul!(propM, scat.r₂₁)
 			rmul!(scat.t₂₁, propM)

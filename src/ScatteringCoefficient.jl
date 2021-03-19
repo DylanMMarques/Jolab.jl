@@ -22,7 +22,7 @@ end
 @inbounds function lightinteraction!(fieldl::L, fieldr::R, coef::RoughInterfaceConvolutionCoefficient{T,L,R}, fieldi::Union{L,R}) where {T,L,R}
 	samedefinitions(fieldi, dir(fieldi) > 0 ? fieldl : fieldr) || tobedone()
 	sizeX, sizeY = length(fieldi.nsx_X), length(fieldi.nsy_Y)
-	sizeM = size(coef.ir₁₂, 3)
+	sizeM = size(coef.ir₁₂, 2)
 	if dir(fieldi) > 0
 		coef.tmp1 .= fieldi.e_SXY .* coef.ir₁₂
 		Threads.@threads for iM in 1:sizeM
@@ -47,7 +47,7 @@ end
 		end
 		coef.tmp2 .*= coef.Δ
 		Threads.@threads for iM in 1:sizeM
-			ldiv!(reshape(view(coef.tmp1,:,:,iM), sizeX, sizeY), coef.planfft, reshape(view(coef.tmp2,:,:,iM), sizeX, sizeY))
+			ldiv!(reshape(view(coef.tmp1,:,iM), sizeX, sizeY), coef.planfft, reshape(view(coef.tmp2,:,iM), sizeX, sizeY))
 		end
 		coef.tmp1 .*= coef.st₁₂
 		@simd for i in iterator_index(fieldr)
@@ -69,7 +69,7 @@ end
 			end
 		end
 		Threads.@threads for iM in 1:sizeM
-			ldiv!(reshape(view(coef.tmp1,:,:,iM), sizeX, sizeY), coef.planfft, reshape(view(coef.tmp2,:,:,iM), sizeX, sizeY))
+			ldiv!(reshape(view(coef.tmp1,:,iM), sizeX, sizeY), coef.planfft, reshape(view(coef.tmp2,:,iM), sizeX, sizeY))
 		end
 		coef.tmp1 .*= coef.sr₂₁
 		@simd for i in iterator_index(fieldr)
@@ -133,7 +133,7 @@ function correctscatteringmatrix_referenceframes!(scat::RoughInterfaceConvolutio
 			scat.it₁₂ .*= propM.diag
 			scat.st₂₁ .*= propM.diag
 		else
-			conj!(propM.diag)
+			# conj!(propM.diag)
 			scat.r₂₁ .*= propM.diag .* propM.diag
 			scat.t₁₂ .*= propM.diag
 			scat.t₂₁ .*= propM.diag

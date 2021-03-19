@@ -55,9 +55,9 @@ function intensity(space::FieldSpaceScalar{T}) where T
 	int = zero(T)
 	cart = CartesianIndices(space)
 	for i in iterator_index(space)
-		(xmin, xmax) = integralExtremes(space.x_X, cart[i][2])
-		(ymin, ymax) = integralExtremes(space.y_Y, cart[i][3])
-		int += abs2(space.e_SXY[i]) * (xmax - xmin) * (ymax - ymin)
+		Δx = Δvector(space.x_X, cart[i][2])
+		Δy = Δvector(space.y_Y, cart[i][3])
+		int += abs2(space.e_SXY[i]) * Δx * Δy
 	end
 	return real(space.n) * int
 end
