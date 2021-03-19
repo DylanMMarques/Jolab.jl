@@ -57,7 +57,7 @@ function lightinteraction_recursivegridded!(fieldl::AbstractFieldMonochromatic{T
 			setzeros!(iE_r[mls])
 		end
 		Threads.@threads for mls in 2:sizeL
-			if int_l[mls] > 0 * rtol * @tol
+			if int_l[mls] > rtol * @tol
 				iE_l[mls].ref == coefs[mls-1].fieldr.ref || tobedone()
 				lightinteraction!(fields_aux_l[mls-1], fields_aux_r[mls], coefs[mls-1], iE_l[mls])
 				add!(toSave_l[mls-1], fields_aux_l[mls-1])

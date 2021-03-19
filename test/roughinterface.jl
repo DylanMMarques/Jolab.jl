@@ -60,13 +60,18 @@ zm(x,y) = -5E-9 * (atan(-1E7 * x) / π + .5)
 RoughInterface(n1,n2,z, ref) = RoughMultilayerStructure([n1, n2], zeros(0), [z], ref)
 
 rmls = [RoughInterface(1, 1.5, zp, ref1), RoughInterface(1.5, 1, zm, ref2), RoughInterface(1,1.5,zp,ref3), RoughInterface(1.5,1,zm,ref4)]
+rmls_r = RoughMultilayerStructure([1, 1.5, 1, 1.5, 1], [b/1.5, b, b/1.5], [zp, zm, zp, zm], ref1)
 int = zeros(length(λ))
+int2 = zeros(length(λ))
 
 for i in 1:length(λ)
     field = FieldAngularSpectrumScalar_gaussian(sx, sx, 10E-6, λ[i], 1, 1, ref1)
     (fieldr, fieldt) = lightinteraction_recursivegridded(rmls, field, rtol = 1E-9)
     int[i] = intensity(fieldr)
+    (fieldr, fieldt) = lightinteraction(rmls_r, field)
+    int2[i] = intensity(fieldr)
 end
 
 @test all(isapprox.(int, data, rtol = 1E-8))
+@test all(isapprox.(int2, data, rtol = 5E-2))
 return true
