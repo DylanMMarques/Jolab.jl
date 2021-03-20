@@ -5,18 +5,18 @@ angspe = FieldAngularSpectrumScalar_gaussian(nsx, nsx, 50E-6, 1550E-9, 1., 1, Re
 int_i = intensity(angspe)
 cart = Jolab.CartesianIndices(angspe)
 
-θ, ϕ = 0.015, π/4
-changereferenceframe!(angspe, ReferenceFrame(0,0,0,θ,ϕ))
+θ, ϕa = 0.015, π/4
+changereferenceframe!(angspe, ReferenceFrame(0,0,0,θ,ϕa))
 (~,arg) = findmax(abs.(angspe.e_SXY))
-@test isapprox(angspe.nsx_X[cart[arg][2]], -sin(θ)*cos(ϕ), atol = 1E-4)
-@test isapprox(angspe.nsy_Y[cart[arg][3]], -sin(θ)*sin(ϕ), atol = 1E-4)
+@test isapprox(angspe.nsx_X[cart[arg][2]], -sin(θ)*cos(ϕa), atol = 1E-4)
+@test isapprox(angspe.nsy_Y[cart[arg][3]], -sin(θ)*sin(ϕa), atol = 1E-4)
 @test isapprox(intensity(angspe), int_i, atol = 1E-3)
 
-θ, ϕ = 0, 0
-changereferenceframe!(angspe, ReferenceFrame(0,0,0,θ,ϕ))
+θ, ϕa = 0., 0.
+changereferenceframe!(angspe, ReferenceFrame(0,0,0,θ,ϕa))
 (~,arg) = findmax(abs.(angspe.e_SXY))
-@test isapprox(angspe.nsx_X[cart[arg][2]], -sin(θ)*cos(ϕ), atol = 1E-4)
-@test isapprox(angspe.nsy_Y[cart[arg][3]], -sin(θ)*sin(ϕ), atol = 1E-4)
+@test isapprox(angspe.nsx_X[cart[arg][2]], -sin(θ)*cos(ϕa), atol = 1E-4)
+@test isapprox(angspe.nsy_Y[cart[arg][3]], -sin(θ)*sin(ϕa), atol = 1E-4)
 @test isapprox(intensity(angspe), int_i, atol = 1E-3)
 
 changereferenceframe!(angspe, ReferenceFrame(0,0,0,0,0))
@@ -24,12 +24,12 @@ changereferenceframe!(angspe, ReferenceFrame(0,0,0,0,0))
 nsx_max = angspe.nsx_X[cart[arg][2]]
 nsy_max = angspe.nsy_Y[cart[arg][3]]
 
-θ, ϕ = π/3, π/6
-(x,y,z) = Jolab.rotatecoordinatesfromto(0,0,1., 0,0, θ, ϕ)
-@test (x,y,z) == (sin(θ) * cos(ϕ), sin(θ) * sin(ϕ), cos(θ))
-(x,y,z) = Jolab.rotatecoordinatesfromto(x,y,z, θ,ϕ, -2θ, -2ϕ)
-@test (x,y,z) == (sin(-2θ) * cos(-2ϕ), sin(-2θ) * sin(-2ϕ), cos(-2θ))
-(x,y,z) = Jolab.rotatecoordinatesfromto(x,y,z, -2θ,-2ϕ, 0,0)
+θ, ϕa = π/3, π/6
+(x,y,z) = Jolab.rotatecoordinatesfromto(0,0,1., 0,0, θ, ϕa)
+@test (x,y,z) == (sin(θ) * cos(ϕa), sin(θ) * sin(ϕa), cos(θ))
+(x,y,z) = Jolab.rotatecoordinatesfromto(x,y,z, θ,ϕa, -2θ, -2ϕa)
+@test (x,y,z) == (sin(-2θ) * cos(-2ϕa), sin(-2θ) * sin(-2ϕa), cos(-2θ))
+(x,y,z) = Jolab.rotatecoordinatesfromto(x,y,z, -2θ,-2ϕa, 0,0)
 @test all(isapprox.((x,y,z),(0,0,1), atol = 1E-16))
 
 nsx = range(-.05, .05, length = 11)

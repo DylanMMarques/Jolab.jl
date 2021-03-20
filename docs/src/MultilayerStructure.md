@@ -3,9 +3,10 @@ A Multilayer structure or stratified media is a stack of parallel films.
 
 <details>
   <summary><b>Theory</b></summary>
-  The solution is based on calculating the reflected and transmitted plane waves at each interface and the phase change due to light propagation inside each layer. The solution is a geometric sum which considers all the internal round trips generated inside the multilayer structure as illustrated in the figure above. <br>
-  <b> Assumptions </b><br>
+  The solution is based on calculating the reflected and transmitted plane waves at each interface and the phase change due to light propagation inside each layer. The solution is a geometric sum which considers all the internal round trips generated inside the multilayer structure as illustrated in the figure above. <br> <br>
+  <b> Approximations </b><br>
   None - The implementation solves Maxwell equations for any type of multilayer structure and any incident beam.
+  <br><br>
 </details>
 <details>
   <summary><b>Constructor</b></summary>
@@ -15,18 +16,19 @@ A Multilayer structure or stratified media is a stack of parallel films.
   <b>h_A</b> - vector specifying the thickness of all layers. The layer with refractive index n_A[i] has a thickness of h_A[i-1];<br>
   <b>ref</b> - ReferenceFrame specifying the position and orientation of the first interface;<br>
 </details>
-
 <details>
   <summary><b>Implementation</b></summary>
   <p>
   <b> lightinteraction - FieldAngularSpectrumScalar </b> <br>
   <b>Time:</b> very short; scales with N<sub>x</sub> N<sub>y</sub> <br>
   <b>RAM:</b> None <br>
+  <b>Convergence</b> sampling of ns<sub>x</sub> and ns<sub>y</sub><br>
   <br>
   <b>Scattering matrix - FieldAngularSpectrumScalar </b><br>
   <b>Type:</b> Transmission and reflection matrices are diagonal <br>
   <b>Time:</b> very short; scales with N<sub>x</sub> N<sub>y</sub> <br>
   <b>RAM:</b> very small; scales with N<sub>x</sub> N<sub>y</sub> <br>
+  <b>Convergence</b> sampling of ns<sub>x</sub> and ns<sub>y</sub>
   <br>
   </p>
 </details>
