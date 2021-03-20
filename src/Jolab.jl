@@ -9,15 +9,14 @@ module Jolab
 	using HCubature
 	using Random, Statistics
 
-	export FieldAngularSpectrumScalar, FieldAngularSpectrumScalar_gaussian, intensity, changereferenceframe!, scalartovectorial!, vectorialtoscalar!, scalartovectorial, vectorialtoscalar
+	export FieldAngularSpectrumScalar, FieldAngularSpectrumScalar_gaussian, FieldAngularSpectrumScalar_uniform
+	export intensity, changereferenceframe!, changereferenceframe
 	export FieldSpaceScalar, FieldSpaceScalar_gaussian, FieldSpaceScalar_uniform
-	export angspeto3Dspace
 	export PointDetector, signal
 	export ReferenceFrame
 	export lightinteraction, MultilayerStructure
 	export SingleModeFibre, signal, FieldSpace_fromfibre, FieldAngularSpectrum_fromfibre
 	export numberofmodes
-	export adddims
 	export Lens
 	export RoughMultilayerStructure, lightinteraction_recursive, lightinteraction_recursivegridded
 	export PropagationCoefficientScalar
@@ -57,15 +56,12 @@ module Jolab
 	include("AbstractOpticalComponent.jl")
 	include("AbstractDetector.jl")
 
-
 	include("FieldSpaceScalar.jl")
 	include("AngularSpectrumScalar.jl")
 	include("iterators.jl")
 
 	include("numericalFunctions.jl");
 	include("RefractiveIndexDatabase.jl")
-	# include("AngularSpectrum.jl");
-	# include("FieldSpace.jl")
 	include("FieldModes.jl")
 	include("PolichromaticField.jl")
 	include("PointDetector.jl")

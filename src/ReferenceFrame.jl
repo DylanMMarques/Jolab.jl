@@ -105,26 +105,22 @@ end
 function rotatecoordinatesfromto!(sx::AbstractArray{<:Number}, sy::AbstractArray{<:Number}, sz::AbstractArray{<:Number}, θi::Real, ϕi::Real, θf::Real, ϕf::Real)
 	length(sx) == length(sy) == length(sz) || error("Arrays must have the same length")
 	@inbounds @simd for i in eachindex(sx)
-		tmpsx =  -real(sz[i]) * sin(θi) + cos(θi) * (sx[i] * cos(ϕi) + sy[i] * sin(ϕi));
-		tmpsy = sy[i] * cos(ϕi) - sx[i] * sin(ϕi);
-		tmpsz = real(sz[i]) * cos(θi) + sin(θi) * (sx[i] * cos(ϕi) + sy[i] * sin(ϕi));
-
-		sx[i] = tmpsx * cos(θf) * cos(ϕf) + tmpsz * cos(ϕf) * sin(θf) - tmpsy * sin(ϕf);
-		sy[i] = tmpsy * cos(ϕf) + (tmpsx * cos(θf) + tmpsz * sin(θf)) * sin(ϕf);
-		sz[i] = tmpsz * cos(θf) - tmpsx * sin(θf);
+		(sx[i], sy[i], sz[i]) = rotatecoordinatesfromto(sx[i], sy[i], sz[i], θi, ϕi, θf, ϕf)
 	end
 end
 
-function rotatecoordinatesfromto(sx::Number, sy::Number, sz::Number, θi::Real, ϕi::Real, θf::Real, ϕf::Real)
-	tmpsx =  -sz * sin(θi) + cos(θi) * (sx * cos(ϕi) + sy * sin(ϕi));
+function rotatecoordinatesfromto(sx, sy, sz, θi, ϕi, θf, ϕf)
+	tmpsx = -sz * sin(θi) + cos(θi) * (sx * cos(ϕi) + sy * sin(ϕi));
 	tmpsy = sy * cos(ϕi) - sx * sin(ϕi);
 	tmpsz = sz * cos(θi) + sin(θi) * (sx * cos(ϕi) + sy * sin(ϕi));
 
 	sx2 = tmpsx * cos(θf) * cos(ϕf) + tmpsz * cos(ϕf) * sin(θf) - tmpsy * sin(ϕf);
 	sy2 = tmpsy * cos(ϕf) + (tmpsx * cos(θf) + tmpsz * sin(θf)) * sin(ϕf);
-	sz2 = tmpsz * cos(θf) - tmpsx * sin(θf);
+	sz2 = tmpsz * cos(θf) - tmpsx * sin(θf)
 	return (sx2, sy2, sz2)
 end
+
+@inline rotatecoordinatesfromto(sx, sy, sz, refold::ReferenceFrame, refnew::ReferenceFrame) = rotatecoordinatesfromto(sx, sy, sz, refold.θ, refold.ϕ + π, refnew.θ, refnew.ϕ + π);
 
 @inline function rotatecoordinatesfromto!(sx::AbstractArray{<:Number}, sy::AbstractArray{<:Number}, sz::AbstractArray{<:Number}, refold::ReferenceFrame, refnew::ReferenceFrame)
 	return rotatecoordinatesfromto!(sx, sy, sz, -refold.θ, -refold.ϕ, -refnew.θ, -refnew.ϕ);
@@ -132,9 +128,7 @@ end
 
 distance(ref1::ReferenceFrame, ref2::ReferenceFrame) = √((ref1.x - ref2.x)^2 + (ref1.y - ref2.y)^2 + (ref1.z - ref2.z)^2)
 
-function Base.convert(::Type{ReferenceFrame{A}}, ref::ReferenceFrame{B}) where {A<:Real, B<:Real}
-	return ReferenceFrame{A}(A(ref.x), A(ref.y), A(ref.z), A(ref.θ), A(ref.ϕ))
-end
+Base.convert(::Type{ReferenceFrame{A}}, ref::ReferenceFrame{B}) where {A<:Real, B<:Real} = return ReferenceFrame{A}(A(ref.x), A(ref.y), A(ref.z), A(ref.θ), A(ref.ϕ))
 
 function planelineintersection(refPlane::ReferenceFrame, refLine::ReferenceFrame)
 	# equation of the plane ax + by + cy = d
@@ -147,7 +141,6 @@ function planelineintersection(refPlane::ReferenceFrame, refLine::ReferenceFrame
 	t = (d - a * refLine.x - b * refLine.y - c * refLine.z) / (a * Δx + b * Δy + c * Δz)
 	return ReferenceFrame(refLine.x + t * Δx, refLine.y + t * Δy, refLine.z + t * Δz, refLine.θ, refLine.ϕ)
 end
-
 
 function rotatereferenceframe!(ref_ref::ReferenceFrame, ref::ReferenceFrame, θ::Real, ϕ::Real)
 	(ref.x, ref.y, ref.z) = rotatecoordinatesto(ref.x - ref_ref.x, ref.y - ref_ref.y, ref.z - ref_ref.z, θ, ϕ)

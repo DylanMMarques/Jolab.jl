@@ -7,3 +7,4 @@ using Jolab, Test
 @testset "Mirror" begin include("mirror.jl") end
 @testset "Lens" begin include("lens.jl") end
 @testset "Recursive Algorithms" begin include("lightinteraction_recursive.jl") end
+@testset "Angular spectrum reference frame changes" begin include("angularspectrum.jl") end
