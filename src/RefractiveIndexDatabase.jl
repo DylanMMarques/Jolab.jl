@@ -1,7 +1,7 @@
 function refractiveindex_air(T=Float64; printBool = true)
 	printBool && println("The refractive index of air is assumed to be 1 and wavelength independent.")
-	f(λ) = one(Complex{T})
-	return JolabFunction1D{T,Complex{T}}(f)
+	f = one(T)
+	return convert(JolabFunction{T},f)
 end
 
 function refractiveindex_fusedsilica(T=Float64; printBool = true)
@@ -11,7 +11,7 @@ function refractiveindex_fusedsilica(T=Float64; printBool = true)
 
 	printBool && println("The formula implemented for fused silica refractive index is only valid for wavelength between 0.21μm and 6.7μm")
 	f(λ) = √(complex(0.691663 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.0684043^2) + 0.4079426 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.1162414^2) + 0.8974794 * (λ*1E6)^2 / ((λ*1E6)^2 - 9.896161^2) + 1))
-	return JolabFunction1D{T,Complex{T}}(f)
+	return convert(JolabFunction{T}, f)
 end
 
 function refractiveindex_zirconia(T=Float64; printBool = true)
@@ -21,7 +21,7 @@ function refractiveindex_zirconia(T=Float64; printBool = true)
 	printBool && println("The formula implemented for zirconia refractive index is only valid for wavelength between 0.361μm and 5.135μm.");
 	T = Float64
 	f(λ) = √(complex(1.347091 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.062543^2) + 2.117788 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.166739^2) + 9.452943 * (λ*1E6)^2 / ((λ*1E6)^2 - 24.320570^2) + 1))
-	return JolabFunction1D{T,Complex{T}}(f)
+	return convert(JolabFunction{T}, f)
 end
 
 function refractiveindex_cryolite(T = Float64; printBool = true)
@@ -29,8 +29,8 @@ function refractiveindex_cryolite(T = Float64; printBool = true)
 
 	printBool && println("The value for cryolite refractive index is non dispersive.");
 	T = Float64
-	f(λ) = one(Complex{T}) * T(1.330)
-	return JolabFunction1D{T,Complex{T}}(f)
+	f = Complex{T}(1.33)
+	return convert(JolabFunction{T}, f)
 end
 
 function refractiveindex_zincsulfide(T = Float64; printBool = true)
@@ -41,7 +41,7 @@ function refractiveindex_zincsulfide(T = Float64; printBool = true)
 	printBool && println("The formula implemented for zinc sulfide refractive index is only valid for wavelength between 0.405m and 13μm.");
 	T = Float64
 	f(λ) = √(complex(8.393 + .14383 / ((λ*1E6)^2 - 0.2421^2) + 4430.99 / ((λ*1E6)^2 - 36.71^2)));
-	return JolabFunction1D{T,Complex{T}}(f)
+	return convert(JolabFunction{T}, f)
 end
 
 function refractiveindex_bk7(T = Float64; printBool = true)
@@ -51,7 +51,7 @@ function refractiveindex_bk7(T = Float64; printBool = true)
 	printBool && println("The formula implemented for BK7 glass refractive index is only valid for wavelength between 0.3μm and 2.5μm.")
 	T = Float64
 	f(λ) = √(complex(1 + 1.03961212 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.00600069867) + 0.231792344 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.0200179144) + 1.01046945 * (λ*1E6)^2 / ((λ*1E6)^2 - 103.560653)))
-	return JolabFunction1D{T,Complex{T}}(f)
+	return convert(JolabFunction{T}, f)
 end
 
 function refractiveindex_quartz(T = Float64; printBool = true)
@@ -61,7 +61,7 @@ function refractiveindex_quartz(T = Float64; printBool = true)
 	printBool && println("The formula implemented for quartz refractive index is only valid for wavelength between 0.198μm and 2.0531μm.");
 	T = Float64
 	f(λ) = √(complex(1 + 0.28604141 + 1.07044083 * (λ*1E6)^2 / ((λ*1E6)^2 - .0100585997) + 1.10202242 * (λ*1E6)^2 / ((λ*1E6)^2 - 100)))
-	return JolabFunction1D{T,Complex{T}}(f)
+	return convert(JolabFunction{T}, f)
 end
 
 function refractiveindex_pmma(T = Float64; printBool = true)
@@ -83,7 +83,7 @@ function refractiveindex_pmma(T = Float64; printBool = true)
 	kitp = extrapolate(kitp, Flat());
 
 	f(λ) = n(λ) + kitp(λ) * im
-	return JolabFunction1D{T,Complex{T}}(f)
+	return convert(JolabFunction{T}, f)
 end
 
 function refractiveindex_parylen(T = Float64; printBool = true)
@@ -106,5 +106,5 @@ function refractiveindex_parylen(T = Float64; printBool = true)
 
 	f(λ) = n_itp(λ) + k_itp(λ) * im
 
-	return JolabFunction1D{T,Complex{T}}(f)
+	return convert(JolabFunction{T}, f)
 end

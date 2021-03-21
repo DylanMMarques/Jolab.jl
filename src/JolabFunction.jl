@@ -10,7 +10,7 @@ function JolabFunction{T}(f::A) where {T,A<:Union{AbstractExtrapolation,Abstract
 end
 
 (fun::JolabFunction{T,A})(x) where {T,A<:Union{AbstractExtrapolation,AbstractInterpolation}} = fun.y(x)
-(fun::JolabFunction{T,A})(x) where {T,A<:Function} = T(fun.y(x))
+(fun::JolabFunction{T,A})(x) where {T,A<:Function} = Complex{T}(fun.y(x))
 (fun::JolabFunction{T,A})(x) where {T,A<:Number} = fun.y
 
 Base.convert(::Type{JolabFunction{T}}, f::A) where {T<:Real, A<:Real} = JolabFunction{T,T}(T(f))
