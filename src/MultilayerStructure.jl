@@ -13,6 +13,27 @@ n2(mls::MultilayerStructure, λ) = last(mls.n_A)(λ)
 
 n(mls::MultilayerStructure, λ) = [ni(λ) for ni in mls.n_A]
 
+"""
+	MultilayerStructure(T, n, h, ref)
+
+Initializes a multilayer structure.
+- `T` number type specifing data precision. Ex: `Float32`, `BigFloat`, ... The default is Float64;
+- `n` - vector specifying the refractive index of each layer; See how to define a refractive index.
+- `h` - vector specifying the thickness of each layer. The layer with refractive index `n[i]` has a thickness of `h[i-1]` meters;
+- `ref` - `ReferenceFrame` specifying the multilayer position and orientation. The first interface of the multilayer structure is intersect the reference frame.
+
+**Examples:**
+
+```julia
+mls = MultilayerStructure([1, 2, 3], [100E-9], ReferenceFrame(0,0,0.,0,0))
+```
+
+```julia
+n_1(λ) = √(complex(8.393 + .14383 / ((λ*1E6)^2 - 0.2421^2) + 4430.99 / ((λ*1E6)^2 - 36.71^2)))
+mls = MultilayerStructure([1, n_1], [], ReferenceFrame(0,0,0.,0,0))
+```
+"""
+MultilayerStructure(::Type{T}, n_A, h_A, ref) where T = MultilayerStructure{T}(n_A, h_A, ref)
 MultilayerStructure(n_A, h_A, ref) = MultilayerStructure{Float64}(n_A, h_A, ref)
 
 reflectioncoefficientinterfacep(n1, sz1, n2, sz2) = (n2 * sz1 - n1 * sz2) / (n2 * sz1 + n1 * sz2);
@@ -63,6 +84,15 @@ function rtpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVecto
 	return (ri, ti)
 end
 
+"""
+     coefficient_general(::MultilayerStructure, ::FieldAngularSpectrumScalar)
+
+Calculates the scattering matrix of a multilayer structure for an incident angular spectrum
+- **Type:** Transmission and reflection matrices are diagonal
+- **Time:** very short; scales with Nx Ny
+- **RAM:** very small; scales with Nx Ny
+- **Convergence** sampling of nsx and nsy
+"""
 function coefficient_general(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalar)
 	checkapplicability(mls, fieldi)
 
@@ -81,6 +111,14 @@ function coefficient_general(mls::MultilayerStructure, fieldi::FieldAngularSpect
 	return scat
 end
 
+"""
+    lightinteraction(::MultilayerStructure, ::FieldAngularSpectrumScalar)
+
+Calculates the reflected and transmitted fields from a multilayer structure for an incident angular spectrum
+- **Time:** very short; scales with Nx Ny
+- **RAM:** None
+- **Convergence** sampling of nsx and nsy
+"""
 function lightinteraction(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalar)
 	checkapplicability(mls, fieldi)
 	(fieldl, fieldr) = getfields_lr(mls, fieldi)

@@ -12,26 +12,20 @@ None. The implementation solves Maxwell equations for any type of multilayer str
 ---
 
 ### Constructor
-MultilayerStructure(_n__A_, _h__A_, _ref_)
-- **n_A** - vector specifying the refractive indexes of all layers;
-- **h_A** - vector specifying the thickness of all layers. The layer with refractive index _n__A[i]_ has a thickness of _h__A[i-1]_;
-- **ref** - ReferenceFrame specifying the position and orientation of the first interface;
+```@docs
+MultilayerStructure(::Type, ::Any, ::Any, ::Any)
+```
 
 ---
 
 ### Implementation
 
-**lightinteraction - FieldAngularSpectrumScalar**
-- **Time:** very short; scales with Nx Ny
-- **RAM:** None
-- **Convergence** sampling of nsx and nsy
-
-**Scattering matrix - FieldAngularSpectrumScalar**
-- **Type:** Transmission and reflection matrices are diagonal
-- **Time:** very short; scales with Nx Ny
-- **RAM:** very small; scales with Nx Ny
-- **Convergence** sampling of nsx and nsy
-
+```@docs
+lightinteraction(::MultilayerStructure, ::FieldAngularSpectrumScalar)
+```
+```@docs
+Jolab.coefficient_general(::MultilayerStructure, ::FieldAngularSpectrumScalar)
+```
 ---
 
 ### Applications

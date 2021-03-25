@@ -5,12 +5,14 @@ makedocs(sitename="Jolab.jl",
         authors="Dylan Marques",
         pages = Any[
          "Home" => "index.md",
-         "Optical components" => Any["MultilayerStructure.md"]
-         # "Sequential Modelling" => Any[
-         #   "exampleComponent.md"
-         # ],
-         # "Angular Spectrum" => Any["exampleAngularSpectrum.md"],
-         # "Fabry-Pérot etalon" => Any["exampleAiry.md"],
-         # "Multimode fibre" => Any["exampleMultimodeFibre.md"]]
+         "Optical components" => Any["MultilayerStructure.md", "MultilayerStructure.md"],
+         "Examples" => Any["exampleComponent.md",
+         "exampleAngularSpectrum.md",
+         "exampleAiry.md",
+         "exampleMultimodeFibre.md"]
          ]
         )
+
+deploydocs(
+    repo = "github.com/DylanMMarques/Jolab.jl.git",
+)
