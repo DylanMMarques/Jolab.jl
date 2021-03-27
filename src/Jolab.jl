@@ -68,6 +68,7 @@ module Jolab
 	include("ScatteringMatrix.jl")
 	include("ScatteringCoefficient.jl")
 	include("MultilayerStructure.jl")
+	include("Sphere.jl")
 	include("Lens.jl")
 	include("SingleModeFibre.jl")
 	include("Mirror.jl")
