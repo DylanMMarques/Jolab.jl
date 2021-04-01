@@ -59,17 +59,17 @@ function checkinplane(ref1::ReferenceFrame, ref2::ReferenceFrame)
 	return true
 end
 
-function rotatecoordinatesto(sx, sy, sz, θ::Real, ϕ::Real)
-	sxr = sx .* cos.(θ) .* cos.(ϕ) .+ real.(sz) .* cos.(ϕ) .* sin.(θ) .- sy .* sin.(ϕ);
-	syr = sy .* cos.(ϕ) .+ (sx .* cos.(θ) .+ real.(sz) .* sin.(θ)) .* sin.(ϕ);
-	szr = real.(sz) .* cos.(θ) .- sx .* sin.(θ);
-	return (sxr, syr, szr);
+function rotatecoordinatesto(sx, sy, sz, θ, ϕ)
+	sxr = sx * cos(θ) * cos(ϕ) + sz * cos(ϕ) * sin(θ) - sy * sin(ϕ)
+	syr = sy * cos(ϕ) + (sx * cos(θ) + sz * sin(θ)) * sin(ϕ)
+	szr = sz * cos(θ) - sx * sin(θ)
+	return (sxr, syr, szr)
 end
 
-function rotatecoordinatesfrom(sx, sy, sz, θ::Real, ϕ::Real)
-	sxr = -real.(sz) .* sin.(θ) .+ cos.(θ) .* (sx .* cos.(ϕ) .+ sy .* sin.(ϕ));
-	syr = sy .* cos.(ϕ) .- sx .* sin.(ϕ);
-	szr = real.(sz) .* cos.(θ) .+ sin.(θ) .* (sx .* cos.(ϕ) .+ sy .* sin.(ϕ));
+function rotatecoordinatesfrom(sx, sy, sz, θ, ϕ)
+	sxr = -sz * sin(θ) + cos(θ) * (sx * cos(ϕ) + sy * sin(ϕ))
+	syr = sy * cos(ϕ) - sx * sin(ϕ)
+	szr = sz * cos(θ) + sin(θ) * (sx * cos(ϕ) + sy * sin(ϕ));
 	return (sxr, syr, szr);
 end
 

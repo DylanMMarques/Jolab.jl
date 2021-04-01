@@ -8,3 +8,4 @@ using Jolab, Test
 @testset "Lens" begin include("lens.jl") end
 @testset "Recursive Algorithms" begin include("lightinteraction_recursive.jl") end
 @testset "Angular spectrum reference frame changes" begin include("angularspectrum.jl") end
+@testset "Sphere" begin include("sphere.jl") end
