@@ -18,7 +18,7 @@ n(mls::MultilayerStructure, λ) = [ni(λ) for ni in mls.n_A]
 
 Initializes a multilayer structure.
 - `T` number type specifing data precision. Ex: `Float32`, `BigFloat`, ... The default is Float64;
-- `n` - vector specifying the refractive index of each layer; See how to define a refractive index.
+- `n` - vector specifying the refractive index of each layer. A function or interpolation object can be used to describe a refractive index wavelength dependent.
 - `h` - vector specifying the thickness of each layer. The layer with refractive index `n[i]` has a thickness of `h[i-1]` meters;
 - `ref` - `ReferenceFrame` specifying the multilayer position and orientation. The first interface of the multilayer structure is intersect the reference frame.
 
