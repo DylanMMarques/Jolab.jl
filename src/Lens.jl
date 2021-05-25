@@ -1,10 +1,34 @@
 mutable struct Lens{T} <: AbstractOpticalComponent{T}
 	f::JolabFunction{T}
-	na::T
+	na::JolabFunction{T}
 	ref::ReferenceFrame{T}
 end
+
+"""
+	Lens(T, f, na, ref)
+
+Initializes a multilayer structure.
+- `T` number type specifing data precision. Ex: `Float32`, `BigFloat`, ... The default is Float64;
+- `f` - defines the lens focal length in meters. A function or interpolation object can be used to describe a focal length wavelength dependent.
+- `na` - defines the lens numerical aperture. A function or interpolation object can be used to describe a focal length wavelength dependent.
+- `ref` - `ReferenceFrame` specifying the lens position and orientation. The focal planes are located at the plus and minus the focal length.
+
+**Examples:**
+
+```julia
+lens = Lens(10E-3, 0.5, ReferenceFrame(0,0,0,0,0))
+```
+
+```julia
+f(λ) = 10E-3 * λ
+na(λ) = .1 * λ
+lens = Lens(f, na, ReferenceFrame(0,0,0,0,0))
+```
+"""
+Lens(::Type{T}, f, na, ref) where T = Lens{T}(f, na, ref)
 Lens(f, na, ref) = Lens{Float64}(f, na, ref)
 f(lens::Lens, λ) = lens.f(λ)
+na(lens::Lens, λ) = lens.na(λ)
 
 function ref1(lens::Lens{T}, λ::Real) where T
 	x = lens.ref.x - f(lens, λ) * sin(lens.ref.θ) * cos(lens.ref.ϕ)
@@ -26,7 +50,7 @@ function t(lens::Lens, field::FieldAngularSpectrumScalar{T}, iX, iY) where T
 	if cosθ² < 0 # Evasnecent waves
 		return (zero(Complex{T}), zero(Complex{T}))
 	else # Plane waves
-		if (1 - cosθ² > lens.na^2) # above the lens NA
+		if (1 - cosθ² > na(lens, field.λ)^2) # above the lens NA
 			return (zero(Complex{T}), zero(Complex{T}))
 		else
 			aux = f(lens, field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
@@ -41,7 +65,7 @@ function t(lens::Lens, field::FieldSpaceScalar{T}, iX, iY) where T
 	if cosθ² < 0 # Evasnecent waves
 		return (zero(Complex{T}), zero(Complex{T}))
 	else # Plane waves
-		if (1 - cosθ² > lens.na^2) # above the lens NA
+		if (1 - cosθ² > na(lens,field.λ)^2) # above the lens NA
 			return (zero(Complex{T}), zero(Complex{T}))
 		else
 			aux = f(lens, field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
@@ -118,7 +142,15 @@ function get_scatteringmatrixtype(lens::Lens, field::FieldAngularSpectrumScalar{
 	end
 end
 
+"""
+	(field_back, field_forward)= coefficient_general(lens, angspe)
 
+Calculates the field after propagating through the lens assuming the incident field direction of propagation. The model propagates from a focal plane to the other focal plane. The order is based on the light direction of propagation.
+- **Type:** Transmission matrices is diagonal. No reflection matrix is computed (the model does not assume light reflection by the lens)
+- **Time:** very short; scales with `length(angspe.nsx_X) length(angspe.nsy_Y)`
+- **RAM:** very small; scales with `length(angspe.nsx_X)` `length(angspe.nsy_Y)`
+- **Convergence:** sampling of `angspe.nsx_X` and `angspe.nsy_Y`
+"""
 function coefficient_general(lens::Lens, fieldi::Union{FieldAngularSpectrumScalar, FieldSpaceScalar})
 	checkapplicability(lens, fieldi) || errorToDo()
 
@@ -135,6 +167,16 @@ function coefficient_general(lens::Lens, fieldi::Union{FieldAngularSpectrumScala
 	correctscatteringmatrix_referenceframes!(scat, lens, fieldi)
 	return scat
 end
+
+"""
+	(field_back, field_forward)= lightinteraction(lens, angspe)
+
+Calculates the field after propagating through the lens assuming the incident field direction of propagation. The model propagates from a focal plane to the other focal plane. The order is based on the light direction of propagation.
+- **Type:** Transmission matrices is diagonal. No reflection matrix is computed (the model does not assume light reflection by the lens)
+- **Time:** very short; scales with `length(angspe.nsx_X) length(angspe.nsy_Y)`
+- **RAM:** very small; scales with `length(angspe.nsx_X)` `length(angspe.nsy_Y)`
+- **Convergence:** sampling of `angspe.nsx_X` and `angspe.nsy_Y`
+"""
 # function lightinteractionvectorial(lens::Lens, angspe::FieldAngularSpectrum)
 # 	@show("This must be remade. Do not trust result results")
 # 	e_SXY = Array{Complex{Float64}, 3}(undef, size(angspe.e_SXY));
