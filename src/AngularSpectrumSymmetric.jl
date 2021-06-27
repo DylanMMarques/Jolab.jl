@@ -1,53 +1,62 @@
-mutable struct FieldAngularSpectrumSymmetric{T,X<:AbstractArray{T}} <: AbstractFieldAngularSpectrum{T}
-	sx_X::X
-	sy_Y::X
-	e_SXY::Array{Complex{T}, 3}
+mutable struct FieldAngularSpectrumScalarRadialSymmetric{T,D,X<:AbstractVector{T},Y<:AbstractVector{Complex{T}}} <: AbstractFieldAngularSpectrum{T,D}
+	nsr_R::X
+	e_SXY::Y
 	λ::T
 	n::Complex{T}
-	dir::Int8
 	ref::ReferenceFrame{T}
-	function FieldAngularSpectrumSymmetric{T}(sx_X::X, e_SXY, λ, n, dir, ref) where {T,X}
-		length(sx_X) != size(e_SXY, 2) ? error("The length of sx_X must be the same as the size of e_SXY in the second dimension.") : nothing;
-		size(e_SXY, 3) != 1 ? error("The length of e_SXY must be 1 in the third dimension.") : nothing;
-		abs(ref.x) > 1E-10 || abs(ref.y) > 1E-10 || abs(ref.θ) > 1E-5 || abs(ref.ϕ) > 1E-5 ? error("The referenceframe of a symetric field must be with x, y, θ and ϕ equal to 0") : nothing;
-		size(e_SXY, 1) != 1 ? error("The size of e_SXY of a symmetric field must be 1 (scallar field).") : nothing;
-		return new{T,X}(sx_X, [0.], e_SXY, λ, n, dir >= 0 ? 1 : -1, ref);
+	function FieldAngularSpectrumScalarRadialSymmetric{T,D,X,Y}(nsr_R, e_SXY, λ, n, ref) where {T,D,X,Y}
+		length(nsr_R) == length(e_SXY) || error("The length of nsr_R must be the same as the length of e_SXY.")
+		(abs(ref.x) > 1E-10 || abs(ref.y) > 1E-10 || abs(ref.θ) > 1E-5 || abs(ref.ϕ) > 1E-5) && error("The referenceframe of a symetric field must have x, y, θ and ϕ equal to 0")
+		return new{T,D,X,Y}(nsr_R, e_SXY, λ, n, ref);
+	end
+	function FieldAngularSpectrumScalarRadialSymmetric{T,D}(nsr_R::X, e_SXY::Y, λ, n, ref) where {T,D,X,Y}
+		return FieldAngularSpectrumScalarRadialSymmetric{T,D,X,Y}(nsr_R, e_SXY, λ, n, ref);
 	end
 end
 
-function FieldAngularSpectrumSymmetric_gaussian(sx_X::AbstractVector{<:Number}, ω::Real, λ::Real, n::Number=1. + 0 .* im, dir::Int = 1, ref::ReferenceFrame=ReferenceFrame())::FieldAngularSpectrumSymmetric
-	k = 2 * π * n / λ;
-	norm = 	ω * √(1 / 32 / π^3);
-	sx_X = reshape(sx_X, 1, :, 1);
-	e_SXY = norm .* exp.(- ω.^2 .* k.^2 ./ 16 .* sx_X.^2);
-	sx_X = dropdims(sx_X, dims=(1, 3));
-	return FieldAngularSpectrumSymmetric(sx_X, e_SXY, λ, n, dir, ref);
-end
-
-function changereferenceframe!(angspe::FieldAngularSpectrumSymmetric, refnew::ReferenceFrame)
-	#Needs checking after doing the 2D interpolation on C
-	abs(angspe.ref.x - refnew.x) > 1E-10 || abs(angspe.ref.y - refnew.y) > 1E-10 || abs(angspe.ref.θ - refnew.θ) > 1E-5 || abs(angspe.ref.ϕ - refnew.ϕ) > 1E-5 ? error("FieldAngularSpectrumSymmetric cannot be translate in x or y or rotated") : nothing
-
-	if !checkposition(angspe.ref, refnew)
-	 	translatereferenceframe!(angspe, refnew);
+function FieldAngularSpectrumScalarRadialSymmetric_gaussian(::Type{T}, nsr_R, ω, λ, n, dir, ref) where T
+	k = 2π / T(λ);
+	norm = 	T(ω) * √(T(1 / 32 / π^3));
+	e_SXY = Vector{Complex{T}}(undef, length(nsr_R))
+	angspe = FieldAngularSpectrumScalarRadialSymmetric{T,dir}(nsr_R, e_SXY, λ, n, ref);
+	@inbounds @simd for i in iterator_index(angspe)
+		angspe.e_SXY[i] = norm * exp((-T(ω)^2 * k^2 / 16) * nsr_R[i]^2)
 	end
+	return angspe
+end
+FieldAngularSpectrumScalarRadialSymmetric_gaussian(arg...) =  FieldAngularSpectrumScalarRadialSymmetric_gaussian(Float64, arg...)
+
+function FieldAngularSpectrumScalarRadialSymmetric_uniform(::Type{T}, nsr_R, λ, n, dir, ref) where T
+	e_SXY = ones(Complex{T}, length(nsr_R))
+	angspe = FieldAngularSpectrumScalarRadialSymmetric{T,dir}(nsr_R, e_SXY, λ, n, ref);
+	angspe.e_SXY ./= √intensity(angspe)
+	return angspe
+end
+FieldAngularSpectrumScalarRadialSymmetric_uniform(arg...) =  FieldAngularSpectrumScalarRadialSymmetric_uniform(Float64, arg...)
+
+function changereferenceframe!(angspe::FieldAngularSpectrumScalarRadialSymmetric, refnew::ReferenceFrame)
+	(abs(angspe.ref.x - refnew.x) > 1E-10 || abs(angspe.ref.y - refnew.y) > 1E-10 || abs(angspe.ref.θ - refnew.θ) > 1E-5 || abs(angspe.ref.ϕ - refnew.ϕ) > 1E-5) && error("FieldAngularSpectrumScalarRadialSymmetric cannot be translate in x or y or rotated")
+	checkposition(angspe.ref, refnew) || translatereferenceframe!(angspe, refnew);
 end
 
-function translatereferenceframe!(angspe::FieldAngularSpectrumSymmetric, refnew::ReferenceFrame)
+function translatereferenceframe!(angspe::FieldAngularSpectrumScalarRadialSymmetric, refnew::ReferenceFrame)
 	refΔz = refnew.z - angspe.ref.z;
-
-	k = 2 * π / angspe.λ;
-	kx_X = k .* reshape(angspe.nsx_X, 1, :, 1);
-	kz_Z = angspe.dir .* .√( k.^2 .- kx_X.^2);
-
-	angspe.e_SXY = angspe.e_SXY .* exp.(im .* (kz_Z .* refΔz));
+	kim = im * 2 * π / angspe.λ;
+	@inbounds @simd for i in iterator_index(angspe)
+		nsz_a = dir(angspe) * nsz(angspe.n, angspe.nsr_R[i], 0)
+		angspe.e_SXY[i] *= exp(kim * nsz_a * refΔz)
+	end
 	angspe.ref.z = refnew.z;
 end
 
-function intensity(angspe::FieldAngularSpectrumSymmetric)::Float64
-	k = 2 .* π / angspe.λ;
-	kx_X = real.(k .* angspe.nsx_X);
-
-	e_SXY = abs2.(angspe.e_SXY) .* adddims(kx_X, (1,));
-	return 4 * π^2 * 2 * π * angspe.n * ∫(e_SXY, kx_X);
+function intensity(angspe::FieldAngularSpectrumScalarRadialSymmetric{T}) where T
+	int = zero(T)
+	@inbounds @simd for i in iterator_index(angspe)
+		Δnsr = Δvector(angspe.nsr_R, i)
+		int += abs2(angspe.e_SXY[i]) * Δnsr * angspe.nsr_R[i]
+	end
+	return 32π^5 / angspe.λ^2 * real(angspe.n) * int
 end
+
+CartesianIndices(field::FieldAngularSpectrumScalarRadialSymmetric) = Base.CartesianIndices((1, length(field.nsr_R), 1))
+LinearIndices(field::FieldAngularSpectrumScalarRadialSymmetric) = Base.LinearIndices((1, length(field.nsr_R), 1))

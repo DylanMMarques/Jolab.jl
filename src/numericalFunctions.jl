@@ -148,72 +148,6 @@ function inversefourriertransformfft(nsx_X::AbstractRange{<:Real}, nsy_Y::Abstra
 	return (x, y, z_SXY);
 end
 
-function fourriertransform!(o_SAB::AbstractArray{Complex{T}, 3}, x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, z_SXY::AbstractArray{<:Number, 3}, λ::Real, n::Number, nsx_A::AbstractVector{<:Real}, nsy_B::AbstractVector{<:Real}) where {T<:Real}
-	sizeS, sizeX, sizeY, sizeA, sizeB = size(z_SXY, 1), length(x_X), length(y_Y), length(nsx_A), length(nsy_B);
-
-	sizeX == size(z_SXY, 2) && sizeY == size(z_SXY, 3) || error("Wrong sizes");
-	sizeA == size(o_SAB, 2) && sizeB == size(o_SAB, 3) || error("Wrong sizes");
-	sizeS == size(o_SAB, 1) || error("Wrong sizes")
-
-	k = 2π / λ;
-	Δx = ΔIntegrationTrap(x_X);
-	Δy = 1 / (4π^2) .* ΔIntegrationTrap(y_Y);
-	o_SAB .= zero(Complex{T})
-
-	@inbounds for iX in 1:sizeX
-		for iY in 1:sizeY
-			ΔxΔy = Δx[iX] * Δy[iY]
-			@simd for iA in 1:sizeA
-				for iB in 1:sizeB
-					phaseterm = exp(-im * k * (x_X[iX] * nsx_A[iA] + y_Y[iY] * nsy_B[iB])) * ΔxΔy
-					for iS in 1:sizeS
-						o_SAB[iS,iA,iB] += z_SXY[iS,iX,iY] * phaseterm
-					end
-				end
-			end
-		end
-	end
-end
-
-@inline function fourriertransform(x_X::AbstractVector{<:Real}, y_Y::AbstractVector{<:Real}, z_SXY::AbstractArray{T, 3}, λ::Real, n::Number, nsx_A::AbstractVector{<:Real}, nsy_B::AbstractVector{<:Real}) where T<:Number
-	o_SAB = zeros(T, size(z_SXY, 1), length(nsx_A), length(nsy_B));
-	fourriertransform!(o_SAB, x_X, y_Y, z_SXY, λ, n, nsx_A, nsy_B);
-	return o_SAB
-end
-
-function inversefourriertransform!(o_SAB::AbstractArray{Complex{T}, 3}, nsx_X::AbstractVector{<:Real}, nsy_Y::AbstractVector{<:Real}, z_SXY::AbstractArray{<:Number, 3}, λ::Real, n::Number, x_A::AbstractVector{<:Real}, y_B::AbstractVector{<:Real}) where {T<:Real}
-	sizeS, sizeX, sizeY, sizeA, sizeB = size(z_SXY, 1), length(nsx_X), length(nsy_Y), length(x_A), length(y_B);
-
-	sizeX == size(z_SXY, 2) && sizeY == size(z_SXY, 3) || error("Wrong sizes");
-	sizeA == size(o_SAB, 2) && sizeB == size(o_SAB, 3) || error("Wrong sizes");
-	sizeS == size(o_SAB, 1) || error("Wrong sizes")
-
-	k = 2π / λ;
-	Δkx = ΔIntegrationTrap(nsx_X) .* k
-	Δky = ΔIntegrationTrap(nsy_Y) .* k
-	o_SAB .= zero(Complex{T})
-
-	@inbounds for iX in 1:sizeX
-		for iY in 1:sizeY
-			ΔkxΔky = Δkx[iX] * Δky[iY]
-			@simd for iA in 1:sizeA
-				for iB in 1:sizeB
-					phaseterm = exp(im * k * (x_A[iA] * nsx_X[iX] + y_B[iB] * nsy_Y[iY])) * ΔkxΔky
-					for iS in 1:sizeS
-						o_SAB[iS,iA,iB] += z_SXY[iS,iX,iY] * phaseterm
-					end
-				end
-			end
-		end
-	end
-end
-
-@inline function inversefourriertransform(nsx_X::AbstractVector{<:Real}, nsy_Y::AbstractVector{<:Real}, z_SXY::AbstractArray{<:Number, 3}, λ::Real, n::Number, x_A::AbstractVector{<:Real}, y_B::AbstractVector{<:Real})
-	o_SAB = zeros(eltype(z_SXY), size(z_SXY, 1), length(x_A), length(y_B));
-	inversefourriertransform!(o_SAB, nsx_X, nsy_Y, z_SXY, λ, n, x_A, y_B);
-	return o_SAB
-end
-
 function ΔIntegrationTrap(x_X::AbstractVector{T}) where T<:Number
 	sizeX = length(x_X);
 	Δx_X = Vector{T}(undef, sizeX);
@@ -267,34 +201,6 @@ function ∫∫(f_XY::AbstractArray{T,2}, x_X::AbstractRange{<:Number}, y_Y::Abs
 	return res * (x_X[2] - x_X[1]) * (y_Y[2] - y_Y[1]);
 end
 
-function ndgrid(v1::AbstractVector{<:Number}, v2::AbstractVector{<:Number})
-    m, n = length(v1), length(v2)
-    v1 = reshape(v1, m, 1)
-    v2 = reshape(v2, 1, n)
-    (repeat(v1, 1, n), repeat(v2, m, 1))
-end
-
-function adddims!(v1::Array{T,M}, dims::NTuple{N,Int}) where {T, N, M}
-	siz = collect(size(v1));
-	dims = collect(dims);
-
-	for i in dims
-		insert!(siz, i, 1);
-	end
-	v1 = reshape(v1, Tuple(siz));
-end
-
-function adddims(v1::Array{T,M}, dims::NTuple{N,Int}) where {T, N, M}
-	siz = collect(size(v1));
-	dims = collect(dims);
-
-	for i in dims
-		insert!(siz, i, 1);
-	end
-	addims = reshape(v1, Tuple(siz));
-	return addims;
-end
-
 function anglebetweenvectors(v1::Vector{<:Number}, v2::Vector{<:Number})::Number
 	return acos(v1 ⋅ v2 ./ norm(v1) ./ norm(v2));
 end
@@ -318,14 +224,6 @@ function rextrema(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
 		end
 	end
 	return (√min, √max)
-end
-
-@inline function intensity(e_SXY::AbstractArray{Complex{T}}) where {T<:Number}
-	val = zero(T)
-	@inbounds @simd for i in eachindex(e_SXY)
-		val += abs2(e_SXY[i])
-	end
-	return val
 end
 
 @inline function Δvector(x_X::Vector{T}, i::Integer) where T
@@ -410,42 +308,6 @@ end
 	return integrate_exp_xy_x_y(α, β, γ, δ, xmin, xmax, ymin, ymax)
 end
 
-function integrate_xy_x_y_d_exp_x_y(a, b, c, d, β, γ, δ, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
-	if (β <= @tol) && (γ <= @tol)
-		f1(x,y) = 1 / 4 * exp(im * δ) * x * y * (4 * d + 2 * b * x + 2 * c * y + a * x * y)
-		return f1(xmax,ymax) - f1(xmin, ymax) - f1(xmax, ymin) + f1(xmin,ymin)
-	elseif γ <= @tol
-		f2(x,y) = exp(im * (δ + β * x)) * y * (b * (2 - 2im * β * x) + a * y - im * β * (2 * d + c * y + a * x * y)) / 2 / β^2
-		return f2(xmax,ymax) - f2(xmin, ymax) - f2(xmax, ymin) + f2(xmin,ymin)
-	elseif β <= @tol
-		f3(x,y) = - 1 / 2 / γ^2 * im * exp(im * (δ + γ * y)) * x * (2 * d * γ + 2 * c * (im + γ * y) + x * (im * a + b * γ + a * γ * y))
-		return f3(xmax,ymax) - f3(xmin, ymax) - f3(xmax, ymin) + f3(xmin,ymin)
-	else
-		f4(x,y) = - 1 / β^2 / γ^2 * exp(im * (δ + β * x + γ * y)) * (im * b * γ + a * (im + β * x) * (im + γ * y) + β * (im * c + d * γ + b * γ * x + c * γ * y))
-		return f4(xmax,ymax) - f4(xmin, ymax) - f4(xmax, ymin) + f4(xmin,ymin)
-	end
-	return zero(Complex{T})
-end
-
-function integrate_xy_x_y_d_exp_xy_x_y(a, b, c, d, α, β, γ, δ, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
-	# return the integral of (a xy + b x + c y + d) * exp(im * (α xy + β x + γ y + δ))
-	if abs(α) <= 1E-7
-		return integrate_xy_x_y_d_exp_x_y(a,b,c,d,β, γ, δ, xmin, xmax, ymin, ymax)
-	end
-	if  (0 <= (γ + α * xmin) / (α * xmin - α * xmax) <= 1) && (0 <= (β + α * ymin) / (α * ymin - α * ymax) <= 1)
-		int(r) = (a * r[1] * r[2] + b * r[1] + c * r[2] + d) * exp(im * (α * r[1] * r[2] + β * r[1] + γ * r[2] + δ))
-		return hcubature(int, SVector(xmin, ymin), SVector(xmax, ymax), maxevals = 2000)[1]
-	else
-		Pf(x::A, y::A) where A = begin
-			aux = (γ + α * x) * (β + α * y) / α
-			expi = -conj(Complex{A}(expint(im * aux))) + (aux < 0 ? - π * im : π * im)
-		 	return - 1 / α^3 * im * exp(im * δ) * (-((im * α * exp(im * (β * x + (γ + α * x) * y)) * (-a * β * γ + α * (β * c + b * γ) + α^2 * (b * x + c * y + a * x * y))) / ((γ + α * x) * (β + α * y))) + exp(- im * β * γ / α) * (α * (- β * c + α * d - b * γ) + a * (im * α + β * γ)) * expi)
- 		end
-		return Complex{T}(Pf(BigFloat(xmax), BigFloat(ymax)) - Pf(BigFloat(xmax), BigFloat(ymin)) - Pf(BigFloat(xmin), BigFloat(ymax)) + Pf(BigFloat(xmin), BigFloat(ymin)))
-	end
-	return zero(Complex{T})
-end
-
 function bilinearinterpolation(f11::T, f12, f21, f22, xmin, xmax, ymin, ymax)::Tuple{T,T,T,T} where T
 	# fits the 4 data points to a xy + b x + c y + d
 	a = (f11 - f12 - f21 + f22) / (xmax - xmin) / (ymax - ymin)
@@ -453,13 +315,4 @@ function bilinearinterpolation(f11::T, f12, f21, f22, xmin, xmax, ymin, ymax)::T
 	c = (-f11 * xmax + f21 * xmin + f12 * xmax - f22 * xmin) / (xmax - xmin) / (ymax - ymin)
 	d = (f11 * xmax * ymax - f21 * xmin * ymax - f12 * xmax * ymin + f22 * xmin * ymin) / (xmax - xmin) / (ymax - ymin)
 	return (a,b,c,d)
-end
-
-function integrate_xy_x_y_d_exp_xy_xy_y(fabs::Function, fangle::Function, xmin::T, xmax::T, ymin::T, ymax::T)::Complex{T} where T
-	f11, f12, f21, f22 = fabs(xmin, ymin), fabs(xmin, ymax), fabs(xmax, ymin), fabs(xmax, ymax)
-	(a,b,c,d) = bilinearinterpolation(f11, f12, f21, f22, xmin, xmax, ymin, ymax)
-
-	f11, f12, f21, f22 = fangle(xmin, ymin), fangle(xmin, ymax), fangle(xmax, ymin), fangle(xmax, ymax)
-	(α, β, γ, δ) = bilinearinterpolation(f11,f12,f21,f22, xmin, xmax, ymin, ymax)
-	return integrate_xy_x_y_d_exp_xy_xy_y(a, b, c, d, α, β, γ, δ, xmin, xmax, ymin, ymax)
 end

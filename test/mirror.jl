@@ -1,15 +1,22 @@
-using Jolab
+using Jolab, Test
 
-nsx = range(-0.006, 0.006, length = 50)
+nsx = range(-0.006, 0.006, length = 51)
 x = range(-3E-3, 3E-3, length = 51)
 
-mirror = Mirror(.99, 1, 1., ReferenceFrame(0,0,0))
+mirror = Mirror(.5, 1, 3., ReferenceFrame(0,0,0))
 
-for dir in [-1, 1]
-    field = FieldSpaceScalar_gaussian(x, x, 2.5E-3, 1550E-9, 1, dir, ReferenceFrame(0,0,0.))
-    lightinteraction(mirror, field)
+field = FieldSpaceScalar_gaussian(x, x, 2.5E-3, 1550E-9, 1, 1, ReferenceFrame(0,0,0.))
+(field1, field2) = lightinteraction(mirror, field)
+@test isapprox(intensity(field1) + intensity(field2), 1, atol = 1E-4)
 
-    field = FieldAngularSpectrumScalar_gaussian(nsx, nsx, 2.5E-3, 1550E-9, 1, dir, ReferenceFrame(0,0,0.))
-    lightinteraction(mirror, field)
-end
-return true
+field = FieldAngularSpectrumScalar_gaussian(nsx, nsx, 2.5E-3, 1550E-9, 1, 1, ReferenceFrame(0,0,0.))
+(field1, field2) = lightinteraction(mirror, field)
+@test isapprox(intensity(field1) + intensity(field2), 1, atol = 1E-4)
+
+field = FieldSpaceScalar_gaussian(x, x, 2.5E-3, 1550E-9, 3, -1, ReferenceFrame(0,0,0.))
+(field1, field2) = lightinteraction(mirror, field)
+@test isapprox(intensity(field1) + intensity(field2), 1, atol = 1E-4)
+
+field = FieldAngularSpectrumScalar_gaussian(nsx, nsx, 2.5E-3, 1550E-9, 3, -1, ReferenceFrame(0,0,0.))
+(field1, field2) = lightinteraction(mirror, field)
+@test isapprox(intensity(field1) + intensity(field2), 1, atol = 1E-4)

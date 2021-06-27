@@ -22,7 +22,7 @@ module Jolab
 	export PropagationCoefficientScalar
 	export Mirror, rotatestructure, translatestructure
 	export SpatialLightModulator, SpatialLightModulator_slm, SpatialLightModulator_mask, SpatialLightModulator_reflectivemask
-	export FourierTransform, PhantomLayer
+	export FourierTransform
 	export Axicon, AxiconFourier
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
@@ -57,7 +57,11 @@ module Jolab
 	include("AbstractDetector.jl")
 
 	include("FieldSpaceScalar.jl")
+	include("FieldSpaceSymmetric.jl")
+	include("FieldSpaceVectorial.jl")
 	include("AngularSpectrumScalar.jl")
+	include("AngularSpectrumSymmetric.jl")
+	include("AngularSpectrumVectorial.jl")
 	include("iterators.jl")
 
 	include("numericalFunctions.jl");
@@ -73,11 +77,9 @@ module Jolab
 	include("SingleModeFibre.jl")
 	include("Mirror.jl")
 	include("FourierTransform.jl")
-	include("interpolation.jl")
 	include("CircularStepIndexFibre.jl")
 	include("SpatialLightModulator.jl")
 	include("RoughMultilayerStructure.jl")
-	include("PhantomLayer.jl")
 	include("Axicon.jl")
 	include("AxiconFourier.jl")
 	include("lightinteraction_recursive.jl")

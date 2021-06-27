@@ -3,6 +3,7 @@ using Jolab, Test
 nsx = range(-.05, .05, length = 101)
 angspe = FieldAngularSpectrumScalar_gaussian(nsx, nsx, 50E-6, 1550E-9, 1., 1, ReferenceFrame(0,0,0,0,0))
 int_i = intensity(angspe)
+@test isapprox(int_i, 1, atol = 1E-5)
 cart = Jolab.CartesianIndices(angspe)
 
 θ, ϕa = 0.015, π/4
@@ -34,13 +35,28 @@ nsy_max = angspe.nsy_Y[cart[arg][3]]
 
 nsx = range(-.05, .05, length = 11)
 angspe = FieldAngularSpectrumScalar_uniform(nsx, nsx, 1550E-9, 2., 1, ReferenceFrame(0,0,0,0,0))
+int_i = intensity(angspe)
+@test isapprox(int_i, 1, atol = 1E-5)
 Δx, Δy, Δz = 100E-9, 200E-9, 300E-9
 angspe2 = changereferenceframe(angspe, ReferenceFrame(Δx, Δy, Δz, 0, 0))
+int_i = intensity(angspe2)
+@test isapprox(int_i, 1, atol = 1E-5)
 k = 2π / angspe.λ
 @test all(isapprox.(reshape(angspe.e_SXY ./ angspe2.e_SXY, 11, 11), exp.(-im .* k .* (angspe.nsx_X .* Δx .+ angspe.nsy_Y' .* Δy .+ .√(2^2 .- angspe.nsx_X.^2 .- angspe.nsy_Y'.^2) .* Δz)), rtol = 1E-15))
 
 angspe = FieldAngularSpectrumScalar_uniform(nsx, nsx, 1550E-9, 2. + im, -1, ReferenceFrame(0,0,0,0,0))
+int_i = intensity(angspe)
+@test isapprox(int_i, 1, atol = 1E-5)
 Δx, Δy, Δz = 100E-9, 200E-9, 300E-9
 angspe2 = changereferenceframe(angspe, ReferenceFrame(Δx, Δy, Δz, 0, 0))
 k = 2π / angspe.λ
 @test all(isapprox.(reshape(angspe.e_SXY ./ angspe2.e_SXY, 11, 11), exp.(-im .* k .* (angspe.nsx_X .* Δx .+ angspe.nsy_Y' .* Δy .- .√((2+im)^2 .- angspe.nsx_X.^2 .- angspe.nsy_Y'.^2) .* Δz)), rtol = 1E-15))
+
+
+nsx = range(0, .2, length = 2001)
+angspe = Jolab.FieldAngularSpectrumScalarRadialSymmetric_gaussian(nsx, 50E-6, 1550E-9, 1., 1, ReferenceFrame(0,0,0,0,0))
+@test isapprox(intensity(angspe), 1, atol = 1E-5)
+
+nsx = range(0, .2, length = 2001)
+angspe = Jolab.FieldAngularSpectrumScalarRadialSymmetric_uniform(nsx, 1550E-9, 1., 1, ReferenceFrame(0,0,0,0,0))
+@test isapprox(intensity(angspe), 1, atol = 1E-5)

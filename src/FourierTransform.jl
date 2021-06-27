@@ -272,6 +272,27 @@ end
 	fourieraux = FourierTransform{T,Y}(x_X, y_Y, field.nsx_X, field.nsy_Y)
 	return coefficient_general(fourieraux, field)
 end
+
+function FieldSpaceScalar_fromAngularSpectrum(angspe::FieldAngularSpectrumScalar, x, y)
+	fourier = FourierTransform(x,y,angspe.nsx_X, angspe.nsy_Y)
+	return lightinteraction(fourier, angspe)
+end
+
+function FieldSpaceVectorial_fromAngularSpectrum(angspe::FieldAngularSpectrumVectorial, x, y)
+	fourier = FourierTransform(x,y,angspe.nsx_X, angspe.nsy_Y)
+	return lightinteraction(fourier, angspe)
+end
+
+function FieldAngularSpectrumScalar_fromSpace(space::FieldSpaceScalar, nsx, nsy)
+	fourier = FourierTransform(space.x, space.y, nsx, nsy)
+	return lightinteraction(fourier, space)
+end
+
+function FieldAngularSpectrumVectorial_fromSpace(space::FieldSpaceVectorial, nsx, nsy)
+	fourier = FourierTransform(space.x, space.y, nsx, nsy)
+	return lightinteraction(fourier, space)
+end
+
 #=
 function coefficient_specific(fourier::FourierTransform{T,X}, field::F) where {T, X <: Nothing, F <: FieldSpaceScalar{T, <:AbstractRange}}
 	(sizeX, sizeY) = size(CartesianIndices(field))[2:3]

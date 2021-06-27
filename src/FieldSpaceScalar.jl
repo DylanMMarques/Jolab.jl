@@ -21,30 +21,32 @@ mutable struct FieldSpaceScalar{T,D, X<:AbstractVector{T}, Y<:AbstractVector{Com
 end
 # FieldSpace(x_X, y_Y, e_SXY, λ, n, dir, ref) = FieldSpace{Float64}(x_X, y_Y, e_SXY, λ, n, dir, ref)
 
-function FieldSpaceScalar_uniform(x_X, y_Y, λ, n, dir, ref; T = Float64)
+function FieldSpaceScalar_uniform(::Type{T}, x_X, y_Y, λ, n, dir, ref) where T
 	e_SXY = ones(Complex{T}, length(x_X) * length(y_Y))
 	space = FieldSpaceScalar{T,dir}(x_X, y_Y, e_SXY, λ, n, ref);
 	space.e_SXY ./= √(intensity(space))
 	return space
 end
+FieldSpaceScalar_uniform(arg...) = FieldSpaceScalar_uniform(Float64, arg...)
 
-function FieldSpaceScalar_gaussian(x_X, y_Y, ω, λ, n, dir, ref; T = Float64)
+function FieldSpaceScalar_gaussian(::Type{T}, x_X, y_Y, ω, λ, n, dir, ref) where T
 	e_SXY = Vector{Complex{T}}(undef, length(x_X) * length(y_Y))
 	space = FieldSpaceScalar{T,dir}(x_X, y_Y, e_SXY, λ, n, ref);
-	norm = 	√(8 / π / ω^2)
+	norm = 	√(T(8 / π / ω^2)) / √T(real(n))
 	cart = CartesianIndices(space)
 	@inbounds @simd for i in iterator_index(space)
-		space.e_SXY[i] = norm * exp(- 4 / ω^2 * (x_X[cart[i][2]]^2 + y_Y[cart[i][3]]^2));
+		space.e_SXY[i] = norm * exp(- 4 / T(ω)^2 * (x_X[cart[i][2]]^2 + y_Y[cart[i][3]]^2));
 	end
 	return space
 end
+FieldSpaceScalar_gaussian(arg...) = FieldSpaceScalar_gaussian(Float64, arg...)
 
 function changereferenceframe!(fieldspace::AbstractFieldSpace, refnew::ReferenceFrame)
 	(checkorientation(fieldspace.ref, refnew) && checkinplane(fieldspace.ref, refnew)) || error("Both referenceframe must be in plane")
 	translatereferenceframe!(fieldspace, refnew)
 end
 
-function translatereferenceframe!(space::FieldSpaceScalar, refnew::ReferenceFrame)
+function translatereferenceframe!(space::AbstractFieldSpace, refnew::ReferenceFrame)
 	(refΔx, refΔy, refΔz) = (refnew.x - space.ref.x, refnew.y - space.ref.y, refnew.z - space.ref.z)
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, space.ref.θ, space.ref.ϕ);
 	(space.x_X, space.y_Y) = (space.x_X .+ refΔx, space.y_Y .+ refΔy)
@@ -54,7 +56,7 @@ end
 function intensity(space::FieldSpaceScalar{T}) where T
 	int = zero(T)
 	cart = CartesianIndices(space)
-	for i in iterator_index(space)
+	@inbounds @simd for i in iterator_index(space)
 		Δx = Δvector(space.x_X, cart[i][2])
 		Δy = Δvector(space.y_Y, cart[i][3])
 		int += abs2(space.e_SXY[i]) * Δx * Δy
@@ -66,7 +68,7 @@ function propagationmatrix(fieldl::L, fieldr::L) where {L <: AbstractFieldSpace}
 	error("A field in space cannot be propagated transform to angular spectrum")
 end
 
-function samedefinitions(fieldl::L, fieldr::R) where {L<:AbstractFieldSpace, R<:AbstractFieldSpace}
+function samedefinitions(fieldl::L, fieldr::R) where {L<:FieldSpaceScalar, R<:FieldSpaceScalar}
 	isapprox(fieldl.x_X, fieldr.x_X, atol = @tol) || error("x_X are different")
 	isapprox(fieldl.y_Y, fieldr.y_Y, atol = @tol) || error("y_Y are different")
 	isapprox(fieldl.n, fieldr.n, atol = @tol) || error("n are different")
@@ -82,16 +84,13 @@ function add!(fielda::FieldSpaceScalar{T}, fieldb::FieldSpaceScalar{T}) where T
 	end
 end
 
-function Base.:copy(field::FieldSpaceScalar{T,D,X}) where {T,D,X}
-	return FieldSpaceScalar{T,D,X}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+function Base.:copy(field::FieldSpaceScalar{T,D,X,Y}) where {T,D,X,Y}
+	return FieldSpaceScalar{T,D,X,Y}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
 end
 
-function copy_differentD(field::FieldSpaceScalar{T,1,X}) where {T,X}
-	return FieldSpaceScalar{T,-1,X}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
-end
-
-function copy_differentD(field::FieldSpaceScalar{T,-1,X}) where {T,X}
-	return FieldSpaceScalar{T,1,X}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+function copy_differentD(field::FieldSpaceScalar{T,D,X,Y}) where {T,D,X,Y}
+	return FieldSpaceScalar{T,-D,X,Y}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
 end
 
 CartesianIndices(field::FieldSpaceScalar) = Base.CartesianIndices((1, length(field.x_X), length(field.y_Y)))
+LinearIndices(field::FieldSpaceScalar) = Base.LinearIndices((1, length(field.x_X), length(field.y_Y)))

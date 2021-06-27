@@ -1,39 +1,37 @@
-mutable struct FieldAngularSpectrumScalar{T,D, X<:AbstractVector{T}, Y<:AbstractVector{Complex{T}}} <: AbstractFieldAngularSpectrum{T,D}
+mutable struct FieldAngularSpectrumVectorial{T,D, X<:AbstractVector{T}, Y<:AbstractVector{Complex{T}}} <: AbstractFieldAngularSpectrum{T,D}
 	nsx_X::X
 	nsy_Y::X
 	e_SXY::Y
 	λ::T
 	n::Complex{T}
 	ref::ReferenceFrame{T}
-	function FieldAngularSpectrumScalar{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref) where {T,D,X,Y}
-		length(nsx_X) * length(nsy_Y) == length(e_SXY) || error("length(nsx_X) * length(nsy_Y) must be equal to length(e_SXY)")
-		return new{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref)
+	function FieldAngularSpectrumVectorial{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref) where {T,D,X,Y}
+		length(nsx_X) * length(nsy_Y) * 2 == length(e_SXY) || error("length(nsx_X) * length(nsy_Y) must be equal to length(e_SXY)")
+		return new{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref);
 	end
-	function FieldAngularSpectrumScalar{T,D}(nsx_X::X1, nsy_Y::X2, e_SXY::Y, λ, n, ref) where {T,D,X1,X2,Y}
-		length(nsx_X) * length(nsy_Y) == length(e_SXY) || error("length(nsx_X) * length(nsy_Y) must be equal to length(e_SXY)")
+	function FieldAngularSpectrumVectorial{T,D}(nsx_X::X1, nsy_Y::X2, e_SXY::Y, λ, n, ref) where {T,D,X1,X2,Y}
+		length(nsx_X) * length(nsy_Y) * 2 == length(e_SXY) || error("length(nsx_X) * length(nsy_Y) must be equal to length(e_SXY)")
 		X = promote_type(X1,X2)
-		return new{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref)
+		return new{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref);
 	end
-	function FieldAngularSpectrumScalar{T,D,X}(nsx_X, nsy_Y, e_SXY::Y, λ, n, ref) where {T,D,X,Y}
-		length(nsx_X) * length(nsy_Y) == length(e_SXY) || error("length(nsx_X) * length(nsy_Y) must be equal to length(e_SXY)")
-		return new{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref)
+	function FieldAngularSpectrumVectorial{T,D,X}(nsx_X, nsy_Y, e_SXY::Y, λ, n, ref) where {T,D,X,Y}
+		length(nsx_X) * length(nsy_Y) * 2 == length(e_SXY) || error("length(nsx_X) * length(nsy_Y) must be equal to length(e_SXY)")
+		return new{T,D,X,Y}(nsx_X, nsy_Y, e_SXY, λ, n, ref);
 	end
 end
 
-nsz(n, nsx, nsy) = √(complex(n^2 - nsx^2 - nsy^2))
-
-function FieldAngularSpectrumScalar_uniform(::Type{T}, nsx_X, nsy_Y, λ, n, dir, ref) where T
-	e_SXY = ones(Complex{T}, length(nsx_X) * length(nsy_Y))
+function FieldAngularSpectrumVectorial_uniform(::Type{T}, nsx_X, nsy_Y, λ, n, dir, ref) where T
+	e_SXY = ones(Complex{T}, 2 * length(nsx_X) * length(nsy_Y))
 	angspe = FieldAngularSpectrumScalar{T,dir}(nsx_X, nsy_Y, e_SXY, λ, n, ref);
 	angspe.e_SXY ./= √intensity(angspe)
 	return angspe
 end
-FieldAngularSpectrumScalar_uniform(arg...) = FieldAngularSpectrumScalar_uniform(Float64, arg...)
+FieldAngularSpectrumVectorial_uniform(arg...) = FieldAngularSpectrumVectorial_uniform(Float64, arg...)
 
-function FieldAngularSpectrumScalar_gaussian(::Type{T}, nsx_X, nsy_Y, ω, λ, n, dir, ref) where T
+function FieldAngularSpectrumVectorial_gaussian(::Type{T}, nsx_X, nsy_Y, ω, λ, n, dir, ref) where T
 	k = 2π / T(λ);
-	norm = 	T(ω) * √(T(1 / 32 / π^3)) / √T(real(n));
-	e_SXY = Vector{Complex{T}}(undef, length(nsx_X) * length(nsy_Y))
+	norm = 	T(ω) * √(T(1 / 32 / π^3));
+	e_SXY = Vector{Complex{T}}(undef, 2 * length(nsx_X) * length(nsy_Y))
 	angspe = FieldAngularSpectrumScalar{T,dir}(nsx_X, nsy_Y, e_SXY, λ, n, ref);
 	cart = CartesianIndices(angspe)
 	@inbounds @simd for i in iterator_index(angspe)
@@ -41,15 +39,9 @@ function FieldAngularSpectrumScalar_gaussian(::Type{T}, nsx_X, nsy_Y, ω, λ, n,
 	end
 	return angspe
 end
-FieldAngularSpectrumScalar_gaussian(arg...) = FieldAngularSpectrumScalar_gaussian(Float64, arg...)
+FieldAngularSpectrumVectorial_gaussian(arg...) = FieldAngularSpectrumVectorial_gaussian(Float64, arg...)
 
-function changereferenceframe!(angspe::AbstractFieldAngularSpectrum, refnew::ReferenceFrame)
-	#Needs checking after doing the 2D interpolation
-	checkposition(angspe.ref, refnew) || translatereferenceframe!(angspe, refnew)
-	checkorientation(angspe.ref, refnew) || rotatereferenceframe!(angspe, refnew)
-end
-
-function translatereferenceframe!(angspe::FieldAngularSpectrumScalar, refnew::ReferenceFrame)
+function translatereferenceframe!(angspe::FieldAngularSpectrumVectorial, refnew::ReferenceFrame)
 	(refΔx, refΔy, refΔz) = (refnew.x - angspe.ref.x, refnew.y - angspe.ref.y, refnew.z - angspe.ref.z)
 	# Can't use based on referenceframe as the rotation is inverted
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, angspe.ref.θ, angspe.ref.ϕ);
@@ -62,7 +54,8 @@ function translatereferenceframe!(angspe::FieldAngularSpectrumScalar, refnew::Re
 	(angspe.ref.x, angspe.ref.y, angspe.ref.z) = (refnew.x, refnew.y, refnew.z)
 end
 
-function rotatereferenceframe!(angspe::FieldAngularSpectrumScalar{T}, refnew::ReferenceFrame) where T
+function rotatereferenceframe!(angspe::FieldAngularSpectrumVectorial{T}, refnew::ReferenceFrame) where T
+	errorToDo()
 	sizeX, sizeY = length(angspe.nsx_X), length(angspe.nsy_Y)
 	nsz_1 = dir(angspe) * T(nsz(angspe.n, first(angspe.nsx_X), first(angspe.nsy_Y)))
 	nsz_2 = dir(angspe) * T(nsz(angspe.n, first(angspe.nsx_X), last(angspe.nsy_Y)))
@@ -86,7 +79,7 @@ function rotatereferenceframe!(angspe::FieldAngularSpectrumScalar{T}, refnew::Re
 	angspe.ref = refnew
 end
 
-function intensity(angspe::FieldAngularSpectrumScalar{T}) where T
+function intensity(angspe::FieldAngularSpectrumVectorial{T}) where T
 	int = zero(T)
 	cart = CartesianIndices(angspe)
 	@inbounds @simd for i in iterator_index(angspe)
@@ -97,7 +90,7 @@ function intensity(angspe::FieldAngularSpectrumScalar{T}) where T
 	return 16π^4 / angspe.λ^2 * real(angspe.n) * int
 end
 
-function samedefinitions(fieldl::L, fieldr::R) where {L <: FieldAngularSpectrumScalar, R <: FieldAngularSpectrumScalar}
+function samedefinitions(fieldl::L, fieldr::R) where {L <: FieldAngularSpectrumVectorial, R <: FieldAngularSpectrumVectorial}
 	isapprox(fieldl.nsx_X, fieldr.nsx_X, atol = @tol) || error("nsx_X are different")
 	isapprox(fieldl.nsy_Y, fieldr.nsy_Y, atol = @tol) || error("nsy_Y are different")
 	isapprox(fieldl.n, fieldr.n, atol = @tol) || error("n are different")
@@ -106,25 +99,25 @@ function samedefinitions(fieldl::L, fieldr::R) where {L <: FieldAngularSpectrumS
 	return true
 end
 
-function add!(fielda::FieldAngularSpectrumScalar{T}, fieldb::FieldAngularSpectrumScalar{T}) where T
+function add!(fielda::FieldAngularSpectrumVectorial{T}, fieldb::FieldAngularSpectrumVectorial{T}) where T
 	samedefinitions(fielda, fieldb) || error("Cannot sum the fields. Different definitions")
 	@inbounds @simd for i in iterator_index(fielda)
 		fielda.e_SXY[i] += fieldb.e_SXY[i]
 	end
 end
 
-function Base.:copy(field::FieldAngularSpectrumScalar{T,D,X,Y}) where {T,D,X,Y}
-	return FieldAngularSpectrumScalar{T,D,X,Y}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+function Base.:copy(field::FieldAngularSpectrumVectorial{T,D,X,Y}) where {T,D,X,Y}
+	return FieldAngularSpectrumVectorial{T,D,X}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
 end
 
-function copy_differentD(field::FieldAngularSpectrumScalar{T,D,X,Y}) where {T,D,X,Y}
-	return FieldAngularSpectrumScalar{T,-D,X,Y}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+function copy_differentD(field::FieldAngularSpectrumVectorial{T,D,X,Y}) where {T,D,X,Y}
+	return FieldAngularSpectrumVectorial{T,-D,X,Y}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
 end
 
-CartesianIndices(field::FieldAngularSpectrumScalar) = Base.CartesianIndices((1, length(field.nsx_X), length(field.nsy_Y)))
-LinearIndices(field::FieldAngularSpectrumScalar) = Base.LinearIndices((1, length(field.nsx_X), length(field.nsy_Y)))
+CartesianIndices(field::FieldAngularSpectrumVectorial) = Base.CartesianIndices((2, length(field.nsx_X), length(field.nsy_Y)))
+LinearIndices(field::FieldAngularSpectrumVectorial) = Base.LinearIndices((2, length(field.nsx_X), length(field.nsy_Y)))
 
-function propagationmatrix(fieldl::FieldAngularSpectrumScalar{T}, ref::ReferenceFrame) where T
+function propagationmatrix(fieldl::FieldAngularSpectrumVectorial{T}, ref::ReferenceFrame) where T
 	checkorientation(fieldl.ref, ref) || error("Cannot calculate propagation matrix as the referenceframe are not oriented")
 	refΔx = ref.x - fieldl.ref.x;
 	refΔy = ref.y - fieldl.ref.y;
@@ -135,9 +128,11 @@ function propagationmatrix(fieldl::FieldAngularSpectrumScalar{T}, ref::Reference
 	imk = im * 2π / fieldl.λ;
 	propMatrix = Diagonal(Vector{Complex{T}}(undef, length(fieldl.e_SXY)))
 	cart = CartesianIndices(fieldl)
-	@inbounds for i in iterator_index(fieldl)
+	lin = LinearIndices(fieldl)
+	@inbounds @simd for i in lin[1,:,:]
 		nsz_a = dir(fieldl) * nsz(fieldl.n, fieldl.nsx_X[cart[i][2]], fieldl.nsy_Y[cart[i][3]])
 		propMatrix.diag[i] = exp(imk * (fieldl.nsx_X[cart[i][2]] * refΔx + fieldl.nsy_Y[cart[i][3]] * refΔy + nsz_a * refΔz))
+		propMatrix.diag[i+1] = propMatrix[i]
 	end
 	return propMatrix
 end
