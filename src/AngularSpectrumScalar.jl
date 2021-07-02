@@ -106,7 +106,7 @@ function samedefinitions(fieldl::L, fieldr::R) where {L <: FieldAngularSpectrumS
 	return true
 end
 
-function add!(fielda::FieldAngularSpectrumScalar{T}, fieldb::FieldAngularSpectrumScalar{T}) where T
+function add!(fielda::FieldAngularSpectrumScalar, fieldb::FieldAngularSpectrumScalar)
 	samedefinitions(fielda, fieldb) || error("Cannot sum the fields. Different definitions")
 	@inbounds @simd for i in iterator_index(fielda)
 		fielda.e_SXY[i] += fieldb.e_SXY[i]

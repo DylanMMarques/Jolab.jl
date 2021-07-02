@@ -39,6 +39,13 @@ function changereferenceframe!(angspe::FieldAngularSpectrumScalarRadialSymmetric
 	checkposition(angspe.ref, refnew) || translatereferenceframe!(angspe, refnew);
 end
 
+function add!(fielda::FieldAngularSpectrumScalarRadialSymmetric, fieldb::FieldAngularSpectrumScalarRadialSymmetric)
+	samedefinitions(fielda, fieldb) || error("Cannot sum the fields. Different definitions")
+	@inbounds @simd for i in iterator_index(fielda)
+		fielda.e_SXY[i] += fieldb.e_SXY[i]
+	end
+end
+
 function translatereferenceframe!(angspe::FieldAngularSpectrumScalarRadialSymmetric, refnew::ReferenceFrame)
 	refΔz = refnew.z - angspe.ref.z;
 	kim = im * 2 * π / angspe.λ;
@@ -47,6 +54,20 @@ function translatereferenceframe!(angspe::FieldAngularSpectrumScalarRadialSymmet
 		angspe.e_SXY[i] *= exp(kim * nsz_a * refΔz)
 	end
 	angspe.ref.z = refnew.z;
+end
+
+function propagationmatrix(fieldl::FieldAngularSpectrumScalarRadialSymmetric{T}, ref::ReferenceFrame) where T
+	checkorientation(fieldl.ref, ref) || error("Cannot calculate propagation matrix as the referenceframe are not oriented")
+	(abs(ref.x - 0) < 1E-12 && abs(ref.y - 0) < 1E-12) || error("Cannot propagate a radial symmetric angular spectrum to out of optical axis")
+	refΔz = ref.z - fieldl.ref.z;
+
+	imk = im * 2π / fieldl.λ;
+	propMatrix = Diagonal(Vector{Complex{T}}(undef, length(fieldl.e_SXY)))
+	@inbounds for i in iterator_index(fieldl)
+		nsz_a = dir(fieldl) * nsz(fieldl.n, fieldl.nsr_R[i], 0)
+		propMatrix.diag[i] = exp(imk * nsz_a * refΔz)
+	end
+	return propMatrix
 end
 
 function intensity(angspe::FieldAngularSpectrumScalarRadialSymmetric{T}) where T
@@ -60,3 +81,19 @@ end
 
 CartesianIndices(field::FieldAngularSpectrumScalarRadialSymmetric) = Base.CartesianIndices((1, length(field.nsr_R), 1))
 LinearIndices(field::FieldAngularSpectrumScalarRadialSymmetric) = Base.LinearIndices((1, length(field.nsr_R), 1))
+
+function Base.:copy(field::FieldAngularSpectrumScalarRadialSymmetric{T,D,X,Y}) where {T,D,X,Y}
+	return FieldAngularSpectrumScalarRadialSymmetric{T,D,X,Y}(deepcopy(field.nsr_R), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+end
+
+function copy_differentD(field::FieldAngularSpectrumScalarRadialSymmetric{T,D,X,Y}) where {T,D,X,Y}
+	return FieldAngularSpectrumScalarRadialSymmetric{T,-D,X,Y}(deepcopy(field.nsr_R), deepcopy(field.e_SXY), deepcopy(field.λ), deepcopy(field.n), deepcopy(field.ref))
+end
+
+function samedefinitions(fieldl::L, fieldr::R) where {L <: FieldAngularSpectrumScalarRadialSymmetric, R <: FieldAngularSpectrumScalarRadialSymmetric}
+	isapprox(fieldl.nsr_R, fieldr.nsr_R, atol = @tol) || error("nsr_R are different")
+	isapprox(fieldl.n, fieldr.n, atol = @tol) || error("n are different")
+	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || error("λ is different")
+	fieldl.ref == fieldr.ref || error("reference frames are different")
+	return true
+end
