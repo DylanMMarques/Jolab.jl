@@ -132,6 +132,7 @@ function correctscatteringmatrix_referenceframes!(scat::RoughInterfaceConvolutio
 			scat.sr₁₂ .*= propM.diag
 			scat.it₁₂ .*= propM.diag
 			scat.st₂₁ .*= propM.diag
+			scat.fieldl.ref = copy(fieldi.ref)
 		else
 			# conj!(propM.diag)
 			scat.r₂₁ .*= propM.diag .* propM.diag
@@ -141,6 +142,7 @@ function correctscatteringmatrix_referenceframes!(scat::RoughInterfaceConvolutio
 			scat.sr₂₁ .*= propM.diag
 			scat.st₁₂ .*= propM.diag
 			scat.it₂₁ .*= propM.diag
+			scat.fieldr.ref = copy(fieldi.ref)
 		end
 	end
 end

@@ -125,13 +125,13 @@ function getfields_lr(mirror::Mirror, field::FieldSpaceScalar{T,D,X,Y}) where {T
 end
 
 function getfields_lr(mirror::Mirror, field::FieldAngularSpectrumScalar{T,D,X,Y}) where {T,D,X,Y}
-	fieldl = FieldAngularSpectrumScalar{T,-1,X,Y}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), field.λ, n1(mirror, field.λ), dir(field) > 0 ? field.ref : ref1(mirror))
-	fieldr = FieldAngularSpectrumScalar{T,1,X,Y}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), field.λ, n2(mirror, field.λ), dir(field) > 0 ? ref2(mirror) : field.ref)
+	fieldl = FieldAngularSpectrumScalar{T,-1,X,Y}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), field.λ, n1(mirror, field.λ), ref1(mirror))
+	fieldr = FieldAngularSpectrumScalar{T,1,X,Y}(deepcopy(field.nsx_X), deepcopy(field.nsy_Y), deepcopy(field.e_SXY), field.λ, n2(mirror, field.λ), ref2(mirror))
 	return (fieldl, fieldr)
 end
 
 function getfields_lr(mirror::Mirror, field::FieldAngularSpectrumScalarRadialSymmetric{T,D,X,Y}) where {T,D,X,Y}
-	fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,Y}(deepcopy(field.nsr_R), deepcopy(field.e_SXY), field.λ, n1(mirror, field.λ), dir(field) > 0 ? field.ref : ref1(mirror))
-	fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,Y}(deepcopy(field.nsr_R), deepcopy(field.e_SXY), field.λ, n2(mirror, field.λ), dir(field) > 0 ? ref2(mirror) : field.ref)
+	fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,Y}(deepcopy(field.nsr_R), deepcopy(field.e_SXY), field.λ, n1(mirror, field.λ), ref1(mirror))
+	fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,Y}(deepcopy(field.nsr_R), deepcopy(field.e_SXY), field.λ, n2(mirror, field.λ), ref2(mirror))
 	return (fieldl, fieldr)
 end

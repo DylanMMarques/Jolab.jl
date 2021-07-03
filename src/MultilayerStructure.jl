@@ -51,11 +51,11 @@ function rtss₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVecto
 	sz₁ = √(complex(1 - (nsr / n_A[sizeA-1])^2))
 	ri = reflectioncoefficientinterfaces(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
 	ti = transmissioncoefficientinterfaces(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
-	aux = im * 2π / λ
+ 	imk= im * 2π / λ
 	@inbounds for iA in (sizeA-2):-1:1
 		sz₂ = sz₁
 		sz₁ = √(complex(1 - (nsr / n_A[iA])^2))
-		propagationTerm = exp(aux * n_A[iA+1] * sz₂ * h_A[iA])
+		propagationTerm = exp(imk * n_A[iA+1] * sz₂ * h_A[iA])
 		rinterface = reflectioncoefficientinterfaces(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		tinterface = transmissioncoefficientinterfaces(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
@@ -71,11 +71,11 @@ function rtpp₁₂(nsr::Real, n_A::AbstractVector{<:Number}, h_A::AbstractVecto
 	sz₁ = √(complex(1 - (nsr / n_A[sizeA-1])^2))
 	ri = reflectioncoefficientinterfacep(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
 	ti = transmissioncoefficientinterfacep(n_A[sizeA-1], sz₁, n_A[sizeA], sz₂)
-	aux = im * 2π / λ
+	imk = im * 2π / λ
 	@inbounds for iA in (sizeA-2):-1:1
 		sz₂ = sz₁;
 		sz₁ = √(complex(1 - (nsr / n_A[iA])^2))
-		propagationTerm = exp(aux * n_A[iA+1] * sz₂ * h_A[iA])
+		propagationTerm = exp(imk * n_A[iA+1] * sz₂ * h_A[iA])
 		rinterface = reflectioncoefficientinterfacep(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		tinterface = transmissioncoefficientinterfacep(n_A[iA], sz₁, n_A[iA+1], sz₂)
 		ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
@@ -106,6 +106,32 @@ function coefficient_general(mls::MultilayerStructure, fieldi::FieldAngularSpect
 		nsr = √(fieldi.nsx_X[cart[i][2]]^2 + fieldi.nsy_Y[cart[i][3]]^2)
 		(scat.r₁₂.diag[i], scat.t₁₂.diag[i]) = rtss₁₂(nsr, n_A, mls.h_A, fieldi.λ)
 		(scat.r₂₁.diag[i], scat.t₂₁.diag[i]) = rtss₁₂(nsr, inv_n_A, inv_h_A, fieldi.λ)
+	end
+	correctscatteringmatrix_referenceframes!(scat, mls, fieldi)
+	return scat
+end
+
+"""
+     coefficient_general(::MultilayerStructure, ::FieldAngularSpectrumScalarRadialSymmetric)
+
+Calculates the scattering matrix of a multilayer structure for an incident angular spectrum
+- **Type:** Transmission and reflection matrices are diagonal
+- **Time:** very short; scales with Nr
+- **RAM:** very small; scales with Nr
+- **Convergence** sampling of nsr
+"""
+function coefficient_general(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalarRadialSymmetric)
+	checkapplicability(mls, fieldi)
+
+	n_A = n(mls, fieldi.λ)
+	inv_n_A = n_A[end:-1:1]
+	inv_h_A = mls.h_A[end:-1:1]
+
+	scat = get_scatteringmatrixtype(mls, fieldi)
+	cart = CartesianIndices(fieldi)
+	@inbounds Threads.@threads for i in iterator_index(fieldi)
+		(scat.r₁₂.diag[i], scat.t₁₂.diag[i]) = rtss₁₂(fieldi.nsr_R[i], n_A, mls.h_A, fieldi.λ)
+		(scat.r₂₁.diag[i], scat.t₂₁.diag[i]) = rtss₁₂(fieldi.nsr_R[i], inv_n_A, inv_h_A, fieldi.λ)
 	end
 	correctscatteringmatrix_referenceframes!(scat, mls, fieldi)
 	return scat
@@ -145,22 +171,70 @@ function lightinteraction(mls::MultilayerStructure, fieldi::FieldAngularSpectrum
 	return (fieldl, fieldr)
 end
 
-function get_scatteringmatrixtype(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D,X,B}
+"""
+    lightinteraction(::MultilayerStructure, ::FieldAngularSpectrumScalarRadialSymmetric)
+
+Calculates the reflected and transmitted fields from a multilayer structure for an incident angular spectrum
+- **Time:** very short; scales with Nr
+- **RAM:** None
+- **Convergence** sampling of nsr
+"""
+function lightinteraction(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalarRadialSymmetric)
+	checkapplicability(mls, fieldi)
+	(fieldl, fieldr) = getfields_lr(mls, fieldi)
+	fieldi_newref = changereferenceframe(fieldi, dir(fieldi) > 0 ? ref1(mls) : ref2(mls))
+
+	n_A = n(mls, fieldi.λ)
+	inv_n_A = n_A[end:-1:1]
+	inv_h_A = mls.h_A[end:-1:1]
+
+	@inbounds Threads.@threads for i in iterator_index(fieldi)
+		if dir(fieldi_newref) > 0
+			(r, t) = rtss₁₂(fieldi.nsr_R[i], n_A, mls.h_A, fieldi.λ)
+			fieldl.e_SXY[i] = fieldi_newref.e_SXY[i] * r
+			fieldr.e_SXY[i] = fieldi_newref.e_SXY[i] * t
+		else
+			(r, t) = rtss₁₂(fieldi.nsr_R[i], inv_n_A, inv_h_A, fieldi.λ)
+			fieldl.e_SXY[i] = fieldi_newref.e_SXY[i] * t
+			fieldr.e_SXY[i] = fieldi_newref.e_SXY[i] * r
+		end
+	end
+	return (fieldl, fieldr)
+end
+
+function get_scatteringmatrixtype(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D,X,B}
 	sizeXY = length(fieldi.e_SXY)
 	r12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	r21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
 
-	fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n1(mls, fieldi.λ), dir(fieldi) > 0 ? fieldi.ref : ref1(mls))
-	fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n2(mls, fieldi.λ), dir(fieldi) > 0 ? ref2(mls) : fieldi.ref)
+	(fieldl, fieldr) = getfields_lr(mls, fieldi)
 
 	return ScatteringMatrix{T, FieldAngularSpectrumScalar{T,-1,X,B}, FieldAngularSpectrumScalar{T,1,X,B}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
-function getfields_lr(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar{T,A,X,B}) where {T,X,A,B}
+function get_scatteringmatrixtype(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,D,X,B}) where {T,D,X,B}
+	sizeXY = length(fieldi.e_SXY)
+	r12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	r21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+
+	(fieldl, fieldr) = getfields_lr(mls, fieldi)
+
+	return ScatteringMatrix{T, FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}, FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
+end
+
+function getfields_lr(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalar{T,A,X,B}) where {T,X,A,B}
 	fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n1(mls, fieldi.λ), ref1(mls))
 	fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n2(mls, fieldi.λ), ref2(mls))
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,A,X,B}) where {T,X,A,B}
+	fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.e_SXY), fieldi.λ, n1(mls, fieldi.λ), ref1(mls))
+	fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.e_SXY), fieldi.λ, n2(mls, fieldi.λ), ref2(mls))
 	return (fieldl, fieldr)
 end
 

@@ -119,9 +119,7 @@ LinearIndices(field::FieldAngularSpectrumVectorial) = Base.LinearIndices((2, len
 
 function propagationmatrix(fieldl::FieldAngularSpectrumVectorial{T}, ref::ReferenceFrame) where T
 	checkorientation(fieldl.ref, ref) || error("Cannot calculate propagation matrix as the referenceframe are not oriented")
-	refΔx = ref.x - fieldl.ref.x;
-	refΔy = ref.y - fieldl.ref.y;
-	refΔz = ref.z - fieldl.ref.z;
+	refΔx, refΔy, refΔz = ref.x - fieldl.ref.x, ref.y - fieldl.ref.y, ref.z - fieldl.ref.z;
 
 	# Can't use based on referenceframe as the rotation is inverted
 	(refΔx, refΔy, refΔz) = rotatecoordinatesfrom(refΔx, refΔy, refΔz, fieldl.ref.θ, fieldl.ref.ϕ);

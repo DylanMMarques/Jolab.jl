@@ -109,10 +109,12 @@ function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X
 		if dir(fieldi) > 0
 			rmul!(scat.r₁₂, propM)
 			lmul!(propM, scat.r₁₂)
+			scat.fieldl.ref = copy(fieldi.ref)
 		else
 			# conj!(propM.diag)
 			rmul!(scat.r₂₁, propM)
 			lmul!(propM, scat.r₂₁)
+			scat.fieldr.ref = copy(fieldi.ref)
 		end
 	end
 end
@@ -125,10 +127,12 @@ function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X
 		if dir(fieldi) > 0
 			rmul!(scat.t₁₂, propM)
 			lmul!(propM, scat.t₂₁)
+			scat.fieldl.ref = copy(fieldi.ref)
 		else
 			# conj!(propM.diag)
 			rmul!(scat.t₂₁, propM)
 			lmul!(propM, scat.t₁₂)
+			scat.fieldr.ref = copy(fieldi.ref)
 		end
 	end
 end
@@ -143,12 +147,14 @@ function correctscatteringmatrix_referenceframes!(scat::ScatteringMatrix{T,L,R,X
 			lmul!(propM, scat.r₁₂)
 			rmul!(scat.t₁₂, propM)
 			lmul!(propM, scat.t₂₁)
+			scat.fieldl.ref = copy(fieldi.ref)
 		else
 			# conj!(propM.diag)
 			rmul!(scat.r₂₁, propM)
 			lmul!(propM, scat.r₂₁)
 			rmul!(scat.t₂₁, propM)
 			lmul!(propM, scat.t₁₂)
+			scat.fieldr.ref = copy(fieldi.ref)
 		end
 	end
 end

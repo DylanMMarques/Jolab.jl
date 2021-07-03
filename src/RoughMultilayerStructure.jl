@@ -12,6 +12,9 @@ RoughMultilayerStructure(n1, n2, Δz, ref) = RoughMultilayerStructure{Float64}(n
 
 n(rmls::RoughMultilayerStructure, λ) = [ni(λ) for ni in rmls.n]
 
+n1(mls::RoughMultilayerStructure, λ) = first(mls.n)(λ)
+n2(mls::RoughMultilayerStructure, λ) = last(mls.n)(λ)
+
 function r12_i(n_M, h_M, nsr::T, λ, iM) where T
 	sizeM = length(n_M)
 
@@ -78,7 +81,7 @@ function t12_s(n_M, h_M, nsr::T, λ, iM) where T
 	return tm1_M * (1 + rm1_0) / nsz_m1
 end
 
-function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D, X<:AbstractRange,B}
+function coefficient_specific(rmls::RoughMultilayerStructure, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D, X<:AbstractRange,B}
 	checkapplicability(rmls, fieldi)
 
 	k = 2π / fieldi.λ
@@ -120,35 +123,7 @@ function coefficient_specific(rmls::RoughMultilayerStructure{T}, fieldi::FieldAn
 	return scat
 end
 
-function get_coefficientspecifictype(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D,X,B}
-	sizeM = length(rmls.n)
-	sizeI = length(fieldi.e_SXY)
-
-	r12 = Vector{Complex{T}}(undef,	sizeI)
-	t12 = Vector{Complex{T}}(undef,	sizeI)
-	r21 = Vector{Complex{T}}(undef,	sizeI)
-	t21 = Vector{Complex{T}}(undef,	sizeI)
-	ir12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	sr12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	it12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	st12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	ir21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	sr21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	it21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	st21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-	Δ = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
-
-	tmp2 = Array{Complex{T},2}(undef, sizeI, sizeM-1) # preallocate matrix to avoid allocation after
-	tmp1 = Array{Complex{T},2}(undef, sizeI, sizeM-1) # preallocate matrix to avoid allocation after
-	planfft = plan_fft(reshape(r12, length(fieldi.nsx_X), length(fieldi.nsy_Y)))  # precalculates the fft plan
-	inv(planfft) # precalculates the inverse fft plan
-
-	fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(rmls.n)(fieldi.λ), dir(fieldi) > 0 ? fieldi.ref : ref1(rmls))
-	fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(rmls.n)(fieldi.λ), dir(fieldi) > 0 ? ref2(rmls) : fieldi.ref)
-	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrumScalar{T,-1,X,B}, FieldAngularSpectrumScalar{T,1,X,B}, Vector{Complex{T}}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
-end
-
-function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D, X<:AbstractRange,B}
+function coefficient_general(rmls::RoughMultilayerStructure, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D, X<:AbstractRange,B}
 	checkapplicability(rmls, fieldi)
 
 	sizeI = length(fieldi.e_SXY)
@@ -216,20 +191,43 @@ function coefficient_general(rmls::RoughMultilayerStructure{T}, fieldi::FieldAng
 	return scat
 end
 
-function get_scatteringmatrixtype(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,X,D,B}
+function get_coefficientspecifictype(rmls::RoughMultilayerStructure, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D,X,B}
+	sizeM = length(rmls.n)
+	sizeI = length(fieldi.e_SXY)
+
+	r12 = Vector{Complex{T}}(undef,	sizeI)
+	t12 = Vector{Complex{T}}(undef,	sizeI)
+	r21 = Vector{Complex{T}}(undef,	sizeI)
+	t21 = Vector{Complex{T}}(undef,	sizeI)
+	ir12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	sr12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	it12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	st12 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	ir21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	sr21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	it21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	st21 = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+	Δ = Array{Complex{T}, 2}(undef, sizeI, sizeM-1)
+
+	tmp2 = Array{Complex{T},2}(undef, sizeI, sizeM-1) # preallocate matrix to avoid allocation after
+	tmp1 = Array{Complex{T},2}(undef, sizeI, sizeM-1) # preallocate matrix to avoid allocation after
+	planfft = plan_fft(reshape(r12, length(fieldi.nsx_X), length(fieldi.nsy_Y)))  # precalculates the fft plan
+	inv(planfft) # precalculates the inverse fft plan
+
+	(fieldl, fieldr) = getfields_lr(rmls, fieldi)
+
+	return RoughInterfaceConvolutionCoefficient{T, FieldAngularSpectrumScalar{T,-1,X,B}, FieldAngularSpectrumScalar{T,1,X,B}, Vector{Complex{T}}, Matrix{Complex{T}}, typeof(planfft)}(r12, t12, r21, t21, ir12, sr12, it12, st12, ir21, sr21, it21, st21, Δ, fieldl, fieldr, planfft, tmp1, tmp2)
+end
+
+function get_scatteringmatrixtype(rmls::RoughMultilayerStructure, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,X,D,B}
 	sizeI = length(fieldi.e_SXY)
 	r12 = zeros(Complex{T}, sizeI, sizeI)
 	r21 = zeros(Complex{T}, sizeI, sizeI)
 	t12 = zeros(Complex{T}, sizeI, sizeI)
 	t21 = zeros(Complex{T}, sizeI, sizeI)
 
-	if dir(fieldi) > 0
-		fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), fieldi.ref)
-		fieldr = FieldAngularSpectrumScalar{T,1,X,B}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), rmls.ref)
-	else
-		fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[1](fieldi.λ), rmls.ref)
-		fieldr = FieldAngularSpectrumScalar{T,1,X,B}(copy(fieldi.nsx_X), copy(fieldi.nsy_Y), fieldi.e_SXY, fieldi.λ, rmls.n[end](fieldi.λ), fieldi.ref)
-	end
+	(fieldl, fieldr) = getfields_lr(rmls, fieldi)
+
 	return ScatteringMatrix{T, FieldAngularSpectrumScalar{T,-1,X,B}, FieldAngularSpectrumScalar{T,1,X,B}, Matrix{Complex{T}}, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
@@ -238,7 +236,7 @@ function ref2(rmls::RoughMultilayerStructure)
 	return rmls.ref + ReferenceFrame(sin(rmls.ref.θ) * cos(rmls.ref.ϕ) * totalh, sin(rmls.ref.θ) * sin(rmls.ref.ϕ) * totalh, cos(rmls.ref.θ) * totalh, rmls.ref.θ, rmls.ref.ϕ);
 end
 
-function roughfft(rmls::RoughMultilayerStructure{T}, nsx::AbstractRange, nsy::AbstractRange, λ) where T
+function roughfft(rmls::RoughMultilayerStructure, nsx::AbstractRange, nsy::AbstractRange, λ)
 	x = fftshift(FFTW.fftfreq(length(nsx), 1 / (nsx[2] - nsx[1]))) * λ
 	y = fftshift(FFTW.fftfreq(length(nsy), 1 / (nsy[2] - nsy[1]))) * λ
 	z = rmls.Δz[1].(x, y')
@@ -246,7 +244,7 @@ function roughfft(rmls::RoughMultilayerStructure{T}, nsx::AbstractRange, nsy::Ab
 	return (x, y, z)
 end
 
-function plotroughsampling(rmls::RoughMultilayerStructure{T}, field::FieldAngularSpectrumScalar) where T
+function plotroughsampling(rmls::RoughMultilayerStructure, field::FieldAngularSpectrumScalar)
 	nsx = field.nsx_X
 	nsy = field.nsy_Y
 	x = fftshift(FFTW.fftfreq(length(nsx), 1 / (nsx[2] - nsx[1]))) * field.λ
@@ -256,9 +254,9 @@ function plotroughsampling(rmls::RoughMultilayerStructure{T}, field::FieldAngula
 	return (x,y,z)
 end
 
-function getfields_lr(rmls::RoughMultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar{T,A,X,B}) where {T,X,A,B}
-	fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, first(rmls.n_A)(fieldi.λ), ref1(rmls))
-	fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, last(rmls.n_A)(fieldi.λ), ref2(rmls))
+function getfields_lr(rmls::RoughMultilayerStructure, fieldi::FieldAngularSpectrumScalar{T,A,X,B}) where {T,X,A,B}
+	fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n1(rmls, fieldi.λ), ref1(rmls))
+	fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, n2(rmls, fieldi.λ), ref2(rmls))
 	return (fieldl, fieldr)
 end
 

@@ -44,6 +44,21 @@ function ref2(lens::Lens{T}, λ::Real) where T
 	return ReferenceFrame{T}(x, y, z, lens.ref.θ, lens.ref.ϕ)
 end
 
+function t(lens::Lens, field::FieldAngularSpectrumScalarRadialSymmetric{T}, iR, iY) where T
+	cosθ² = 1 - (field.nsr_R[iR] / real(field.n))^2
+	k = 2π / field.λ
+	if cosθ² < 0 # Evasnecent waves
+		return (zero(Complex{T}), zero(Complex{T}))
+	else # Plane waves
+		if (1 - cosθ² > na(lens, field.λ)^2) # above the lens NA
+			return (zero(Complex{T}), zero(Complex{T}))
+		else
+			aux = f(lens, field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
+			return (1 / aux, aux)
+		end
+	end
+end
+
 function t(lens::Lens, field::FieldAngularSpectrumScalar{T}, iX, iY) where T
 	cosθ² = 1 - (field.nsx_X[iX] / real(field.n))^2 - (field.nsy_Y[iY] / real(field.n))^2
 	k = 2π / field.λ
@@ -82,6 +97,7 @@ end
 
 function checkapplicability(lens::Lens, field::AbstractFieldSpace)
 	(abs(imag(field.n)) < @tol) || error("To apply a lens the medium cannot absorb light.")
+	#TO DO: update this to allow in plane. And making the correction on t(lens, field space for the reference frame change)
 	field.ref == (dir(field) > 0 ? ref1(lens, field.λ) : ref2(lens, field.λ)) || error("The reference frame of the field must be a focal plane of the lens.")
 	return true
 end
@@ -92,11 +108,11 @@ function getfields_lr(lens::Lens, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) w
 	y_Y = fieldi.nsy_Y / real(fieldi.n) * f_val
 
 	if dir(fieldi) > 0
-		fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
 		fieldr = FieldSpaceScalar{T,1,X,B}(x_X, y_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
 	else
 		fieldl = FieldSpaceScalar{T,-1,X,B}(x_X, y_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
-		fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
 	end
 	return (fieldl, fieldr)
 end
@@ -107,11 +123,39 @@ function getfields_lr(lens::Lens, fieldi::FieldSpaceScalar{T,D,X,B}) where {T,D,
 	nsy_Y = -fieldi.y_Y / f_val * real(fieldi.n)
 
 	if dir(fieldi) > 0
-		fieldl = FieldSpaceScalar{T,-1,X,B}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldl = FieldSpaceScalar{T,-1,X,B}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
 		fieldr = FieldAngularSpectrumScalar{T,1,X,B}(nsx_X, nsy_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
 	else
 		fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(nsx_X, nsy_Y, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
-		fieldr = FieldSpaceScalar{T,1,X,B}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpaceScalar{T,1,X,B}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
+	end
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(lens::Lens, fieldi::FieldSpaceScalarRadialSymmetric{T,D,X,B}) where {T,D,X,B}
+	f_val = f(lens, fieldi.λ)
+	nsr_R = -fieldi.r_R / f_val * real(fieldi.n)
+
+	if dir(fieldi) > 0
+		fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.r_R), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi))
+		fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}(nsr_R, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
+	else
+		fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}(nsr_R, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
+		fieldr = FieldSpaceScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.r_R), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
+	end
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(lens::Lens, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,D,X,B}) where {T,D,X,B}
+	f_val = f(lens, fieldi.λ)
+	r_R = fieldi.nsx_X / real(fieldi.n) * f_val
+
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.nsr_R), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
+		fieldr = FieldSpaceScalarRadialSymmetric{T,1,X,B}(r_R, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
+	else
+		fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(r_R, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
+		fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.nsr_R), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
 	end
 	return (fieldl, fieldr)
 end
@@ -142,6 +186,32 @@ function get_scatteringmatrixtype(lens::Lens, field::FieldAngularSpectrumScalar{
 	end
 end
 
+function get_scatteringmatrixtype(lens::Lens, field::FieldAngularSpectrumScalarRadialSymmetric{T,D,Y,B}) where {T,D,Y,B}
+	(fieldl, fieldr) = getfields_lr(lens, field)
+	r12 = nothing
+	r21 = nothing
+	t12 = Diagonal(Vector{Complex{T}}(undef, length(field.e_SXY)))
+	t21 = Diagonal(Vector{Complex{T}}(undef, length(field.e_SXY)))
+	if dir(field) > 0
+    	return ScatteringMatrix{T,FieldAngularSpectrumScalarRadialSymmetric{T,-1,Y,B}, FieldSpaceScalarRadialSymmetric{T,1,Y,B}, Nothing, Diagonal{Complex{T},Vector{Complex{T}}}}(r12,t12,r21,t21,fieldl,fieldr)
+	else
+    	return ScatteringMatrix{T,FieldSpaceScalarRadialSymmetric{T,-1,Y,B}, FieldAngularSpectrumScalarRadialSymmetric{T,1,Y,B}, Nothing, Diagonal{Complex{T},Vector{Complex{T}}}}(r12,t12,r21,t21,fieldl,fieldr)
+	end
+end
+
+function get_scatteringmatrixtype(lens::Lens, field::FieldSpaceScalarRadialSymmetric{T,D,Y,B}) where {T,D,Y,B}
+	(fieldl, fieldr) = getfields_lr(lens, field)
+	r12 = nothing
+	r21 = nothing
+	t12 = Diagonal(Vector{Complex{T}}(undef, length(field.e_SXY)))
+	t21 = Diagonal(Vector{Complex{T}}(undef, length(field.e_SXY)))
+	if dir(field) > 0
+    	return ScatteringMatrix{T,FieldSpaceScalarRadialSymmetric{T,-1,Y,B}, FieldAngularSpectrumScalarRadialSymmetric{T,1,Y,B}, Nothing, Diagonal{Complex{T},Vector{Complex{T}}}}(r12,t12,r21,t21,fieldl,fieldr)
+	else
+    	return ScatteringMatrix{T,FieldAngularSpectrumScalarRadialSymmetric{T,-1,Y,B}, FieldSpaceScalarRadialSymmetric{T,1,Y,B}, Nothing, Diagonal{Complex{T},Vector{Complex{T}}}}(r12,t12,r21,t21,fieldl,fieldr)
+	end
+end
+
 """
 	(field_back, field_forward)= coefficient_general(lens, angspe)
 
@@ -151,10 +221,9 @@ Calculates the field after propagating through the lens assuming the incident fi
 - **RAM:** very small; scales with `length(angspe.nsx_X)` `length(angspe.nsy_Y)`
 - **Convergence:** sampling of `angspe.nsx_X` and `angspe.nsy_Y`
 """
-function coefficient_general(lens::Lens, fieldi::Union{FieldAngularSpectrumScalar, FieldSpaceScalar})
+function coefficient_general(lens::Lens, fieldi::Union{AbstractFieldAngularSpectrum, FieldSpaceScalar})
 	checkapplicability(lens, fieldi) || errorToDo()
 
-	i = 1
 	scat = get_scatteringmatrixtype(lens, fieldi)
 	cart = CartesianIndices(fieldi)
 	@inbounds for i in iterator_index(fieldi)
