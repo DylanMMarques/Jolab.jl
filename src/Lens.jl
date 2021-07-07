@@ -27,8 +27,8 @@ lens = Lens(f, na, ReferenceFrame(0,0,0,0,0))
 """
 Lens(::Type{T}, f, na, ref) where T = Lens{T}(f, na, ref)
 Lens(f, na, ref) = Lens{Float64}(f, na, ref)
-f(lens::Lens, λ) = lens.f(λ)
-na(lens::Lens, λ) = lens.na(λ)
+f(lens::Lens, λ) = real(lens.f(λ))
+na(lens::Lens, λ) = real(lens.na(λ))
 
 function ref1(lens::Lens{T}, λ::Real) where T
 	x = lens.ref.x - f(lens, λ) * sin(lens.ref.θ) * cos(lens.ref.ϕ)
