@@ -10,7 +10,7 @@ function refractiveindex_fusedsilica(T=Float64; printBool = true)
 	# C. Z. Tan. Determination of refractive index of silica glass for infrared wavelengths by IR spectroscopy, J. Non-Cryst. Solids 223, 158-163 (1998)
 
 	printBool && println("The formula implemented for fused silica refractive index is only valid for wavelength between 0.21μm and 6.7μm")
-	f(λ) = √(complex(0.691663 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.0684043^2) + 0.4079426 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.1162414^2) + 0.8974794 * (λ*1E6)^2 / ((λ*1E6)^2 - 9.896161^2) + 1))
+	f(λ) = √(complex(0.6961663 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.0684043^2) + 0.4079426 * (λ*1E6)^2 / ((λ*1E6)^2 - 0.1162414^2) + 0.8974794 * (λ*1E6)^2 / ((λ*1E6)^2 - 9.896161^2) + 1))
 	return convert(JolabFunction{T}, f)
 end
 
