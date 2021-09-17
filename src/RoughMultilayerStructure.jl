@@ -10,7 +10,13 @@ struct RoughMultilayerStructure{T<:Real} <: AbstractOpticalComponent{T}
 end
 RoughMultilayerStructure(n1, n2, Δz, ref) = RoughMultilayerStructure{Float64}(n1, n2, Δz, ref)
 
-n(rmls::RoughMultilayerStructure, λ) = [ni(λ) for ni in rmls.n]
+function n(rmls::RoughMultilayerStructure{T}, λ) where T
+	n_A = Vector{Complex{T}}(undef, length(rmls.n))
+	for i in eachindex(rmls.n)
+		n_A[i] = rmls.n[i](λ)
+	end
+	return n_A
+end
 
 n1(mls::RoughMultilayerStructure, λ) = first(mls.n)(λ)
 n2(mls::RoughMultilayerStructure, λ) = last(mls.n)(λ)
@@ -87,6 +93,7 @@ function coefficient_specific(rmls::RoughMultilayerStructure, fieldi::FieldAngul
 	k = 2π / fieldi.λ
 	n_M = n(rmls, fieldi.λ)
 	scat = get_coefficientspecifictype(rmls, fieldi)
+
 
 	(sizeX, sizeY) = (length(fieldi.nsx_X), length(fieldi.nsy_Y))
 	x_X = FFTW.fftfreq(sizeX, 1 / (fieldi.nsx_X[2] - fieldi.nsx_X[1])) * fieldi.λ
