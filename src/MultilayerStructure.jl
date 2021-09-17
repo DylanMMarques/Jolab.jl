@@ -11,7 +11,13 @@ end
 n1(mls::MultilayerStructure, λ) = first(mls.n_A)(λ)
 n2(mls::MultilayerStructure, λ) = last(mls.n_A)(λ)
 
-n(mls::MultilayerStructure, λ) = [ni(λ) for ni in mls.n_A]
+function n(mls::MultilayerStructure{T}, λ) where T
+	n_A = Vector{Complex{T}}(undef, length(mls.n_A))
+	for i in eachindex(mls.n_A)
+		n_A[i] = mls.n_A[i](λ)
+	end
+	return n_A
+end
 
 """
 	MultilayerStructure(T, n, h, ref)
@@ -93,7 +99,7 @@ Calculates the scattering matrix of a multilayer structure for an incident angul
 - **RAM:** very small; scales with Nx Ny
 - **Convergence** sampling of nsx and nsy
 """
-function coefficient_general(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalar)
+function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar) where T
 	checkapplicability(mls, fieldi)
 
 	n_A = n(mls, fieldi.λ)
@@ -120,7 +126,7 @@ Calculates the scattering matrix of a multilayer structure for an incident angul
 - **RAM:** very small; scales with Nr
 - **Convergence** sampling of nsr
 """
-function coefficient_general(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalarRadialSymmetric)
+function coefficient_general(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrumScalarRadialSymmetric) where T
 	checkapplicability(mls, fieldi)
 
 	n_A = n(mls, fieldi.λ)
@@ -145,7 +151,7 @@ Calculates the reflected and transmitted fields from a multilayer structure for 
 - **RAM:** None
 - **Convergence** sampling of nsx and nsy
 """
-function lightinteraction(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalar)
+function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrumScalar) where T
 	checkapplicability(mls, fieldi)
 	(fieldl, fieldr) = getfields_lr(mls, fieldi)
 	fieldi_newref = changereferenceframe(fieldi, dir(fieldi) > 0 ? ref1(mls) : ref2(mls))
@@ -179,7 +185,7 @@ Calculates the reflected and transmitted fields from a multilayer structure for 
 - **RAM:** None
 - **Convergence** sampling of nsr
 """
-function lightinteraction(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScalarRadialSymmetric)
+function lightinteraction(mls::MultilayerStructure{T}, fieldi::FieldAngularSpectrumScalarRadialSymmetric) where T
 	checkapplicability(mls, fieldi)
 	(fieldl, fieldr) = getfields_lr(mls, fieldi)
 	fieldi_newref = changereferenceframe(fieldi, dir(fieldi) > 0 ? ref1(mls) : ref2(mls))
