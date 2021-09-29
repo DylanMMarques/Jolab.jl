@@ -197,11 +197,11 @@ function getfields_lr(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpec
 	x_X = Y <: AbstractVector ? fourier.x_X : error("not done")
 	y_Y = Y <: AbstractVector ? fourier.y_Y : error("not done")
 	if dir(fieldi) > 0
-		fieldl = FieldAngularSpectrumScalar{T,-1,Y,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1)
-		fieldr = FieldSpaceScalar{T,1,X,B}(deepcopy(x_X), deepcopy(y_Y), deepcopy(m), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldl = FieldAngularSpectrumScalar{T,-1,Y,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpaceScalar{T,1,X,B}(deepcopy(x_X), deepcopy(y_Y), deepcopy(m), fieldi.λ, fieldi.n, ref1)
 	else
-		fieldl = FieldSpaceScalar{T,-1,X,B}(deepcopy(x_X), deepcopy(y_Y), m, fieldi.λ, fieldi.n, fieldi.ref)
-		fieldr = FieldAngularSpectrumScalar{T,1,Y,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1)
+		fieldl = FieldSpaceScalar{T,-1,X,B}(deepcopy(x_X), deepcopy(y_Y), m, fieldi.λ, fieldi.n, ref1)
+		fieldr = FieldAngularSpectrumScalar{T,1,Y,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
 	end
 	return (fieldl, fieldr)
 end
