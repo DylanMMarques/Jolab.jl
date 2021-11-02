@@ -4,6 +4,7 @@ This example shows how to model light propagation in a [Fabry-Pérot  (FP) etalo
 ```julia
 using Jolab
 using Plots; plotly();
+
 ```
 
 The optical system considered is based on the system used by [D.Marques et al.](https://www.osapublishing.org/oe/abstract.cfm?uri=oe-28-5-7691). The first aim of this example is to calculate transmitted and reflected light intensity as a function of wavelength (λ) - typically known as Interferometer Transfer Function (ITF).
@@ -53,11 +54,12 @@ fp = [mirror1, mirror2]; # Defines the FP etalon
 The aim of the simulation is to propagate the light emerging for the fibre by the optical system. The reflected light propagates back by the optical setup and goes back inside the fibre that leads to a detector. To calculate the ITF we need to evaluate the intensity as a function of the wavelength:
 
 ```julia
-λ = range(1552.5E-9, 1553E-9, length = 100) # range of wavelength in meters
+λ = range(1554E-9, 1554.75E-9, length = 100) # range of wavelength in meters
 itf_r = zeros(length(λ)); # preallocation of the array to store the result
 itf_t = zeros(length(λ)); # preallocation of the array to store the result
 sx = range(-.2, .2, length = 100); # Directions of the plane waves considered. It is related with the angles by sx = sinθcosϕ. Affect the model convergence
 sy = range(-.2, .2, length = 100); # Directions of the plane waves considered. It is related with the angles by sy = sinθsinϕ. Affect the model convergence
+
 ```
 
 ## Propagating the field by the optical system
@@ -65,7 +67,7 @@ The optical system and the simulation parameters were defined on the previous se
 
 ```julia
 for i in eachindex(λ)
-    field = FieldAngularSpectrum_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
+    field = Jolab.FieldAngularSpectrumScalar_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
 
     (tmp, field) = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
     (tmp, field) = lightinteraction(objective, field) # Field in the focal plane of the objective
@@ -87,7 +89,7 @@ Jolab will be used to explain the reason for the reduction on the peak transmiss
 
 ```julia
 for i in eachindex(λ)
-    field = FieldAngularSpectrum_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
+    field = Jolab.FieldAngularSpectrumScalar_fromfibre(fibre, sx, sy, λ[i]); # Field in the tip of the fibre
 
     (tmp, field) = lightinteraction(collimator, field) # Field in the back focal plane of the collimator/objective
     (tmp, field) = lightinteraction(objective, field) # Field in the focal plane of the objective

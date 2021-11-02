@@ -24,9 +24,11 @@ end
 	sizeY = 200;
 	x_X = range(- 2 * modes.r, 2 * modes.r, length = sizeX)
 	y_Y = range(- 2 * modes.r, 2 * modes.r, length = sizeY)
-	e_SXY = Array{Complex{T},3}(undef, 1, sizeX, sizeY)
-	circularstepindex_modefield!(e_SXY, modes.r, modes.ncore, modes.na, modes.λ, modes.m[1], modes.β[1], modes.C[1], modes.D[1], 1, x_X, y_Y, 0)
-	(x_X, y_Y, complextoplot(e_SXY, type = type)')
+	e_SXY = Vector{Complex{T}}(undef, sizeX * sizeY)
+	field = FieldSpaceScalar{T,1}(x_X, y_Y, e_SXY, modes.λ, 1, ReferenceFrame{T}(0,0,0.,0,0))
+	field.e_SXY .= vec(t_fieldspace.(Ref(modes), Ref(field), 1:sizeX, (1:sizeY)', Ref(1)))
+
+	(x_X, y_Y, complextoplot(reshape(e_SXY, sizeX, sizeY), type = type)')
 end
 
 @recipe function f(ref::ReferenceFrame{T}; length = 1::Real) where {T<:Real}

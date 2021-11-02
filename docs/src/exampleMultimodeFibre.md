@@ -25,7 +25,8 @@ Light inside the fibre propagate as modes, i.e. the beam can be decomposed as a 
 λ = 1550E-9; # Defines the wavelength for the simulation
 Jolab.findmodes!(fibre, λ); # Calculates the possible modes inside the fibre
 modes = fibre.modes[1]; # We choose the modes for the wavelength considered. If we calculate the modes for more than 1 wavelength they would be saved on fibre.modes[i].
-plot(modes[50], type = :realx, fill=true, c = :bluesreds) # plot the mode
+plot(modes[50], type = :real, fill = true, c = :bluesreds) # plot the mode
+
 ```
 We can plot the shape of the modes using the function plot as above. The number of modes found for a given fibre/wavelength can be calculated using the function numberofmodes(modes).
 The toolbox saves the modes inside the variable fibre and therefore they need to be calculated only once for a given fibre and wavelength. The modes are automatically calculated (if not precalculated) when using the function lightinteraction(fibre, field) and therefore it is not needed to call the function findmodes!.
@@ -37,7 +38,7 @@ x = range(-50E-6, 50E-6, length = 100); # x spatial coordinates where the field 
 y = range(-50E-6, 50E-6, length = 100); # y spatial coordinates where the field and modes are evaluated in meters. Make sure that the sampling of the field and modes is good enough within the region of interest, i.e. where the field is incident
 σ = 50E-6; # Beam waist of the Gaussian beam defined by 1/e^2 of the Gaussian intensity profile
 ref_field = ReferenceFrame(50E-6,0,0,0,0); # ReferenceFrame of the field with the position x,y,z in meters. The beams is offset by 50 μm to the center of the fibre
-field = FieldSpace_gaussian(x, y, σ, λ, nambient(λ), 1, ref_field); # Initialization of the field
+field = FieldSpaceScalar_gaussian(x, y, σ, λ, nambient(λ), 1, ref_field); # Initialization of the field
 plot(field, fill=true, c = :amp, type = :abs) # plot the incident field upon the fibre
 ```
 We have defined all the necessary parameters to perform the simulation. The next line of code calculates the light coupling inside the fibre.

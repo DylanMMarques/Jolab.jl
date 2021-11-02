@@ -32,7 +32,7 @@ y = σ .* range(-1.5, 1.5, length = 128); # Position y in meters where the field
 n = Jolab.refractiveindex_air(printBool= false); # Refractive index of the medium
 dir = 1; # Direction of propagation of the field (forward 1 or backward -1)
 ref = ReferenceFrame(0 , 0, 0); # Position in mirrors of the field (x,y,z)
-fieldBackFocalPlane = FieldSpace_gaussian(x, y, σ, λ, n(λ), dir, ref); # Creation of the field
+fieldBackFocalPlane = FieldSpaceScalar_gaussian(x, y, σ, λ, n(λ), dir, ref); # Creation of the field
 plot(fieldBackFocalPlane) # Display the field intensity
 ```
 
