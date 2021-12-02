@@ -146,11 +146,11 @@ function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::Fiel
 	else
 		fieldl = FieldAngularSpectrumScalar{T,-1,Y,B}(deepcopy(nsx_X), deepcopy(nsy_Y), m, fieldi.λ, fieldi.n, ref1)
 		fieldr = FieldSpaceScalar{T,1,X,B}(deepcopy(fieldi.x_X), deepcopy(fieldi.y_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
-		return ScatteringMatrix{T, FieldAngularSpectrumScalar{T,-1,Y,B}, FieldSpaceScalar{T,1,X,B}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+		return ScatteringMatrix{T, FieldAngularSpectrumScalar{T,-1,Y,B}, FieldSpaceScalar{T,1,X,B}, Nothing, Matrix{Complex{T}}}(r12, t21, r21, t12, fieldl, fieldr)
 	end
 end
 
-function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D,Y,X,R<:ReferenceFrame, B}
+function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpectrumScalar{T,D,X,B}) where {T,D,Y,X,R,B}
 	sizeI = length(fieldi.e_SXY)
 	sizeS = length(CartesianIndices(fourier, fieldi))
 	r12 = nothing
@@ -168,7 +168,7 @@ function get_scatteringmatrixtype(fourier::FourierTransform{T,Y,R}, fieldi::Fiel
 	else
 		fieldl = FieldSpaceScalar{T,-1,Y,B}(deepcopy(x_X), deepcopy(y_Y), m, fieldi.λ, fieldi.n, ref1)
 		fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
-		return ScatteringMatrix{T, FieldSpaceScalar{T,-1,Y,B}, FieldAngularSpectrumScalar{T,1,X,B}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+		return ScatteringMatrix{T, FieldSpaceScalar{T,-1,Y,B}, FieldAngularSpectrumScalar{T,1,X,B}, Nothing, Matrix{Complex{T}}}(r12, t21, r21, t12, fieldl, fieldr)
 	end
 end
 
@@ -197,11 +197,11 @@ function getfields_lr(fourier::FourierTransform{T,Y,R}, fieldi::FieldAngularSpec
 	x_X = Y <: AbstractVector ? fourier.x_X : error("not done")
 	y_Y = Y <: AbstractVector ? fourier.y_Y : error("not done")
 	if dir(fieldi) > 0
-		fieldl = FieldAngularSpectrumScalar{T,-1,Y,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
-		fieldr = FieldSpaceScalar{T,1,X,B}(deepcopy(x_X), deepcopy(y_Y), deepcopy(m), fieldi.λ, fieldi.n, ref1)
+		fieldl = FieldAngularSpectrumScalar{T,-1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpaceScalar{T,1,Y,B}(deepcopy(x_X), deepcopy(y_Y), deepcopy(m), fieldi.λ, fieldi.n, ref1)
 	else
-		fieldl = FieldSpaceScalar{T,-1,X,B}(deepcopy(x_X), deepcopy(y_Y), m, fieldi.λ, fieldi.n, ref1)
-		fieldr = FieldAngularSpectrumScalar{T,1,Y,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldl = FieldSpaceScalar{T,-1,Y,B}(deepcopy(x_X), deepcopy(y_Y), m, fieldi.λ, fieldi.n, ref1)
+		fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
 	end
 	return (fieldl, fieldr)
 end
@@ -216,14 +216,14 @@ function coefficient_general(fourier::FourierTransform{T,X}, field::AbstractFiel
 
 	#Work around to make good compiled code - https://github.com/JuliaLang/julia/issues/15276#issuecomment-297596373
 	let scat=scat, fourier = fourier, field = field
-		Threads.@threads for i_s in iterator_index(fieldt)
+		@inbounds Threads.@threads for i_s in iterator_index(fieldt)
 			for i_i in iterator_index(field)
 				if dir(field) > 0
 					scat.t₁₂[i_s, i_i] = t(fourier, field, cart_i[i_i][2], cart_i[i_i][3], cart_s[i_s][2], cart_s[i_s][3])
 					scat.t₂₁[i_i, i_s] = tinv(fourier, field, cart_i[i_i][2], cart_i[i_i][3], cart_s[i_s][2], cart_s[i_s][3])
 				else
-					scat.t₂₁[i_s, i_i] = t(fourier, field, cart_i[i_i][2], cart_i[i_i][3], cart_s[i_s][2], cart_s[i_s][3])
 					scat.t₁₂[i_i, i_s] = tinv(fourier, field, cart_i[i_i][2], cart_i[i_i][3], cart_s[i_s][2], cart_s[i_s][3])
+					scat.t₂₁[i_s, i_i] = t(fourier, field, cart_i[i_i][2], cart_i[i_i][3], cart_s[i_s][2], cart_s[i_s][3])
 				end
 			end
 		end

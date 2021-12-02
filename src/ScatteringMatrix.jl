@@ -23,20 +23,20 @@ end
 
 function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::ScatteringMatrix{T,L2,R2,X12}) where {T<:Real, L1, L2, R1, R2, X11<:Union{UniformScaling, Nothing}, X12<:Union{UniformScaling, Nothing}}
 	r13 = nothing
-	t31 = coef2.t₂₁ * coef1.t₂₁
+	t31 = coef1.t₂₁ * coef2.t₂₁
 
 	r31 = nothing
-	t13 = coef1.t₁₂ * coef2.t₁₂
+	t13 = coef2.t₁₂ * coef1.t₁₂
 
 	return ScatteringMatrix{T, L1, R2, Nothing, typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
 end
 
 function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::ScatteringMatrix{T,L2,R2,X12}) where {T<:Real, L1, R1, L2, R2, X11<:Union{UniformScaling, Nothing}, X12<:AbstractMatrix}
-	r13 = coef1.t₁₂ * coef2.r₁₂ * coef1.t₂₁
-	t13 = coef1.t₁₂ * coef2.t₁₂
+	r13 = coef1.t₂₁ * coef2.r₁₂ * coef1.t₁₂
+	t13 = coef2.t₁₂ * coef1.t₁₂
 
 	r31 = coef2.r₂₁
-	t31 = coef2.t₂₁ * coef1.t₂₁
+	t31 = coef1.t₂₁ * coef2.t₂₁
 
 	return ScatteringMatrix{T, L1, R2, typeof(r13), typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
 end
@@ -53,10 +53,10 @@ end
 
 function coefficient_general(coef1::ScatteringMatrix{T,L1,R1,X11}, coef2::ScatteringMatrix{T,L2,R2,X12}) where {T<:Real, L1, R1, L2, R2, X11<:AbstractMatrix, X12<:UniformScaling}
 	r13 = coef1.r₁₂
-	t13 = coef1.t₁₂ * coef2.t₁₂
+	t13 = coef2.t₁₂ * coef1.t₁₂
 
-	r31 = coef2.t₂₁ * coef1.r₂₁ * coef2.t₁₂
-	t31 = coef2.t₂₁ * coef1.t₂₁
+	r31 = coef2.t₁₂ * coef1.r₂₁ * coef2.t₂₁
+	t31 = coef1.t₂₁ * coef2.t₂₁
 
 	return ScatteringMatrix{T, L1, R2, typeof(r13), typeof(t13)}(r13, t13, r31, t31, coef1.fieldl, coef2.fieldr)
 end

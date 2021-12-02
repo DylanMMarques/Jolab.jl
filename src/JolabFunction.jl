@@ -1,4 +1,4 @@
-mutable struct JolabFunction{T <: Real, A <: Union{T, Complex{T}, Function, AbstractExtrapolation{T}, AbstractInterpolation{T}}}
+mutable struct JolabFunction{T <: Real, A <: Union{T, Complex{T}, Function, AbstractExtrapolation{Complex{T}}, AbstractInterpolation{Complex{T}}, AbstractExtrapolation{T}, AbstractInterpolation{T}}}
     y::A
 end
 
@@ -26,7 +26,7 @@ function Base.convert(::Type{JolabFunction{A}}, fun::JolabFunction{B,C}) where {
     return JolabFunction{A,Function}(f)
 end
 
-mutable struct JolabFunction2D{T <: Real, A <: Union{T, Complex{T}, Function, AbstractExtrapolation{T}, AbstractInterpolation{T}}}
+mutable struct JolabFunction2D{T <: Real, A <: Union{T, Complex{T}, Function, AbstractExtrapolation{T}, AbstractInterpolation{T}, AbstractInterpolation{Complex{T}}, AbstractExtrapolation{Complex{T}}}}
     y::A
 end
 
@@ -37,7 +37,8 @@ end
 Base.convert(::Type{JolabFunction2D{T}}, f::A) where {T<:Real, A<:Real} = JolabFunction2D{T,T}(T(f))
 Base.convert(::Type{JolabFunction2D{T}}, f::A) where {T<:Real, A<:Number} = JolabFunction2D{T,Complex{T}}(Complex{T}(f))
 Base.convert(::Type{JolabFunction2D{T}}, f::A) where {T<:Real, A<:Function} = JolabFunction2D{T,A}(f)
-Base.convert(::Type{JolabFunction2D{T}}, f::A) where {T<:Real, A<:Union{AbstractExtrapolation, AbstractInterpolation}} = JolabFunction2D{T,A}(f)
+Base.convert(::Type{JolabFunction2D{T}}, f::A) where {T<:Real, A<:Union{AbstractExtrapolation{T}, AbstractInterpolation{T}}} = JolabFunction2D{T,A}(f)
+Base.convert(::Type{JolabFunction2D{T}}, f::A) where {T<:Real, A<:Union{AbstractExtrapolation{Complex{T}}, AbstractInterpolation{Complex{T}}}} = JolabFunction2D{T,A}(f)
 
 Base.convert(::Type{JolabFunction2D{A}}, fun::JolabFunction2D{B,C}) where {A<:Real, B<:Real, C<:Real} = JolabFunction2D{A,A}(A(fun.y))
 Base.convert(::Type{JolabFunction2D{A}}, fun::JolabFunction2D{B,C}) where {A<:Real, B<:Real, C<:Number} = JolabFunction2D{A,Complex{A}}(Complex{A}(fun.y))
