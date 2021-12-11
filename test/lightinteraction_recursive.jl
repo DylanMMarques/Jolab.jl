@@ -4,6 +4,9 @@ mls = MultilayerStructure([1., 2, 3+im, 1], [100E-9, 150E-9], ReferenceFrame(0.,
 sx = range(-0.1, 0.1, length = 11)
 
 for dir in [1, -1]
+    local field
+    local fieldt
+    local fieldr
     field = FieldAngularSpectrumScalar_gaussian(sx, sx, 50E-6, 1500E-9, 1., dir, ReferenceFrame(0.,0,0,0,0))
 
     mls_r = [MultilayerStructure([1., 2], zeros(0), ReferenceFrame(0.,0,0,0.,0.)),

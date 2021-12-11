@@ -244,7 +244,7 @@ function getfields_lr(mls::MultilayerStructure, fieldi::FieldAngularSpectrumScal
 	return (fieldl, fieldr)
 end
 
-@inline function ref2(mls::MultilayerStructure)
+function ref2(mls::MultilayerStructure)
 	totalh = sum(mls.h_A);
 	return mls.ref + ReferenceFrame(sin(mls.ref.θ) * cos(mls.ref.ϕ) * totalh, sin(mls.ref.θ) * sin(mls.ref.ϕ) * totalh, cos(mls.ref.θ) * totalh, mls.ref.θ, mls.ref.ϕ);
 end

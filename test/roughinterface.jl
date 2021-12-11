@@ -65,6 +65,9 @@ int = zeros(length(λ))
 int2 = zeros(length(λ))
 
 for i in 1:length(λ)
+    local field
+    local fieldr
+    local fieldt
     field = FieldAngularSpectrumScalar_gaussian(sx, sx, 10E-6, λ[i], 1, 1, ref1)
     (fieldr, fieldt) = lightinteraction_recursivegridded(rmls, field, rtol = 1E-9)
     int[i] = intensity(fieldr)
