@@ -24,7 +24,7 @@ module Jolab
 	export SpatialLightModulator, SpatialLightModulator_slm, SpatialLightModulator_mask, SpatialLightModulator_reflectivemask
 	export FourierTransform
 	export Axicon, AxiconFourier
-	export Interpolation, interpolate
+	export Interpolation#, interpolate
 
 	export CircularStepIndexModes, CircularStepIndexFibre, findmodes!
 
