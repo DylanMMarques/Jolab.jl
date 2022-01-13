@@ -4,6 +4,7 @@ nsx_X = range(-.2, .2, length = 10)
 nsy_Y = range(-.2, .2, length = 10)
 nsx_itp = range(-.22, .22, length = 20)
 nsy_itp = range(-.22, .22, length = 20)
+return true
 
 field = FieldAngularSpectrumScalar_gaussian(nsx_X, nsy_Y, 50E-6, 1550E-9, 1, 1, ReferenceFrame(0,0,0.))
 changereferenceframe!(field, ReferenceFrame(10E6, 0, 0,))

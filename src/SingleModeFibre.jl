@@ -35,6 +35,14 @@ function FieldAngularSpectrumScalar_fromfibre(fibre::SingleModeFibre{T}, nsx_X, 
 	return angspe
 end
 
+function FieldAngularSpectrumScalarRadialSymmetric_fromfibre(fibre::SingleModeFibre{T}, nsr_R, λ, tip=1, intensity=1.) where T
+	tip == 2 ? (n = fibre.n2; dir2 = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir2 = fibre.dir1; ref = fibre.ref1);
+
+	angspe = FieldAngularSpectrumScalarRadialSymmetric_gaussian(nsr_R, fibre.mfd, λ, n(λ), Int64(dir2), ref);
+	angspe.e_SXY .*= √intensity
+	return angspe
+end
+
 # function FieldAngularSpectrumSymmetric_fromfibre(fibre::SingleModeFibre, sx_X::AbstractVector{<:Number}, λ::Real, tip::Integer=1, intensity::Real=1.)::FieldAngularSpectrumSymmetric
 # 	tip == 2 ? (n = fibre.n2; dir2 = fibre.dir2; ref = fibre.ref2) : (n = fibre.n1; dir2 = fibre.dir1; ref = fibre.ref1);
 #
@@ -55,9 +63,25 @@ function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalar{T}, t
 		(xmin, xmax) = integralExtremes(angsperef.nsx_X, cart[i][2])
 		(ymin, ymax) = integralExtremes(angsperef.nsy_Y, cart[i][3])
 		sens = exp(-fibre.mfd^2 / 16 * k^2 * (angsperef.nsx_X[cart[i][2]]^2 + angsperef.nsy_Y[cart[i][3]]^2))
-		int += angsperef.e_SXY[i] * sens * (xmin - xmax) * (ymax - ymin)
+		int += angsperef.e_SXY[i] * sens * (xmax - xmin) * (ymax - ymin)
 	end
 	return 16π^4 * real(angsperef.n) * abs2(cons * int)
+end
+
+function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalarRadialSymmetric{T}, tip=1) where T
+	tip == 2 ? (ref = fibre.ref2; dir2 = fibre.dir2;) : (ref = fibre.ref1; dir2 = fibre.dir1;)
+	dir2 == dir(angspe) ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
+	angsperef = changereferenceframe(angspe, ref);
+	k = 2 * π / angsperef.λ;
+	cons = fibre.mfd * √(1 / 32 / π^3) * k^2;
+	int = zero(Complex{T})
+	cart = CartesianIndices(angsperef)
+	@inbounds @simd for i in iterator_index(angsperef)
+		(rmin, rmax) = integralExtremes(angsperef.nsr_R, cart[i][2])
+		sens = exp(-fibre.mfd^2 / 16 * k^2 * angsperef.nsr_R[cart[i][2]]^2)
+		int += angsperef.e_SXY[i] * sens * (rmax - rmin) * angsperef.nsr_R[cart[i][2]]
+	end
+	return 64π^6 * real(angsperef.n) * abs2(cons * int)
 end
 
 function signal(fibre::SingleModeFibre, fieldspace::FieldSpaceScalar{T}, tip::Integer=1) where T
