@@ -89,6 +89,21 @@ function t(lens::Lens, field::FieldSpaceScalar{T}, iX, iY) where T
 	end
 end
 
+function t(lens::Lens, field::FieldSpaceScalarRadialSymmetric{T}, iR, iY) where T
+	cosθ² = 1 - (field.r_R[iR] / f(lens, field.λ))^2
+	k = 2π / field.λ
+	if cosθ² < 0 # Evasnecent waves
+		return (zero(Complex{T}), zero(Complex{T}))
+	else # Plane waves
+		if (1 - cosθ² > na(lens,field.λ)^2) # above the lens NA
+			return (zero(Complex{T}), zero(Complex{T}))
+		else
+			aux = f(lens, field.λ) / im / k / 2π * cosθ²^(1/4) # might be wrong
+			return (aux, 1 / aux)
+		end
+	end
+end
+
 function checkapplicability(lens::Lens, field::AbstractFieldAngularSpectrum)
 	(abs(imag(field.n)) < @tol) || error("To apply a lens the medium cannot absorb light")
 	checkorientation(field.ref, lens.ref) || error("need to be done")
@@ -137,7 +152,7 @@ function getfields_lr(lens::Lens, fieldi::FieldSpaceScalarRadialSymmetric{T,D,X,
 	nsr_R = -fieldi.r_R / f_val * real(fieldi.n)
 
 	if dir(fieldi) > 0
-		fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.r_R), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi))
+		fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.r_R), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
 		fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}(nsr_R, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref2(lens, fieldi.λ))
 	else
 		fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}(nsr_R, 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
@@ -148,7 +163,7 @@ end
 
 function getfields_lr(lens::Lens, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,D,X,B}) where {T,D,X,B}
 	f_val = f(lens, fieldi.λ)
-	r_R = fieldi.nsx_X / real(fieldi.n) * f_val
+	r_R = fieldi.nsr_R / real(fieldi.n) * f_val
 
 	if dir(fieldi) > 0
 		fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.nsr_R), 0deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, ref1(lens, fieldi.λ))
@@ -221,7 +236,7 @@ Calculates the field after propagating through the lens assuming the incident fi
 - **RAM:** very small; scales with `length(angspe.nsx_X)` `length(angspe.nsy_Y)`
 - **Convergence:** sampling of `angspe.nsx_X` and `angspe.nsy_Y`
 """
-function coefficient_general(lens::Lens, fieldi::Union{AbstractFieldAngularSpectrum, FieldSpaceScalar})
+function coefficient_general(lens::Lens, fieldi::Union{AbstractFieldAngularSpectrum, AbstractFieldSpace})
 	checkapplicability(lens, fieldi) || errorToDo()
 
 	scat = get_scatteringmatrixtype(lens, fieldi)
@@ -238,7 +253,7 @@ function coefficient_general(lens::Lens, fieldi::Union{AbstractFieldAngularSpect
 end
 
 """
-	(field_back, field_forward)= lightinteraction(lens, angspe)
+	(field_back, field_forward) = lightinteraction(lens, angspe)
 
 Calculates the field after propagating through the lens assuming the incident field direction of propagation. The model propagates from a focal plane to the other focal plane. The order is based on the light direction of propagation.
 - **Type:** Transmission matrices is diagonal. No reflection matrix is computed (the model does not assume light reflection by the lens)

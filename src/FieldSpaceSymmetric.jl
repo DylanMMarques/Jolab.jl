@@ -45,3 +45,14 @@ function intensity(space::FieldSpaceScalarRadialSymmetric{T}) where T
 	end
 	return real(space.n) * 2π  * int 
 end
+
+CartesianIndices(field::FieldSpaceScalarRadialSymmetric) = Base.CartesianIndices((1, length(field.r_R), 1))
+LinearIndices(field::FieldSpaceScalarRadialSymmetric) = Base.LinearIndices((1, length(field.r_R), 1))
+
+function samedefinitions(fieldl::L, fieldr::R) where {L<:FieldSpaceScalarRadialSymmetric, R<:FieldSpaceScalarRadialSymmetric}
+	isapprox(fieldl.r_R, fieldr.r_R, atol = @tol) || error("x_X are different")
+	isapprox(fieldl.n, fieldr.n, atol = @tol) || error("n are different")
+	isapprox(fieldl.λ, fieldr.λ, atol = @tol) || error("λ are different")
+	fieldl.ref == fieldr.ref || error("reference frames are different")
+	return true
+end
