@@ -361,7 +361,7 @@ function lightinteraction_recursive!(ebackward_SCD::AbstractArray{<:T, 3}, eforw
 
 			nsxSaveBackward_XY .= nsxᵢ_XY;
 			nsySaveBackward_XY .= nsyᵢ_XY;
-			nszSaveBackward_XY .= -1 .* .√(coefs[mlsᵢ].n₂.^2 .- nsxᵢ_XY.^2 .- nsyᵢ_XY.^2);
+			nszSaveBackward_XY .= -1 .* .√(coefs[mlsᵢ-1].n₁.^2 .- nsxᵢ_XY.^2 .- nsyᵢ_XY.^2);
 		end
 
 		if boolOutForward
