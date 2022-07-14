@@ -240,7 +240,7 @@ end
 end
 
 @inline function Δvector(x_X::AbstractRange{<:Number}, i::Integer)
-	return x_X.step.hi
+	return step(x_X)
 end
 
 @inline function integralExtremes(x_X::AbstractVector{<:Number}, i::Integer)

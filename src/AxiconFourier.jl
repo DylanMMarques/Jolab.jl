@@ -18,6 +18,14 @@ getsizes(axicon::AxiconFourier, field::AbstractFieldAngularSpectrum) = return (l
 
 r(x, y) = sqrt(x^2 + y^2)
 
+function t(axicon::AxiconFourier{T}, space::FieldSpaceScalarRadialSymmetric, iX, iY, iA, iB) where T
+	return - im / 2π * exp(-im * 2π / space.λ * axicon.β * space.r_R[iX]) * besselj0(2π / space.λ * axicon.nsx_X[iA] * space.r_R[iX]) * space.r_R[iX] * Δvector(space.r_R, iX)
+end
+
+function t(axicon::AxiconFourier{T}, angspe::FieldAngularSpectrumScalarRadialSymmetric, iX, iY, iA, iB) where T
+	return im * 2π * (2π / angspe.λ)^2 * exp(-im * 2π / angspe.λ * axicon.β * axicon.x_X[iA]) * besselj0(2π / angspe.λ * angspe.nsr_R[iX] * axicon.x_X[iA]) * angspe.nsr_R[iX] * Δvector(angspe.nsr_R, iX)
+end
+
 @inline function t(axicon::AxiconFourier{T}, space::AbstractFieldSpace{T}, iX, iY, iA, iB)::Complex{T} where T
 	(xmin, xmax) = integralExtremes(space.x_X, iX)
 	(ymin, ymax) = integralExtremes(space.y_Y, iY)
@@ -117,6 +125,47 @@ function checkapplicability(axicon::AxiconFourier, angspe::AbstractFieldAngularS
 	return true
 end
 
+function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldSpaceScalarRadialSymmetric{T,D,X,B}) where {T,D,X,Y,B}
+	sizeI = length(fieldi.e_SXY)
+	sizeS = length(axicon.nsx_X)
+
+	r12 = nothing
+	r21 = nothing
+	t12 = Matrix{Complex{T}}(undef, sizeS, sizeI)
+	t21 = Matrix{Complex{T}}(undef, sizeI, sizeS)
+	m = Vector{Complex{T}}(undef, sizeS)
+	if dir(fieldi) > 0
+		fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.r_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,Y,B}(deepcopy(axicon.nsx_X), m, fieldi.λ, fieldi.n, axicon.ref)
+		return ScatteringMatrix{T,FieldSpaceScalarRadialSymmetric{T,-1,X,B}, FieldAngularSpectrumScalarRadialSymmetric{T,1,Y,B}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	else
+		fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,Y,B}(deepcopy(axicon.nsx_X), m, fieldi.λ, fieldi.n, axicon.ref)
+		fieldr = FieldSpaceScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.r_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrumScalarRadialSymmetric{T,-1,Y,B}, FieldSpaceScalarRadialSymmetric{T,1,X,B}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	end
+end
+
+function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,D,X,B}) where {T,D,X,Y,B}
+	sizeI = length(fieldi.e_SXY)
+	sizeS = length(axicon.r_R)
+
+	r12 = nothing
+	r21 = nothing
+	t12 = Matrix{Complex{T}}(undef, sizeS, sizeI)
+	t21 = Matrix{Complex{T}}(undef, sizeI, sizeS)
+
+	m = Vector{Complex{T}}(undef, sizeS)
+	if dir(fieldi) > 0
+		fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,Y,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		fieldr = FieldSpaceScalarRadialSymmetric{T,1,X,B}(deepcopy(axicon.x_X), m, fieldi.λ, fieldi.n, axicon.ref)
+		return ScatteringMatrix{T, FieldAngularSpectrumScalarRadialSymmetric{T,-1,Y,B}, FieldSpaceScalarRadialSymmetric{T,1,X,B}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	else
+		fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(deepcopy(axicon.x_X), m, fieldi.λ, fieldi.n, axicon.ref)
+		fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,Y,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+		return ScatteringMatrix{T, FieldSpaceScalarRadialSymmetric{T,-1,X,B}, FieldAngularSpectrumScalarRadialSymmetric{T,1,Y,B}, Nothing, Matrix{Complex{T}}}(r12, t12, r21, t21, fieldl, fieldr)
+	end
+end
+
 function get_scatteringmatrixtype(axicon::AxiconFourier{T,Y}, fieldi::FieldSpaceScalar{T,D,X,B}) where {T,D,X,Y,B}
 	sizeI = length(fieldi.e_SXY)
 	sizeS = length(axicon.nsx_X) * length(axicon.nsy_Y)
@@ -183,5 +232,33 @@ function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldAngularSpectrumSc
 	m = Vector{Complex{T}}(undef,length(axicon.x_X) * length(axicon.y_Y))
 	fieldl = FieldSpaceScalar{T,-1,A,B}(deepcopy(axicon.x_X), deepcopy(axicon.y_Y), m, fieldi.λ, fieldi.n, axicon.ref)
 	fieldr = FieldAngularSpectrumScalar{T,1,X,B}(deepcopy(fieldi.nsx_X), deepcopy(fieldi.nsy_Y), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldSpaceScalarRadialSymmetric{T,1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(axicon.nsx_X))
+	fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.r_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,A,B}(deepcopy(axicon.nsx_X), m, fieldi.λ, fieldi.n, axicon.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldSpaceScalarRadialSymmetric{T,-1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(axicon.nsx_X))
+	fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,A,B}(deepcopy(axicon.nsx_X), m, fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldSpaceScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.r_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(axicon.x_X))
+	fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldSpaceScalarRadialSymmetric{T,1,A,B}(deepcopy(axicon.x_X), m, fieldi.λ, fieldi.n, axicon.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(axicon::AxiconFourier{T,A}, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(axicon.x_X))
+	fieldl = FieldSpaceScalarRadialSymmetric{T,-1,A,B}(deepcopy(axicon.x_X), m, fieldi.λ, fieldi.n, axicon.ref)
+	fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, axicon.ref)
 	return (fieldl, fieldr)
 end

@@ -20,6 +20,14 @@ FourierTransform() = FourierTransform{Float64}()
 
 checkapplicability(fourier::FourierTransform, field::Union{AbstractFieldAngularSpectrum, AbstractFieldSpace}) = true
 
+function t(fourier::FourierTransform{T}, space::FieldSpaceScalarRadialSymmetric, iX, iY, iA, iB) where T
+	return - im / 2π * besselj0(2π / space.λ * fourier.nsx_X[iA] * space.r_R[iX]) * space.r_R[iX] * Δvector(space.r_R, iX)
+end
+
+function t(fourier::FourierTransform{T}, angspe::FieldAngularSpectrumScalarRadialSymmetric, iX, iY, iA, iB) where T
+	return im * 2π * (2π / angspe.λ)^2 * besselj0(2π / angspe.λ * angspe.nsr_R[iX] * fourier.x_X[iA]) * angspe.nsr_R[iX] * Δvector(angspe.nsr_R, iX)
+end
+
 function t(fourier::FourierTransform{T,X,Y}, field::FieldSpaceScalar, iX, iY, iA, iB) where {T, X, Y<:Nothing}
 	(xmin, xmax) = integralExtremes(field.x_X, iX)
 	(ymin, ymax) = integralExtremes(field.y_Y, iY)
@@ -374,3 +382,31 @@ function lightinteraction!(fieldl::L, fieldr::R, coef::FFTCoefficient{T,L,R}, fi
 	end
 end
 =#
+
+function getfields_lr(fourier::FourierTransform{T,A}, fieldi::FieldSpaceScalarRadialSymmetric{T,1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(fourier.nsx_X))
+	fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.r_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,A,B}(deepcopy(fourier.nsx_X), m, fieldi.λ, fieldi.n, fieldi.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(fourier::FourierTransform{T,A}, fieldi::FieldSpaceScalarRadialSymmetric{T,-1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(fourier.nsx_X))
+	fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,A,B}(deepcopy(fourier.nsx_X), m, fieldi.λ, fieldi.n, fieldi.ref)
+	fieldr = FieldSpaceScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.r_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(fourier::FourierTransform{T,A}, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(fourier.x_X))
+	fieldl = FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	fieldr = FieldSpaceScalarRadialSymmetric{T,1,A,B}(deepcopy(fourier.x_X), m, fieldi.λ, fieldi.n, fieldi.ref)
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(fourier::FourierTransform{T,A}, fieldi::FieldAngularSpectrumScalarRadialSymmetric{T,-1,X,B}) where {T,X,A,B}
+	m = Vector{Complex{T}}(undef,length(fourier.x_X))
+	fieldl = FieldSpaceScalarRadialSymmetric{T,-1,A,B}(deepcopy(fourier.x_X), m, fieldi.λ, fieldi.n, fieldi.ref)
+	fieldr = FieldAngularSpectrumScalarRadialSymmetric{T,1,X,B}(deepcopy(fieldi.nsr_R), deepcopy(fieldi.e_SXY), fieldi.λ, fieldi.n, fieldi.ref)
+	return (fieldl, fieldr)
+end
