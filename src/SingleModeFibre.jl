@@ -51,7 +51,7 @@ end
 # 	return angspe
 # end
 
-function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalar{T}, tip=1) where T
+function signal_complex(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalar{T}, tip=1) where T
 	tip == 2 ? (ref = fibre.ref2; dir2 = fibre.dir2;) : (ref = fibre.ref1; dir2 = fibre.dir1;)
 	dir2 == dir(angspe) ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
 	angsperef = changereferenceframe(angspe, ref);
@@ -65,10 +65,10 @@ function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalar{T}, t
 		sens = exp(-fibre.mfd^2 / 16 * k^2 * (angsperef.nsx_X[cart[i][2]]^2 + angsperef.nsy_Y[cart[i][3]]^2))
 		int += angsperef.e_SXY[i] * sens * (xmax - xmin) * (ymax - ymin)
 	end
-	return 16π^4 * real(angsperef.n) * abs2(cons * int)
+	return √(16π^4 * real(angsperef.n)) * cons * int
 end
 
-function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalarRadialSymmetric{T}, tip=1) where T
+function signal_complex(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalarRadialSymmetric{T}, tip=1) where T
 	tip == 2 ? (ref = fibre.ref2; dir2 = fibre.dir2;) : (ref = fibre.ref1; dir2 = fibre.dir1;)
 	dir2 == dir(angspe) ? error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -angspe.dir)") : nothing
 	angsperef = changereferenceframe(angspe, ref);
@@ -81,10 +81,10 @@ function signal(fibre::SingleModeFibre, angspe::FieldAngularSpectrumScalarRadial
 		sens = exp(-fibre.mfd^2 / 16 * k^2 * angsperef.nsr_R[cart[i][2]]^2)
 		int += angsperef.e_SXY[i] * sens * (rmax - rmin) * angsperef.nsr_R[cart[i][2]]
 	end
-	return 64π^6 * real(angsperef.n) * abs2(cons * int)
+	return √(64π^6 * real(angsperef.n)) * cons * int
 end
 
-function signal(fibre::SingleModeFibre, fieldspace::FieldSpaceScalar{T}, tip::Integer=1) where T
+function signal_complex(fibre::SingleModeFibre, fieldspace::FieldSpaceScalar{T}, tip::Integer=1) where T
 	tip == 2 ? (ref = fibre.ref2; dir2 = fibre.dir2;) : (ref = fibre.ref1; dir2 = fibre.dir1);
 	dir2 == dir(fieldspace) && error("The direction that the fibre tip is pointing at must be the oposite from the field propagation (fibre.dir must be equal to -fieldspace.dir)")
 
@@ -98,5 +98,9 @@ function signal(fibre::SingleModeFibre, fieldspace::FieldSpaceScalar{T}, tip::In
 		sens = exp(- 4 / fibre.mfd^2 * (fieldspaceref.x_X[cart[i][2]]^2 + fieldspaceref.y_Y[cart[i][3]]^2))
 		int += fieldspaceref.e_SXY[i] * sens * (xmin - xmax) * (ymax - ymin)
 	end
-	return 8 / π / fibre.mfd^2 * abs2(int)
+	return √(8 / π / fibre.mfd^2) * int
+end
+
+function signal(fibre::SingleModeFibre, field, tip::Integer = 1)
+	return abs2(signal_complex(fibre, field, tip))
 end

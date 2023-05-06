@@ -14,7 +14,7 @@ R(mirror::Mirror, λ) = mirror.R(λ)
 n1(mirror::Mirror, λ) = n(mirror.n₁, λ)
 n2(mirror::Mirror, λ) = n(mirror.n₂, λ)
 
-function coefficient_general(mirror::Mirror, field::FieldSpaceScalar)
+function coefficient_general(mirror::Mirror, field::AbstractFieldSpace)
 	checkapplicability(mirror, field)
 
 	n1_val, n2_val = √n1(mirror, field.λ), √n2(mirror, field.λ)
@@ -118,9 +118,27 @@ function get_scatteringmatrixtype(mirror::Mirror, field::FieldSpaceScalar{T,D,X,
 	return ScatteringMatrix{T, FieldSpaceScalar{T,-1,X,Y}, FieldSpaceScalar{T,1,X,Y}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
 end
 
+function get_scatteringmatrixtype(mirror::Mirror, field::FieldSpaceScalarRadialSymmetric{T,D,X,Y}) where {T,D,X,Y}
+	sizeXY = length(field.e_SXY)
+	r12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	t12 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	r21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+	t21 = Diagonal(Vector{Complex{T}}(undef, sizeXY))
+
+	(fieldl, fieldr) = getfields_lr(mirror, field)
+
+	return ScatteringMatrix{T, FieldSpaceScalarRadialSymmetric{T,-1,X,Y}, FieldSpaceScalarRadialSymmetric{T,1,X,Y}, Diagonal{Complex{T},Vector{Complex{T}}}, Diagonal{Complex{T},Vector{Complex{T}}}}(r12, t12, r21, t21, fieldl, fieldr)
+end
+
 function getfields_lr(mirror::Mirror, field::FieldSpaceScalar{T,D,X,Y}) where {T,D,X,Y}
 	fieldl = FieldSpaceScalar{T,-1,X,Y}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), field.λ, n1(mirror, field.λ), ref1(mirror))
 	fieldr = FieldSpaceScalar{T,1,X,Y}(deepcopy(field.x_X), deepcopy(field.y_Y), deepcopy(field.e_SXY), field.λ, n2(mirror, field.λ), ref2(mirror))
+	return (fieldl, fieldr)
+end
+
+function getfields_lr(mirror::Mirror, field::FieldSpaceScalarRadialSymmetric{T,D,X,Y}) where {T,D,X,Y}
+	fieldl = FieldSpaceScalarRadialSymmetric{T,-1,X,Y}(deepcopy(field.r_R), deepcopy(field.e_SXY), field.λ, n1(mirror, field.λ), ref1(mirror))
+	fieldr = FieldSpaceScalarRadialSymmetric{T,1,X,Y}(deepcopy(field.r_R), deepcopy(field.e_SXY), field.λ, n2(mirror, field.λ), ref2(mirror))
 	return (fieldl, fieldr)
 end
 
