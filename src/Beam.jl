@@ -19,8 +19,8 @@ end
 monochromatic_angularspectrum(::Type{D}, nsx, nsy, e, wavelength, medium, frame) where D = monochromatic_angularspectrum(Float64, D, nsx, nsy, e, wavelength, medium, frame)
 
 function intensity(beam::ScalarAngularSpectrumBeam) 
-    f(e, dA) = abs2(e) * dA
-    mapreduce(f, +, beam.modes.e, beam.modes.dA)
+    f(e, dA, mat) = abs2(e) * (dA * mat.n)
+    mapreduce(f, +, beam.modes.e, beam.modes.dA, beam.modes.medium)
 end
 
 

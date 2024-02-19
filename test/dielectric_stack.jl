@@ -47,7 +47,7 @@ function test_reflection_coeffiecient(nsx, nsy, λ, mls)
     (rpw, tpw) = light_interaction(mls, pw)
     (rpw.e, tpw.e)
 end
-ref = ReferenceFrame((0,0,0), (0,0,1))
+ref = ReferenceFrame((0,0,0), (0,0,0))
 stack_test = DielectricStack(Medium.((@SVector [1, 2, 1])), (@SVector [100E-9]), ref)
 @test all(test_reflection_coeffiecient(0, 0, 1550E-9, stack_test) .≈ (-0.3801572124640627 + 0.28909310142234657im, 0.5318174730142268 + 0.6993395798310894im))
 @test all(test_reflection_coeffiecient(0, 0.1, 1550E-9, stack_test) .≈ (-0.3817505426194731 + 0.2902356449628659im, 0.531090735792542 + 0.6985502300894781im))
@@ -70,12 +70,24 @@ stack_test = DielectricStack(Medium.((@SVector [2, 1, 2])), (@SVector [200E-9]),
 @test all(test_reflection_coeffiecient(0.1, 0.1, 1550E-9, stack_test) .≈ (0.3799169568043824 - 0.2923210356280086im, 0.5351813183829595 + 0.6955519207907793im)
 )
 
-## Water to air - total internal reflection 
+## Water to air for total internal reflection testing
 stack_test = DielectricStack(Medium.((@SVector [1.33, 1, 1])), (@SVector Float64[10E-6]), ref)
 @test all(test_reflection_coeffiecient(0, 0.8 * 1.333, 1550E-9, stack_test) .≈ (0.6431032383925089 - 0.765779488344437im, 4.949051151775065e-7 - 2.3065390964139887e-7im))
 @test all(test_reflection_coeffiecient(0.8 * 1.333, 0, 1550E-9, stack_test) .≈ (0.6431032383925089 - 0.765779488344437im, 4.949051151775065e-7 - 2.3065390964139887e-7im))
 @test all(test_reflection_coeffiecient(0.7 * 1.333, 0, 1550E-9, stack_test) .≈ (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im))
 @test all(test_reflection_coeffiecient(0, 0.7 * 1.333, 1550E-9, stack_test) .≈ (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im))
+
+## Backward mode
+stack_f = DielectricStack(Medium.((@SVector [1, 4, 2+im, 1])), (@SVector [500E-9, 200E-9]), ref)
+stack_b = DielectricStack(Medium.((@SVector [1, 2+im, 4, 1])), (@SVector [200E-9, 500E-9]), ref)
+function test_reflection_coeffiecient(stack_forward, stack_backward, nsx, nsy, λ)
+    pw_f = PlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(stack_forward.mat), ReferenceFrame((0,0,0), (0,0,0)))
+    pw_b = PlaneWaveScalar(Backward, nsx, nsy, 1, λ, first(stack_backward.mat), ReferenceFrame((0,0,0), (0,0,0)))
+    (rpw_b, tpw_b) = light_interaction(stack_backward, pw_b)
+    (rpw_f, tpw_f) = light_interaction(stack_forward, pw_f)
+    rpw_f.e ≈ tpw_b.e && tpw_f.e ≈ rpw_b.e
+end
+@test test_reflection_coeffiecient(stack_b, stack_f, 0.1, 0.2, 1500E-9)
 
 function f_beam(λ)
     mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
@@ -91,12 +103,13 @@ import FiniteDiff: finite_difference_derivative
 Enzyme.API.runtimeActivity!(true)
 
 ## Jacobian tests
-function jac1(x)
+function jac(x)
     n, k, h, nsx, nsy, λ = x
     stack_test = DielectricStack(Float64, Medium.((@SVector [1 + k*im, n, 1])), (@SVector [h]), ReferenceFrame((0,0,0), (0,0,1)))
     Jolab.rtss(stack_test, Forward, nsx, nsy, λ)
 end
 enz_jac = Enzyme.jacobian(Enzyme.Forward, jac, [2, 1, 100E-9, .1, .1, 1550E-9])
+
 fin_jac_r = FiniteDiff.finite_difference_jacobian(x -> jac(x)[1], [2, 1, 100E-9, .1, .1, 1550E-9], Val{:central}, ComplexF64, relstep = 1E-9)
 fin_jac_t = FiniteDiff.finite_difference_jacobian(x -> jac(x)[2], [2, 1, 100E-9, .1, .1, 1550E-9], Val{:central}, ComplexF64, relstep = 1E-9)
 
