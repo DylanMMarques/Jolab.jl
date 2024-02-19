@@ -1,21 +1,22 @@
-struct Beam{T, M<:StructArray{<:AbstractMode{T}}}
+struct Beam{T, M<:StructArray{<:AbstractFieldMode{T}}}
     modes::M
-    function Beam(modes::M) where {M<:StructArray{<:AbstractMode{T}}} where T
+    function Beam(modes::M) where {M<:StructArray{<:AbstractFieldMode{T}}} where T
         new{T, M}(modes)
     end
 end
 
-const ScalarAngularSpectrumBeam{T,E,M,D,V,C} = Beam{T, StructArray{PlaneWaveScalar{T,E,M},D,V,C}} 
-const VectorialAngularSpectrumBeam{T,E,M,D,V,C} = Beam{T, StructArray{PlaneWaveVectorial{T,E,M},D,V,C}} 
-const AngularSpectrumBeam{T,E,M,D,V,C} = Union{ScalarAngularSpectrumBeam{T,E,M,D,V,C}, VectorialAngularSpectrumBeam{T,E,M,D,V,C}}
+const ScalarAngularSpectrumBeam{T,D,E,M,N,V,C} = Beam{T, StructArray{PlaneWaveScalar{T,D,E,M},N,V,C}} 
+const VectorialAngularSpectrumBeam{T,D,E,M,N,V,C} = Beam{T, StructArray{PlaneWaveVectorial{T,D,E,M},N,V,C}} 
+const AngularSpectrumBeam{T,D,E,M,N,V,C} = Union{ScalarAngularSpectrumBeam{T,D,E,M,N,V,C}, VectorialAngularSpectrumBeam{T,D,E,M,N,V,C}}
 
-function monochromatic_angularspectrum(::Type{T}, nsx, nsy, e::AbstractArray{E}, wavelength, medium::M, frame::ReferenceFrame{T}) where {T, M<:Medium, E}
+function monochromatic_angularspectrum(::Type{T}, ::Type{D}, nsx, nsy, e::AbstractArray{E}, wavelength, medium::M, frame::ReferenceFrame{T}) where {T, M<:Medium, E,D}
     E2 = E <: Complex ? Complex{T} : T
 
     number_modes = Broadcast.combine_axes(nsx, nsy, e)
-    modes = StructArray{PlaneWaveScalar{T,E2,M}}((nsx, nsy, e, Fill(wavelength, number_modes), Fill(medium, number_modes), Fill(frame, number_modes), Fill((nsx[2] - nsx[1]) * (nsy[1,2] - nsy[1]), number_modes)))
+    modes = StructArray{PlaneWaveScalar{T,D,E2,M}}((nsx, nsy, e, Fill(wavelength, number_modes), Fill(medium, number_modes), Fill(frame, number_modes), Fill((nsx[2] - nsx[1]) * (nsy[1,2] - nsy[1]), number_modes)))
     Beam(modes)
 end
+monochromatic_angularspectrum(::Type{D}, nsx, nsy, e, wavelength, medium, frame) where D = monochromatic_angularspectrum(Float64, D, nsx, nsy, e, wavelength, medium, frame)
 
 function intensity(beam::ScalarAngularSpectrumBeam) 
     f(e, dA) = abs2(e) * dA
@@ -25,7 +26,7 @@ end
 
 ## Rotation and translate_referenceframe
 
-function translate_referenceframe(angspe::Beam{T}, new_origin::Point3D) where {T,M}
+function translate_referenceframe(angspe::Beam{T}, new_origin::Point3D) where {T}
     Δpos_f(origin, ref2) = origin - ref2.origin 
     Δpos = broadcast(i -> Δpos_f(new_origin, i), angspe.modes.frame)
     

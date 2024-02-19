@@ -30,7 +30,7 @@ transmissioncoefficient_interfaces(n1, sz1, n2, sz2) = (2 * n1 * sz1) / (n1 * sz
 
 transmissioncoefficient_interfacep(n1, sz1, n2, sz2) = (2 * n1 * sz1) / (n2 * sz1 + n1 * sz2);
 
-function rtss(stack::DielectricStack{<:Real, N}, nsx::T, nsy::T, λ) where {T, N<:AbstractVector{<:DefinedMedium}}
+@inline function rtss(stack::DielectricStack{<:Real, N}, dir::Type{Forward}, nsx::T, nsy::T, λ) where {T, N<:AbstractVector{<:DefinedMedium}}
     nsr = √(nsx^2 + nsy^2)
     sizeA = length(stack.mat)
 	sz2 = complex(1 - (nsr / stack.mat[sizeA].n)^2)^T(1/2) # Cannot use sqrt for now as Enzyme not working with sqrt of complex numbers
@@ -49,12 +49,26 @@ function rtss(stack::DielectricStack{<:Real, N}, nsx::T, nsy::T, λ) where {T, N
 	end
 	return (ri, ti)
 end
+@inline function rtss(stack, dir::Type{Backward}, nsx, nsy, λ) 
+    reverse(stack)
+    rtss(stack, Forward, nsx, nsy, λ)
+end
 
-function notchecked_light_interaction(stack::DielectricStack, pw::PlaneWaveScalar{T}) where T
+function Base.reverse(stack::DielectricStack{T}) where T
+    mat_rev = reverse(stack.mat)
+    h_rev = reverse(stack.h)
+    total_h = sum(stack.h)
+    origin_rev = stack.frame.origin + RotXYZ(stack.frame.direction) * Point3D(0,0,total_h)
+    frame_rev = ReferenceFrame(origin_rev, stack.frame.direction)
+    DielectricStack(T, mat_rev, h_rev, frame_rev)
+end
+
+
+function notchecked_light_interaction(stack::DielectricStack, pw::PlaneWaveScalar{T,D}) where {T,D}
     # change coordinate frame
-    (r,t) = rtss(stack, pw.nsx, pw.nsy, pw.wavelength)
-    r_pw = PlaneWaveScalar(T, pw.nsx, pw.nsy, r * pw.e, pw.wavelength, first(stack.mat), pw.frame, pw.dA)
-    t_pw = PlaneWaveScalar(T, pw.nsx, pw.nsy, t * pw.e, pw.wavelength, last(stack.mat), pw.frame, pw.dA)
+    (r,t) = rtss(stack, D, pw.nsx, pw.nsy, pw.wavelength)
+    r_pw = PlaneWaveScalar(T, D, pw.nsx, pw.nsy, r * pw.e, pw.wavelength, first(stack.mat), pw.frame, pw.dA)
+    t_pw = PlaneWaveScalar(T, D, pw.nsx, pw.nsy, t * pw.e, pw.wavelength, last(stack.mat), pw.frame, pw.dA)
     return (r_pw, t_pw)
 end
 
@@ -69,8 +83,7 @@ end
 ## Beam calculations
 
 
-const ScalarAngularSpectrumBeam{T,E,M,D,V,C} = Beam{T, StructArray{PlaneWaveScalar{T,E,M},D,V,C}} 
-function light_interaction(comp::DielectricStack{<:Any, <:AbstractVector{M2}}, beam::ScalarAngularSpectrumBeam{T,E,M}) where {M2,T,E,M}
+function light_interaction(comp::DielectricStack{<:Any, <:AbstractVector{M2}}, beam::ScalarAngularSpectrumBeam{T,D,E,M}) where {M2,D,T,E,M}
     ipw = beam.modes
     @argcheck all(ipw.frame .≈ Ref(comp.frame)) ArgumentError
     @argcheck all(ipw.medium .≈ Ref(first(comp.mat))) ArgumentError
@@ -80,12 +93,20 @@ function light_interaction(comp::DielectricStack{<:Any, <:AbstractVector{M2}}, b
     aux_struct = StructArray{Point2D{Complex{T}}}((r, t))
     
     function f(nsx, nsy, ipwe, wavelength) 
-        (a, b) = rtss(comp, nsx, nsy, wavelength)
+        (a, b) = rtss(comp, D, nsx, nsy, wavelength)
         Point2D(a * ipwe, b * ipwe)
     end
     broadcast!(f, aux_struct, ipw.nsx, ipw.nsy, ipw.e, ipw.wavelength)
-    r_modes = StructArray{PlaneWaveScalar{T,Complex{T},M}}((ipw.nsx, ipw.nsy, r, ipw.wavelength, ipw.medium, ipw.frame, ipw.dA))
-    t_modes = StructArray{PlaneWaveScalar{T,Complex{T},M2}}((ipw.nsx, ipw.nsy, t, ipw.wavelength, Fill(last(comp.mat), size(ipw.nsx)), ipw.frame, ipw.dA))
 
-    return (Beam(r_modes), Beam(t_modes))
+    mat_t = Fill((D == Forward ?  last : first)(comp.mat), size(beam)) 
+    r_beam = Beam(StructArray{PlaneWaveScalar{T,!D,Complex{T},M}}((ipw.nsx, ipw.nsy, r, ipw.wavelength, ipw.medium, ipw.frame, ipw.dA)))
+    t_beam = Beam(StructArray{PlaneWaveScalar{T,D,Complex{T},M2}}((ipw.nsx, ipw.nsy, t, ipw.wavelength, mat_t, ipw.frame, ipw.dA)))
+
+    return (D == Forward ? identity : reverse)((r_beam, t_beam))
 end
+
+import Base.~
+Base.length(beam::Beam) = length(beam.modes)
+Base.size(beam::Beam) = size(beam.modes)
+(!)(::Type{Forward}) = Backward
+(!)(::Type{Backward}) = Forward
