@@ -37,3 +37,7 @@ function ScatteringMatrix(comp, field_i)
     (field_b, field_f) = forward_backward_field(comp, field_i)
     _ScatteringMatrix(field_b, field_f, comp, field_i)
 end
+
+import Base: *
+
+(*)(sm::ScatteringMatrix, field_i) = light_interaction(sm, field_i)

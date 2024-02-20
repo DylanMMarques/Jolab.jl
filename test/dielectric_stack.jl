@@ -114,7 +114,7 @@ function test_scatmat_b(mls)
     nsx = range(0, 0.95, length = 100) .+ zeros(100)'
     beam = Jolab.monochromatic_angularspectrum(Float64, Backward, nsx, nsx', (nsx .* nsx)', 1550E-9, Medium(1.0), last(mls.frames));
     mat = Jolab.ScatteringMatrix(mls, beam)
-    (mat_r, mat_t) = light_interaction(mat, beam)
+    (mat_r, mat_t) = mat * beam
     (aux_r, aux_t) = light_interaction(mls, beam)
     mat_r ≈ aux_r && mat_t ≈ aux_t
 end
