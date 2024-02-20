@@ -97,8 +97,7 @@ function f_beam(λ)
 end
 f_beam(1550E-9);
 
-function test_scatmat_f()
-    mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
+function test_scatmat_f(mls)
     nsx = range(0, 0.95, length = 100) .+ zeros(100)'
     beam = Jolab.monochromatic_angularspectrum(Float64, Forward, nsx, nsx', (nsx .* nsx)', 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)));
     mat = Jolab.ScatteringMatrix(mls, beam)
@@ -106,10 +105,12 @@ function test_scatmat_f()
     (aux_r, aux_t) = light_interaction(mls, beam)
     mat_r ≈ aux_r && mat_t ≈ aux_t
 end
-@test test_scatmat_f()
+mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
+mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)), reflectivity = 0.9)
+@test test_scatmat_f(mls)
+@test test_scatmat_f(mirror)
 
-function test_scatmat_b()
-    mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
+function test_scatmat_b(mls)
     nsx = range(0, 0.95, length = 100) .+ zeros(100)'
     beam = Jolab.monochromatic_angularspectrum(Float64, Backward, nsx, nsx', (nsx .* nsx)', 1550E-9, Medium(1.0), last(mls.frames));
     mat = Jolab.ScatteringMatrix(mls, beam)
@@ -117,7 +118,8 @@ function test_scatmat_b()
     (aux_r, aux_t) = light_interaction(mls, beam)
     mat_r ≈ aux_r && mat_t ≈ aux_t
 end
-@test test_scatmat_b()
+@test test_scatmat_b(mls)
+@test test_scatmat_b(mirror)
 
 ## Enzyme tests on Dielectric Stack
 using Enzyme, Jolab, StaticArrays, FiniteDiff

@@ -128,7 +128,6 @@ function _ScatteringMatrix(field_b::Beam, field_f::Beam, comp::Union{DielectricS
     broadcast!(f, aux_struct, field_i.modes.nsx, field_i.modes.nsy, field_i.modes.wavelength)
     
     (mat_i_to_b, mat_i_to_f) = reverse_if_backward(D, (r, t))
-    @show size(mat_i_to_b)
     ScatteringMatrix(T, field_b, field_f, Diagonal(vec(mat_i_to_b)), Diagonal(vec(mat_i_to_f)), field_i)
 end
 
@@ -150,7 +149,7 @@ function check_input_field(comp::Union{DielectricStack, Mirror}, field_i::Angula
     return true
 end
 
-function check_input_field(comp::Union{DielectricStack, Mirror}, field_i::PlaneWaveScalar{T,D}) where {T,D}
+function check_input_field(comp::Union{<:DielectricStack, <:Mirror}, field_i::PlaneWaveScalar{T,D}) where {T,D}
     field_i.frame ≈ ((D == Forward ? first : last)(comp.frames)) || return false
     field_i.medium ≈ ((D == Forward ? first : last)(comp.mat)) || return false
     return true
