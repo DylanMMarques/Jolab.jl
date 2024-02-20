@@ -22,7 +22,9 @@ ReferenceFrame(origin, direction) = ReferenceFrame(Float64, origin, direction)
 
 Base.convert(::Type{ReferenceFrame{T}}, frame::ReferenceFrame) where T = ReferenceFrame{T}(frame.origin, frame.direction)
 
-Base.isapprox(frame1::ReferenceFrame, frame2::ReferenceFrame; kwargs...) = isapprox(frame1.origin, frame2.origin; kwargs...) && isapprox(frame1.direction, frame2.direction; kwargs...)
+function Base.isapprox(frame1::ReferenceFrame, frame2::ReferenceFrame; kwargs...)
+    isapprox(frame1.origin, frame2.origin; kwargs...) && isapprox(frame1.direction, frame2.direction; kwargs...)
+end
 
 RotXYZ(direction::FieldVector{3}) = Rotations.RotXYZ(direction.x, direction.y, direction.z)
 RotXYZ(x, y, z) = Rotations.RotXYZ(x, y, z)

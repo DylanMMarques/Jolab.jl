@@ -3,25 +3,25 @@ import Jolab: Forward, Backward
 
 ## Test errors 
 
-stack_test = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
+stack_test = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(2.0), ReferenceFrame((1,0,0), (0,0,1)))
+pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(2.0), ReferenceFrame((1,0,0), (0,0,0)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,0,1)))
+pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,0,0)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,.5,1)))
+pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,.5,.1)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((1,0,0), (0,.5,1)))
+pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((1,0,0), (0,.5,.1)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
 ## Test types 
 
 function test_type(T)
-    stack_test = DielectricStack(T, Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
-    pw = PlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,1)))
+    stack_test = DielectricStack(T, Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
+    pw = PlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
     (rpw, tpw) = light_interaction(stack_test, pw)
     typeof(rpw.e) == Complex{T} && typeof(rpw.nsx) == T && typeof(tpw.e) == Complex{T} && typeof(tpw.nsx) == T
 end
@@ -31,8 +31,8 @@ end
 @test test_type(Float16)
 
 function test_type_complex(T)
-    stack_test = DielectricStack(T, Medium.((@SVector [1 + im, 1.5 + im, 1 + im])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
-    pw = PlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1 + im), ReferenceFrame((0,0,0), (0,0,1)))
+    stack_test = DielectricStack(T, Medium.((@SVector [1 + im, 1.5 + im, 1 + im])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
+    pw = PlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1 + im), ReferenceFrame((0,0,0), (0,0,0)))
     (rpw, tpw) = light_interaction(stack_test, pw)
     typeof(rpw.e) == Complex{T} && typeof(rpw.nsx) == T && typeof(tpw.e) == Complex{T} && typeof(tpw.nsx) == T
 end
@@ -43,7 +43,7 @@ end
 
 ## Test values
 function test_reflection_coeffiecient(nsx, nsy, λ, mls)
-    pw = PlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(mls.mat), ReferenceFrame((0,0,0), (0,0,1)))
+    pw = PlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(mls.mat), ReferenceFrame((0,0,0), (0,0,0)))
     (rpw, tpw) = light_interaction(mls, pw)
     (rpw.e, tpw.e)
 end
@@ -81,8 +81,8 @@ stack_test = DielectricStack(Medium.((@SVector [1.33, 1, 1])), (@SVector Float64
 stack_f = DielectricStack(Medium.((@SVector [1, 4, 2+im, 1])), (@SVector [500E-9, 200E-9]), ref)
 stack_b = DielectricStack(Medium.((@SVector [1, 2+im, 4, 1])), (@SVector [200E-9, 500E-9]), ref)
 function test_reflection_coeffiecient(stack_forward, stack_backward, nsx, nsy, λ)
-    pw_f = PlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(stack_forward.mat), ReferenceFrame((0,0,0), (0,0,0)))
-    pw_b = PlaneWaveScalar(Backward, nsx, nsy, 1, λ, first(stack_backward.mat), ReferenceFrame((0,0,0), (0,0,0)))
+    pw_f = PlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(stack_forward.mat), ref)
+    pw_b = PlaneWaveScalar(Backward, nsx, nsy, 1, λ, first(stack_backward.mat), last(stack_backward.frames))
     (rpw_b, tpw_b) = light_interaction(stack_backward, pw_b)
     (rpw_f, tpw_f) = light_interaction(stack_forward, pw_f)
     rpw_f.e ≈ tpw_b.e && tpw_f.e ≈ rpw_b.e

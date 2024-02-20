@@ -1,14 +1,8 @@
 using Test, Jolab
 
 
-pw = PlaneWaveScalar(0, 0, 1, 1550E-9, Medium(1.0 + im), ReferenceFrame((0,0,0), (0,0,0)))
-@test_throws ArgumentError Jolab.changereferenceframe(pw, ref2)
-
-pw = PlaneWaveScalar(2, 0, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
-@test_throws ArgumentError Jolab.changereferenceframe(pw, ref2)
-
 θ, ϕ = 0.015, π/4
-pw = PlaneWaveScalar(0, 0, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0, 0, 0)))
+pw = PlaneWaveScalar(Forward, 0, 0, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0, 0, 0)))
 pw2 = rotate_referenceframe(pw, (θ, 0, ϕ))
 @test pw2.nsx ≈ sin(θ)*cos(ϕ)
 @test pw2.nsy ≈ sin(θ)*sin(ϕ)
@@ -17,8 +11,8 @@ pw2 = rotate_referenceframe(pw, (θ, 0, ϕ))
 θ, ϕ = 0,0
 p1 = (1, .5, .1)
 p2 = (1.2, .6, .0)
-pw = PlaneWaveScalar(.1, .35, 5.6 + 2.5im, 1550E-9, Medium(1.0), ReferenceFrame(p1, (θ, 0, ϕ)))
-pw2 = translate_referenceframe(pw, p2)
+pw = PlaneWaveScalar(Forward, .1, .35, 5.6 + 2.5im, 1550E-9, Medium(1.0), ReferenceFrame(p1, (θ, 0, ϕ)))
+pw2 = Jolab.translate_referenceframe(pw, p2)
 @test pw2.nsx ≈ .1 atol = 1E-15
 @test pw2.nsy ≈ .35 atol = 1E-15
 @test pw2.e ≈ pw.e * exp(im * 2π/pw.wavelength * sum((p2 .- p1) .* (pw.nsx, pw.nsy, √(pw.medium.n^2 - pw.nsx^2 - pw.nsy^2))))

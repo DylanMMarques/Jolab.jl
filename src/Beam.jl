@@ -1,12 +1,12 @@
-struct Beam{T, M<:StructArray{<:AbstractFieldMode{T}}}
+struct Beam{T, D, M<:StructArray{<:AbstractFieldMode{T,D}}} <: AbstractField{T,D}
     modes::M
-    function Beam(modes::M) where {M<:StructArray{<:AbstractFieldMode{T}}} where T
-        new{T, M}(modes)
+    function Beam(modes::M) where {M<:StructArray{<:AbstractFieldMode{T,D}}} where {T,D}
+        new{T, D, M}(modes)
     end
 end
 
-const ScalarAngularSpectrumBeam{T,D,E,M,N,V,C} = Beam{T, StructArray{PlaneWaveScalar{T,D,E,M},N,V,C}} 
-const VectorialAngularSpectrumBeam{T,D,E,M,N,V,C} = Beam{T, StructArray{PlaneWaveVectorial{T,D,E,M},N,V,C}} 
+const ScalarAngularSpectrumBeam{T,D,E,M,N,V,C} = Beam{T, D, StructArray{PlaneWaveScalar{T,D,E,M},N,V,C}} 
+const VectorialAngularSpectrumBeam{T,D,E,M,N,V,C} = Beam{T, D, StructArray{PlaneWaveVectorial{T,D,E,M},N,V,C}} 
 const AngularSpectrumBeam{T,D,E,M,N,V,C} = Union{ScalarAngularSpectrumBeam{T,D,E,M,N,V,C}, VectorialAngularSpectrumBeam{T,D,E,M,N,V,C}}
 
 function monochromatic_angularspectrum(::Type{T}, ::Type{D}, nsx, nsy, e::AbstractArray{E}, wavelength, medium::M, frame::ReferenceFrame{T}) where {T, M<:Medium, E,D}
@@ -60,7 +60,7 @@ end
 
 
 ## Plane wave
-function translate_referenceframe(pw::PlaneWaveScalar{T}, new_origin::Point3D) where T
+function translate_referenceframe(pw::PlaneWaveScalar{T,D}, new_origin::Point3D) where {T,D}
     Δpos = new_origin - pw.frame.origin
     
     rot_matrix = RotXYZ(pw.frame.direction.x, pw.frame.direction.y, pw.frame.direction.z)
@@ -69,10 +69,10 @@ function translate_referenceframe(pw::PlaneWaveScalar{T}, new_origin::Point3D) w
     nsz_val = (pw.medium.n^2 - pw.nsx^2 - pw.nsy^2)^(T(1/2)) 
     e_new = pw.e * exp(im * 2T(π) / pw.wavelength * dot(rΔpos, (pw.nsx, pw.nsy, nsz_val)))
 
-    PlaneWaveScalar(pw.nsx, pw.nsy, e_new, pw.wavelength, pw.medium, ReferenceFrame(new_origin, pw.frame.direction))
+    PlaneWaveScalar(D, pw.nsx, pw.nsy, e_new, pw.wavelength, pw.medium, ReferenceFrame(new_origin, pw.frame.direction)) 
 end
 
-function rotate_referenceframe(pw::PlaneWaveScalar{T}, new_angles::Point3D) where T
+function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point3D) where {T,D}
     is_complex_medium(pw.medium) && throw(ArgumentError("Thereference frame of a angular spectrum defined in a medium with a complex refractive index is not defined."))
     
     rot_matrix = RotXYZ(pw.frame.direction.x, pw.frame.direction.y, pw.frame.direction.z)
@@ -80,8 +80,30 @@ function rotate_referenceframe(pw::PlaneWaveScalar{T}, new_angles::Point3D) wher
     nsz_val = nsz_nocomplex(pw.medium.n, pw.nsx, pw.nsy) 
     (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point3D{T}(pw.nsx, pw.nsy, nsz_val))
 
-    PlaneWaveScalar(new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
+    PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
 end
 
-rotate_referenceframe(pw::Union{AbstractMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point3D{T}, new_angles))
-translate_referenceframe(pw::Union{AbstractMode{T}, Beam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point3D{T}, new_origin))
+rotate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point3D{T}, new_angles))
+translate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point3D{T}, new_origin))
+()
+number_modes(beam::Beam) = length(beam.modes)
+
+
+## Light light_interaction
+
+function light_interaction!(field_b, field_f, comp, beam)
+    @argcheck check_input_field(comp, beam) ArgumentError
+    @argcheck check_output_fields(field_b, field_f, comp, beam) ArgumentError
+    _light_interaction!(field_b, field_f, comp, beam)
+end
+
+function light_interaction(comp, beam)
+    @argcheck check_input_field(comp, beam) ArgumentError
+    (field_b, field_f) = forward_backward_field(comp, beam)
+    _light_interaction!(field_b, field_f, comp, beam)
+end
+
+function light_interaction(comp, beam::PlaneWaveScalar)
+    @argcheck check_input_field(comp, beam) ArgumentError
+    _light_interaction(comp, beam)
+end
