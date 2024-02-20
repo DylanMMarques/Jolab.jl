@@ -67,9 +67,9 @@ function translate_referenceframe(pw::PlaneWaveScalar{T,D}, new_origin::Point3D)
     rΔpos = inv(rot_matrix) * Δpos
 
     nsz_val = (pw.medium.n^2 - pw.nsx^2 - pw.nsy^2)^(T(1/2)) 
-    e_new = pw.e * exp(im * 2T(π) / pw.wavelength * dot(rΔpos, (pw.nsx, pw.nsy, nsz_val)))
+    e_new = pw.e * exp(im * 2T(π) / pw.wBeamavelength * dot(rΔpos, (pw.nsx, pw.nsy, nsz_val)))
 
-    PlaneWaveScalar(D, pw.nsx, pw.nsy, e_new, pw.wavelength, pw.medium, ReferenceFrame(new_origin, pw.frame.direction)) 
+    PlaneWaveScalar(T, D, pw.nsx, pw.nsy, e_new, pw.wavelength, pw.medium, ReferenceFrame(new_origin, pw.frame.direction)) 
 end
 
 function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point3D) where {T,D}
@@ -106,4 +106,14 @@ end
 function light_interaction(comp, beam::PlaneWaveScalar)
     @argcheck check_input_field(comp, beam) ArgumentError
     _light_interaction(comp, beam)
+end
+
+function Base.isapprox(a::Beam{T1,D1,<:StructArray{M1}}, b::Beam{T2,D2,<:StructArray{M2}}; kwargs...) where {T1, T2, D1, D2, M1, M2}
+    D1 == D2 || return false
+    same_mode_type(M1, M2) || return false
+    fields = fieldnames(M1)
+    for field in fields
+        all(isapprox.(component(a.modes, field), component(b.modes, field); kwargs...)) || return false
+    end
+    return true
 end
