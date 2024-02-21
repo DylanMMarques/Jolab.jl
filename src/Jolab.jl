@@ -1,6 +1,7 @@
 module Jolab
 
 using CoordinateTransformations, Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, Rotations, LinearAlgebra
+using Bessels, Roots, HCubature
 
 export light_interaction, intensity
 export translate_referenceframe, rotate_referenceframe
@@ -28,7 +29,8 @@ include("Beam.jl")
 include("ScatteringMatrix.jl")
 
 include("DielectricStack.jl")
-include("SingleModeFibre.jl")
+# include("SingleModeFibre.jl")
+include("Fibre.jl")
 
 include("auxiliary_functions.jl")
 end

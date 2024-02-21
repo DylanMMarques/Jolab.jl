@@ -30,3 +30,20 @@ end
 same_mode_type(::Type{<:PlaneWaveScalar}, ::Type{<:PlaneWaveScalar}) = true
 same_mode_type(::Type{<:PlaneWaveVectorial}, ::Type{<:PlaneWaveVectorial}) = true
 same_mode_type(::Type{<:AbstractFieldMode}, ::Type{<:AbstractFieldMode}) = false
+
+function find_local_minima(::Type{T}, f, x, initial_size)
+    local_minima = Vector{T}(undef, initial_size)
+    ind_zeros = 1
+    value = f(x[1])
+    next_value = f(x[2])
+    @inbounds for ix in view(x, 3:length(x))
+        prev_value = value
+        value = next_value
+        next_value = f(ix)
+        if value < prev_value && value < next_value
+            local_minima[ind_zeros] = ix - step(x)
+            ind_zeros += 1
+        end
+    end
+    local_minima[1:(ind_zeros-1)]
+end
