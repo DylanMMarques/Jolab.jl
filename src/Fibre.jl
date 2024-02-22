@@ -44,104 +44,72 @@ function modecondition(profile::CircularStepIndexProfile, λ, m, β)
     besselj(m-1, profile.r * α_1) / besselj(m, profile.r * α_1) + α_2 / α_1 * besselkx(m-1, profile.r * α_2) / besselkx(m, profile.r * α_2)
 end
 
-
-# Find the β that satisfies the mode condition, i.e. the mode condition == 0
-# The algorithm performs better if the initial guess is close to the solution
-function wavefunction_solutions(profile, β, m_i)
-    f(β) = Jolab.modecondition(profile, 1500E-9, m_i, β[1])^2
-    g(β) = autodiff(Enzyme.Forward, f, Duplicated, Duplicated(β, one(β)))
-    function fgh!(F, G, H, β)
-        (val, der) = g(β[1])
-        if G !== nothing
-            G[1] = der
-        end
-        if H !== nothing # Calculate numerical derivative
-            tol = β * 1E-12
-            H[1] = (g(β + tol) - der) / tol
-        end
-        if F !== nothing
-            return val
-        end
+function find_wavefunction_solutions(profile::CircularStepIndexProfile{T}, m, λ) where T
+    tol = T(1E-12)
+    _nclad = nclad(profile.ncore.n, profile.na)
+    if m > 0
+        α2_min = (T(1E50) * √(T(2m / π))) ^(T(-1/m)) * 2m / T(exp(1)) / profile.r
+        βmin = √(α2_min^2 + (T(2π) * (_nclad + tol) / λ)^2);
+    else
+        βmin = real(2π / λ * (_nclad + tol))
     end
-    inner_optimizer = NewtonTrustRegion()
-    res = optimize(Optim.only_fgh!(fgh!), (@MArray [β]), inner_optimizer)
-    Optim.minimizer(res)[1]
-end
-
-function find_wavefunction_solutions(::Type{T}, m) where T
-    f(x) = Jolab.modecondition(profile, 1500E-9, m, x)^2 # Square the function because it is easier to find the zeros
-    (βmin, βmax) = (6.438349049607e6, 6.492624817418906e6)
+    βmax = real(2π / λ * (profile.ncore.n));
+    
     initial_guess = 100
     initial_diff = 500
     i = 1
-    x = range(βmin + 1, βmax - 1, length = initial_diff * i)
-    xi = find_local_minima(T, f, x, initial_guess)
-    cur_len = length(xi)
+    β = range(βmin, βmax, length = initial_diff * i)
+
+    f(β) = modecondition(profile, λ, m, β)^2 # Square the function because it is easier to find the zeros
+
+    rough_βs = find_local_minima(f, β, initial_guess)
+    cur_len = length(rough_βs)
     old_length = 0
     while cur_len != old_length
         old_length = cur_len
-        x = range(βmin + 1, βmax - 1, length = initial_diff * i)
-        xi = find_local_minima(T, f, x, initial_guess)
-        cur_len = length(xi)
+        β = range(βmin, βmax, length = initial_diff * i)
+        rough_βs = find_local_minima(f, β, initial_guess)
+        cur_len = length(rough_βs)
         i += 1
     end
-    wavefunction_solutions.(xi, m_i)
+    map(i -> wavefunction_solutions(profile, i, m), rough_βs)
 end
 
-function findmodes!(profile::P, _λ::Real) where {P<:AbstractWaveguideProfile{T}} where T
+function findmodes(profile::P, _λ) where {P<:AbstractWaveguideProfile{T}} where T
     λ = T(_λ)
     m = 0
     sizeA = 10000
-    inc_sizeA = 10000
+    inc_size_i = 1
     m_A = Vector{Int}(undef, sizeA)
     β_A = Vector{T}(undef, sizeA)
     C_A = Vector{T}(undef, sizeA)
     D_A = Vector{T}(undef, sizeA)
     modeNumber = 0
-    ncore = real(profile.ncore.n);
-    tmp_nclad = nclad(ncore, profile.na)
     while true
         condition(β) = modecondition(profile, λ, m, β)
 
-        if m > 0
-            α2_min = (T(1E50) * √(2m / π))^(-1/m) * 2m / T(exp(1)) / profile.r
-            βmin = √(α2_min^2 + (T(2π) * (tmp_nclad + T(1E-15)) / λ)^2)
-        else
-            βmin = real(T(2π) / λ * (tmp_nclad + T(1E-15)))
-        end
-        βmax = real(T(2π) / λ * (ncore));
-
-        β_solutions = find_wavefunction_solutions(Float64, condition, βmin, βmax, k = 100)
-        #(m > 0) && (rootsminus = find_zeros(conditionminus, βmin, βmax))
+        β_solutions = find_wavefunction_solutions(profile, m, λ)
 
         isempty(β_solutions) && break
-
         number_solutions = length(β_solutions)
-        for i in 0:(numberRoots-1)
-            if modeNumber > sizeA - 2
-                resize!(β_A, sizeA + inc_sizeA);
-                resize!(m_A, sizeA + inc_sizeA);
-                resize!(C_A, sizeA + inc_sizeA);
-                resize!(D_A, sizeA + inc_sizeA);
+        for i in 0:(number_solutions-1)
+            if modeNumber > (sizeA * inc_size_i) - 2
+                map(i -> resize!(i, sizeA * inc_size_i), (m_A, β_A, C_A, D_A))
+                inc_size_i += 1
             end
 
-            βᵢ = roots[numberRoots - i]
-            # This removes the zeros due to the assymptotas
-            if abs(condition(βᵢ)) < 1
-                modeNumber += 1;
-                m_A[modeNumber] = m
-                β_A[modeNumber] = βᵢ
-                (C_A[modeNumber], D_A[modeNumber]) = modeconstant(profile, λ, m, βᵢ)
-            end
+            βᵢ = β_solutions[i + 1]
+            modeNumber += 1;
+            m_A[modeNumber] = m
+            β_A[modeNumber] = βᵢ
+            (C_A[modeNumber], D_A[modeNumber]) = modeconstant(profile, λ, m, βᵢ)
 
             (m == 0) && continue
-            βᵢ = roots[numberRoots - i]
-            if abs(condition(βᵢ)) < 1
-                modeNumber += 1;
-                m_A[modeNumber] = -m
-                β_A[modeNumber] = βᵢ
-                (C_A[modeNumber], D_A[modeNumber]) = modeconstant(profile, λ, -m, βᵢ)
-            end
+            βᵢ = β_solutions[i + 1]
+            modeNumber += 1;
+            m_A[modeNumber] = -m
+            β_A[modeNumber] = βᵢ
+            (C_A[modeNumber], D_A[modeNumber]) = modeconstant(profile, λ, -m, βᵢ)
         end
         m += 1
     end
@@ -149,7 +117,11 @@ function findmodes!(profile::P, _λ::Real) where {P<:AbstractWaveguideProfile{T}
     resize!(β_A, modeNumber)
     resize!(C_A, modeNumber)
     resize!(D_A, modeNumber)
-    return StructArray{CircularStepIndexMode{T}}((Fill(λ, modeNumber), m_A, β_A, C_A, D_A))
+    StructArray{CircularStepIndexMode{T}}((Fill(λ, modeNumber), m_A, β_A, C_A, D_A))
+end
+
+function Jolab.findmodes!(fibre::Fibre, λ)
+    push!(fibre.modes, findmodes(fibre.refractive_index_profile, λ))
 end
 
 function modeconstant(profile::CircularStepIndexProfile{T}, λ::Real, m::Integer, β::Number) where {T<:Real}
@@ -162,9 +134,9 @@ function modeconstant(profile::CircularStepIndexProfile{T}, λ::Real, m::Integer
     f2(r) = besselk(m, r[1] * α_2)^2 * r[1];
     (p2, tmp) = hcubature(f2, SVector(profile.r), SVector(2profile.r); rtol = 1E-8);
 
-    F = 2π * p1[1] + 2π * p2[1] * besselj(m, profile.r * α_1)^2 / besselk(m, profile.r * α_2)^2
+    F = T(2π) * p1[1] + T(2π) * p2[1] * besselj(m, profile.r * α_1)^2 / besselk(m, profile.r * α_2)^2
 
-    C = 1 / √(real(F))
+    C = 1 / √(F)
     D = C * besselj(m, profile.r * α_1) / besselk(m, profile.r * α_2);
-    return (C, D)
+    (C, D)
 end
