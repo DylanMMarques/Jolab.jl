@@ -11,6 +11,8 @@ Medium(n) = Medium(Float64, n)
 
 const DefinedMedium{T} = Medium{T, <:Union{T, Complex{T}}}
 
+(med::Medium{T, <:RealOrComplex})(wavelength::Real) where T = med.n
+
 Base.isequal(m1::Medium, m2::Medium) = isequal(m1.n, m2.n)
 Base.isapprox(m1::Medium, m2::Medium; kwarg...) = isapprox(m1.n, m2.n; kwarg...)
 

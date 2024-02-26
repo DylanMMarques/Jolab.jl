@@ -1,8 +1,8 @@
 using .Optim, .Enzyme
 # Find the β that satisfies the mode condition, i.e. the mode condition == 0
 # The algorithm performs better if the initial guess is close to the solution
-function wavefunction_solutions(profile, β, m_i)
-    f(β) = modecondition(profile, 1500E-9, m_i, β[1])^2
+function wavefunction_solutions(profile, λ, β, m_i)
+    f(β) = modecondition(profile, λ, m_i, β[1])^2
     g(β) = autodiff(Enzyme.Forward, f, Duplicated, Duplicated(β[1], one(β[1])))
     function fgh!(F, G, H, β)
         (val, der) = g(β[1])

@@ -41,9 +41,25 @@ function find_local_minima(f, x::AbstractVector{T}, initial_size) where T
         value = next_value
         next_value = f(x[i+1])
         if value < prev_value && value < next_value
+            if ind_zeros > initial_size
+                initial_size *= 2
+                resize!(local_minima, initial_size)
+            end
             local_minima[ind_zeros] = x[i]
             ind_zeros += 1
         end
     end
     local_minima[1:(ind_zeros-1)]
+end
+
+function overlap_integral(f1::F1, f2::F2, x, y, dA) where {F1, F2}
+    @argcheck size(x) == size(dA) == size(y) DimensionMismatch
+    F1 <: AbstractArray && @argcheck size(f1) == size(x) DimensionMismatch
+    F2 <: AbstractArray && @argcheck size(f2) == size(x) DimensionMismatch
+
+    f(val_1::Number, val_2::Number, x, y, dA::Number) = val_1 * conj(val_2) * dA
+    f(val_1::Number, val_2::Function, x, y, dA) = f(val_1, val_2(x, y), x, y, dA)
+    f(val_1::Function, val_2::Number, x, y, dA) = f(val_1(x, y), val_2, x, y, dA)
+    f(val_1::Function, val_2::Function, x, y, dA) = f(val_1(x, y), val_2(x, y), x, y, dA)
+    mapreduce(f, +, f1 isa Function ? Ref(f1) : f1, f2 isa Function ? Ref(f2) : f2 , x, y, dA)
 end

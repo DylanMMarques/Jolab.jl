@@ -13,18 +13,21 @@ abstract type AbstractField{T,D} end
 abstract type AbstractMode{T} end
 abstract type AbstractFieldMode{T,D} <: AbstractField{T,D} end
 abstract type AbstractPlaneWave{T,D} <: AbstractFieldMode{T,D} end
+abstract type AbstractPointSource{T,D} <: AbstractFieldMode{T,D} end
 abstract type AbstractMedium{T} end
 abstract type AbstractOpticalElement{T} end
 
 abstract type AbstractDirection end
 struct Forward <: AbstractDirection end
 struct Backward <: AbstractDirection end
+struct Bothway <: AbstractDirection end
 
 const RealOrComplex{T} = Union{T, Complex{T}}
 
 include("Medium.jl")
 include("ReferenceFrame.jl")
 include("PlaneWave.jl")
+include("PointSource.jl")
 include("Beam.jl")
 include("ScatteringMatrix.jl")
 

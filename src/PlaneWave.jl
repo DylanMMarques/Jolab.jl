@@ -27,9 +27,6 @@ function PlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::E1, wavelength, medi
     M = M2 <: Complex ? Complex{T} : T
     PlaneWaveScalar{T, D, E, Medium{T, M}}(nsx, nsy, e, wavelength, medium, frame, dA)
 end
-
 PlaneWaveScalar(::Type{D}, nsx, nsy, e, wavelength, medium, frame, dA = one(Float64)) where D = PlaneWaveScalar(Float64, D, nsx, nsy, e, wavelength, medium, frame, dA)
 
-function intensity(pw::PlaneWaveScalar)
-    abs2(pw.e) * pw.dA * pw.medium.n
-end
+intensity(pw::PlaneWaveScalar) = abs2(pw.e) * pw.dA * pw.medium.n
