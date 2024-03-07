@@ -22,6 +22,13 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 
+[weakdeps]
+Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
+
+[extensions]
+JolabEnzymeOptimExt = ("Optim", "Enzyme")
+
 [compat]
 DSP = ">=0.7"
 FFTW = ">=1.2"

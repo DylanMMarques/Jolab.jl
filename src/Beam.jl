@@ -69,12 +69,6 @@ function rotate_referenceframe(angspe::Beam, refnew::ReferenceFrame)
     error("TO DO")
 end
 
-function nsz_nocomplex(n, nsx, nsy) 
-    tmp = (n^2 - nsx^2 - nsy^2)
-    signbit(real(tmp)) && throw(ArgumentError("The reference frame of evasnescent waves cannot be rotated."))
-    return tmp^(1/2)
-end
-
 
 ## Plane wave
 function translate_referenceframe(pw::PlaneWaveScalar{T,D}, new_origin::Point3D) where {T,D}
