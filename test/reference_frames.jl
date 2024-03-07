@@ -1,8 +1,8 @@
-using Test, Jolab
+using Test, Jolab, Meshes
 
 
 θ, ϕ = 0.015, π/4
-pw = PlaneWaveScalar(Forward, 0, 0, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0, 0, 0)))
+pw = MeshedPlaneWaveScalar(Forward, 0, 0, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0, 0, 0)))
 pw2 = rotate_referenceframe(pw, (θ, 0, ϕ))
 @test pw2.nsx ≈ sin(θ)*cos(ϕ)
 @test pw2.nsy ≈ sin(θ)*sin(ϕ)
@@ -10,20 +10,21 @@ pw2 = rotate_referenceframe(pw, (θ, 0, ϕ))
 
 θ, ϕ = 0,0
 p1 = (1, .5, .1)
-p2 = (1.2, .6, .0)
-pw = PlaneWaveScalar(Forward, .1, .35, 5.6 + 2.5im, 1550E-9, Medium(1.0), ReferenceFrame(p1, (θ, 0, ϕ)))
+p2 = Jolab.Point3D(1.2, .6, .0)
+nsx, nsy, λ, n = 0.1, 0.35, 1550E-9, 1.0
+pw = MeshedPlaneWaveScalar(Forward, nsx, nsy, 5.6 + 2.5im, λ, Medium(n), ReferenceFrame(p1, (θ, 0, ϕ)))
 pw2 = Jolab.translate_referenceframe(pw, p2)
-@test pw2.nsx ≈ .1 atol = 1E-15
-@test pw2.nsy ≈ .35 atol = 1E-15
-@test pw2.e ≈ pw.e * exp(im * 2π/pw.wavelength * sum((p2 .- p1) .* (pw.nsx, pw.nsy, √(pw.medium.n^2 - pw.nsx^2 - pw.nsy^2))))
 
-nsx = range(-1, 1, length=2000) .+ zeros(2000)'
+@test Jolab.centroid(pw2.mesh, 1).coords ≈ Vec3(nsx, nsy, λ) atol = 1E-15
+@test pw2.e[1] ≈ pw.e[1] * exp(im * 2π/λ * sum((p2 .- p1) .* (nsx, nsy, √(n^2 - nsx^2 - nsy^2))))
+
+nsx = range(-1, 1, length=2000)
 λ = 1550E-9
-beam = Jolab.monochromatic_angularspectrum(Float64, nsx, nsx', (nsx .* nsx)' .+ 0im, λ, Medium(1.0 + im), ReferenceFrame((0,0,0), (0,0,0)))
+beam = MonochromaticAngularSpectrum(Float64, nsx, nsx, (nsx .* nsx') .+ 0im, λ, Medium(1.0 + im), ReferenceFrame((0,0,0), (0,0,0)))
 ref2 = ReferenceFrame((100E-9,50E-9,10E-9), (0,0,0))
 
 Jolab.translate_referenceframe(beam, ref2.origin)
-Jolab.translate_referenceframe(beam, (1,1,1))
+Jolab.translate_referenceframe(beam, Jolab.Point3D(1,1,1))
 
 
 ## Enzyme test

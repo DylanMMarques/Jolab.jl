@@ -16,10 +16,24 @@ for coordi in coord_list
         struct $coordi{T}
             coords::Vec{3, T}
         end
-        Base.getindex(c::$coordi, i::Integer) = c.coords[i]
+        Base.getindex(c::$coordi, i) = c.coords[i]
         $coordi(coords::Point3) = $coordi(coords.coords)
     end)
 end
+
+for (cart, polar) in zip((NSX_NSY_λ, NSX_NSY_t, X_Y_λ, X_Y_t), (NSR_NSθ_λ, NSR_NSθ_t, R_θ_λ, R_θ_t))
+    eval(quote
+        function Base.convert(::Type{<:$cart}, coords::$polar)
+            car = CartesianFromPolar()(coords[1:2])
+            $cart((car.x, car.y, coords[3]))
+        end
+        function Base.convert(::Type{<:$polar}, coords::$cart)
+            car = PolarFromCartesian()(coords[1:2])
+            $cart((car.r, car.θ, coords[3]))
+        end
+    end)
+end
+
 
 struct MeshedBeam{T, D, C, V, E<:AbstractArray{<:RealOrComplex{T},3}, M<:Medium{T,<:RealOrComplex{T}}, T2<:RealOrComplex{T}} <: AbstractField{T, D}
     mesh::V
@@ -57,7 +71,7 @@ function intensity(beam::MeshedBeam)
 end
 
 const AngularSpectrumCoords = Union{NSX_NSY_λ, NSR_NSθ_λ}
-const MeshedAngularSpectrum{T,D} = MeshedBeam{T,D,<:AngularSpectrumCoords}
+const MeshedAngularSpectrum{T,D,C<:AngularSpectrumCoords} = MeshedBeam{T,D,C}
 
 function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium, frame) where {T,D,T2}
     mesh = CartesianGrid((1, 1, 1),
@@ -74,4 +88,64 @@ function Base.isapprox(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}; kwa
     isapprox(beam1.frame, beam2.frame; kwargs...) || return false
     isapprox(beam1.medium, beam2.medium; kwargs...) || return false
     return true
+end
+
+function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin::Point3D) where {T,D,C}
+    Δpos = new_origin - beam.frame.origin
+
+    rot = RotXYZ(beam.frame.direction.x, beam.frame.direction.y, beam.frame.direction.z) 
+    rΔpos = inv(rot) * Δpos
+
+    function phase_term(medium, rΔpos, coord::NSX_NSY_λ)
+        (nsx, nsy, λ) = coord.coords
+        nsz = (medium.n^2 - nsx^2 - nsy^2)^(1/2) # for Enzyme
+        exp(im * 2T(π) / λ * dot(rΔpos, (nsx, nsy, nsz)))
+    end
+    phase_term(medium, rΔpos, coord::NSR_NSθ_λ) = phase_term(medium, rΔpos, convert(NSX_NSY_λ, coord))
+    phase_term(medium, rΔpos, index) = phase_term(medium, rΔpos, C(centroid(beam.mesh, index).coords))
+
+    new_e = reshape(map(i -> beam.e[i] * phase_term(beam.medium, rΔpos, i), eachindex(beam.e)), size(beam.e))
+    MeshedBeam{T,D,C}(deepcopy(beam.mesh), new_e, deepcopy(beam.medium), ReferenceFrame(new_origin, beam.frame.direction))
+end
+
+function nsz_nocomplex(n, nsx, nsy) 
+    tmp = (n^2 - nsx^2 - nsy^2)
+    signbit(real(tmp)) && throw(ArgumentError("The reference frame of evasnescent waves cannot be rotated."))
+    return √tmp
+end
+
+function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point3D) where {T,D}
+    is_complex_medium(pw.medium) && throw(ArgumentError("Thereference frame of a angular spectrum defined in a medium with a complex refractive index is not defined."))
+    
+    rot_matrix = RotXYZ(pw.frame.direction.x, pw.frame.direction.y, pw.frame.direction.z)
+
+    nsz_val = nsz_nocomplex(pw.medium.n, pw.nsx, pw.nsy) 
+    (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point3D{T}(pw.nsx, pw.nsy, nsz_val))
+
+    PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
+end
+
+rotate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point3D{T}, new_angles))
+translate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point3D{T}, new_origin))
+()
+number_modes(beam::Beam) = length(beam.modes)
+
+
+## Light light_interaction
+
+function light_interaction!(field_b, field_f, comp, beam)
+    @argcheck check_input_field(comp, beam) ArgumentError
+    @argcheck check_output_fields(field_b, field_f, comp, beam) ArgumentError
+    _light_interaction!(field_b, field_f, comp, beam)
+end
+
+function light_interaction(comp, beam)
+    @argcheck check_input_field(comp, beam) ArgumentError
+    (field_b, field_f) = forward_backward_field(comp, beam)
+    _light_interaction!(field_b, field_f, comp, beam)
+end
+
+function light_interaction(comp, beam::PlaneWaveScalar)
+    @argcheck check_input_field(comp, beam) ArgumentError
+    _light_interaction(comp, beam)
 end
