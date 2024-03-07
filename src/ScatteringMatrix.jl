@@ -1,13 +1,13 @@
-struct ScatteringMatrix{T, F2<:Beam{T, Backward}, F3<:Beam{T, Forward}, R1<:AbstractMatrix{<:RealOrComplex{T}}, T1<:AbstractMatrix{<:RealOrComplex{T}}, F1<:Beam{T}}
+struct ScatteringMatrix{T, F2<:AbstractField{T, Backward}, F3<:AbstractField{T, Forward}, R1<:AbstractMatrix{<:RealOrComplex{T}}, T1<:AbstractMatrix{<:RealOrComplex{T}}, F1<:AbstractField{T}}
     field_b::F2
     field_f::F3
     mat_itob::R1
     mat_itof::T1
     field_i::F1
-    function ScatteringMatrix(::Type{T}, field_b::F2, field_f::F3, i_to_b::R1, i_to_f::T1, fieldi::F1) where {T, R1, T1, F1<:Beam{T}, F2, F3}
-        number_modes_field_i = number_modes(fieldi)
-        number_modes_field_b = number_modes(field_b)
-        number_modes_field_f = number_modes(field_f)
+    function ScatteringMatrix(::Type{T}, field_b::F2, field_f::F3, i_to_b::R1, i_to_f::T1, fieldi::F1) where {T, R1, T1, F1<:AbstractField{T}, F2, F3}
+        number_modes_field_i = length(fieldi.e)
+        number_modes_field_b = length(field_b.e)
+        number_modes_field_f = length(field_f.e)
         @argcheck size(i_to_f) == (number_modes_field_f, number_modes_field_i) DimensionMismatch
         @argcheck size(i_to_b) == (number_modes_field_b, number_modes_field_i) DimensionMismatch
         new{T, F2, F3, R1, T1, F1}(field_b, field_f, i_to_b, i_to_f, fieldi)
@@ -16,9 +16,9 @@ end
 
 ScatteringMatrix(field_b, field_t, i_to_b, i_to_f, field_i) = ScatteringMatrix(Float64, field_b, field_t, i_to_b, i_to_f, field_i)
 
-function _light_interaction!(backwardfield::Beam, forwardfield::Beam, sm::ScatteringMatrix, field_i::Beam{T, D}) where {T, D}
-    mul!(vec(backwardfield.modes.e), sm.mat_itob, vec(field_i.modes.e))
-    mul!(vec(forwardfield.modes.e), sm.mat_itof, vec(field_i.modes.e))
+function _light_interaction!(backwardfield::MeshedBeam, forwardfield::MeshedBeam, sm::ScatteringMatrix, field_i::MeshedBeam{T, D}) where {T, D}
+    mul!(vec(backwardfield.e), sm.mat_itob, vec(field_i.e))
+    mul!(vec(forwardfield.e), sm.mat_itof, vec(field_i.e))
     return (backwardfield, forwardfield)
 end
 

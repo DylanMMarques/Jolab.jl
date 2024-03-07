@@ -18,13 +18,11 @@ end
 Mirror(media, frame; reflectivity) = Mirror(Float64, media, frame; reflectivity = reflectivity)
 Mirror(r, t, media, frame) = Mirror(Float64, r, t, media, frame)
 
-reflection_coefficient(mirror::Mirror{<:Any, <:Number}, λ, nsx, nsy) = mirror.reflection_coefficient
-transmission_coefficient(mirror::Mirror{<:Any, <:Any, <:Number}, λ, nsx, nsy) = mirror.transmission_coefficient
-reflection_coefficient(mirror::Mirror, λ, nsx, nsy) = mirror.reflection_coefficient(λ, nsx, nsy)
-transmission_coefficient(mirror::Mirror, λ, nsx, nsy) = mirror.transmission_coefficient(λ, nsx, nsy)
+reflection_coefficient(mirror::Mirror{<:Any, <:Number}, coords) = mirror.reflection_coefficient
+transmission_coefficient(mirror::Mirror{<:Any, <:Any, <:Number}, coords) = mirror.transmission_coefficient
 
-function rtss(mirror::Mirror, ::Type{Forward}, nsx, nsy, λ)
-    (reflection_coefficient(mirror, λ, nsx, nsy), transmission_coefficient(mirror, λ, nsx, nsy))
+function rtss(mirror::Mirror, ::Type{Forward}, coords)
+    (reflection_coefficient(mirror, coords), transmission_coefficient(mirror, coords))
 end
 
 function Base.reverse(mirror::Mirror{T}) where T 
@@ -65,8 +63,7 @@ transmissioncoefficient_interfaces(n1, sz1, n2, sz2) = (2 * n1 * sz1) / (n1 * sz
 
 transmissioncoefficient_interfacep(n1, sz1, n2, sz2) = (2 * n1 * sz1) / (n2 * sz1 + n1 * sz2);
 
-function rtss(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsx::T, nsy::T, λ) where {T, N<:AbstractVector{<:DefinedMedium}}
-    nsr = √(nsx^2 + nsy^2)
+function rtss(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsr::T, λ) where {T, N<:AbstractVector{<:DefinedMedium}}
     sizeA = length(stack.mat)
 	sz2 = complex(1 - (nsr / stack.mat[sizeA].n)^2)^T(1/2) # Cannot use sqrt for now as Enzyme not working with sqrt of complex numbers
 	sz1 = complex(1 - (nsr / stack.mat[sizeA-1].n)^2)^T(1/2)
@@ -84,8 +81,12 @@ function rtss(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsx::T, nsy::T
 	end
 	return (ri, ti)
 end
-@inline function rtss(stack::Union{DielectricStack, Mirror}, ::Type{Backward}, nsx, nsy, λ)
-    rtss(reverse(stack), Forward, nsx, nsy, λ)
+
+rtss(stack::DielectricStack, ::Type{Forward}, coords::NSX_NSY_λ) = rtss(stack, Forward, √(coords[1]^2 + coords[2]^2), coords[3])
+rtss(stack::DielectricStack, ::Type{Forward}, coords::NSR_NSθ_λ) = rtss(stack, Forward, coords[1], coords[3])
+
+@inline function rtss(stack::Union{DielectricStack, Mirror}, ::Type{Backward}, coords)
+    rtss(reverse(stack), Forward, coords)
 end
 
 function Base.reverse(stack::DielectricStack{T}) where T
@@ -94,38 +95,27 @@ function Base.reverse(stack::DielectricStack{T}) where T
     DielectricStack(T, mat_rev, h_rev, first(stack.frames))
 end
 
-function _light_interaction(stack::Union{DielectricStack, Mirror}, pw::PlaneWaveScalar{T,D}) where {T,D}
-    # change coordinate frame
-    (r,t) = rtss(stack, D, pw.nsx, pw.nsy, pw.wavelength)
-    r_pw = PlaneWaveScalar(T, D, pw.nsx, pw.nsy, r * pw.e, pw.wavelength, first(stack.mat), pw.frame, pw.dA)
-    t_pw = PlaneWaveScalar(T, D, pw.nsx, pw.nsy, t * pw.e, pw.wavelength, last(stack.mat), pw.frame, pw.dA)
-    
-    return reverse_if_backward(D, (r_pw, t_pw))
-end
-
-
 ## Beam calculations
-function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirror}, beam::ScalarAngularSpectrumBeam{T,D}) where {T,D}
-    ipw = beam.modes
-    aux_struct = StructArray{Point2D{Complex{T}}}(reverse_if_backward(D, (field_b.modes.e, field_f.modes.e)))
-    function f(nsx, nsy, ipwe, wavelength) 
-        (a, b) = rtss(comp, D, nsx, nsy, wavelength)
-        Point2D(a * ipwe, b * ipwe)
+function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirror}, beam::MeshedAngularSpectrum{T,D,C}) where {T,D, C<:AngularSpectrumCoords}
+    aux_struct = StructArray{Point2D{Complex{T}}}(reverse_if_backward(D, (field_b.e, field_f.e)))
+    function f(index)
+        (a, b) = rtss(comp, D, C(centroid(beam.mesh, index).coords))
+        Point2D(a * beam.e[index], b * beam.e[index])
     end
-    broadcast!(f, aux_struct, ipw.nsx, ipw.nsy, ipw.e, ipw.wavelength)
+    broadcast!(f, vec(aux_struct), eachindex(beam.e))
     (field_b, field_f)
 end
 
-function _ScatteringMatrix(field_b::Beam, field_f::Beam, comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any}}, field_i::AngularSpectrumBeam{T,D}) where {T,D, M2}
-    r = similar(field_i.modes.e, Complex{T})
+function _ScatteringMatrix(field_b::MeshedAngularSpectrum, field_f::MeshedAngularSpectrum, comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any}}, field_i::MeshedAngularSpectrum{T,D,C}) where {T,D, M2, C}
+    r = similar(field_i.e, Complex{T})
     t = similar(r)
 
     aux_struct = StructArray{Point2D{Complex{T}}}((r, t))
-    function f(nsx, nsy, wavelength) 
-        (a, b) = rtss(comp, D, nsx, nsy, wavelength)
+    function f(index)
+        (a, b) = rtss(comp, D, C(centroid(field_i.mesh, index)))
         Point2D(a, b)
     end
-    broadcast!(f, aux_struct, field_i.modes.nsx, field_i.modes.nsy, field_i.modes.wavelength)
+    broadcast!(f, vec(aux_struct), eachindex(field_i.e))
     
     (mat_i_to_b, mat_i_to_f) = reverse_if_backward(D, (r, t))
     ScatteringMatrix(T, field_b, field_f, Diagonal(vec(mat_i_to_b)), Diagonal(vec(mat_i_to_f)), field_i)
@@ -143,28 +133,22 @@ function check_output_fields(field_b, field_f, comp, field_i::AngularSpectrumBea
     return true
 end
 
-function check_input_field(comp::Union{DielectricStack, Mirror}, field_i::AngularSpectrumBeam{T,D}) where {D,T}
-    all(field_i.modes.frame .≈ Ref((D == Forward ? first : last)(comp.frames))) || return false
-    all(field_i.modes.medium .≈ Ref((D == Forward ? first : last)(comp.mat))) || return false
+function check_input_field(comp::Union{DielectricStack, Mirror}, field_i::MeshedAngularSpectrum{T,D}) where {D,T}
+    field_i.frame ≈ (D == Forward ? first : last)(comp.frames) || return false
+    field_i.medium ≈ (D == Forward ? first : last)(comp.mat) || return false
     return true
 end
 
-function check_input_field(comp::Union{<:DielectricStack, <:Mirror}, field_i::PlaneWaveScalar{T,D}) where {T,D}
-    field_i.frame ≈ ((D == Forward ? first : last)(comp.frames)) || return false
-    field_i.medium ≈ ((D == Forward ? first : last)(comp.mat)) || return false
-    return true
+function forward_backward_field(comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any,<:Any,M2}}, field_i::MeshedAngularSpectrum{T,D, C}) where {T,D, M2, C}
+    frame_b = first(comp.frames)
+    frame_f = last(comp.frames)
+    medium_b = first(comp.mat)
+    medium_f = last(comp.mat)
+    e_b = similar(field_i.e, Complex{T})
+    e_f = similar(field_i.e, Complex{T})
+
+    field_b = MeshedBeam{T, Backward, C}(field_i.mesh, e_b, medium_b, frame_b)
+    field_t = MeshedBeam{T, Forward, C}(field_i.mesh, e_f, medium_f, frame_f)
+    (field_b, field_t)
 end
 
-function forward_backward_field(comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any,<:Any,M2}}, field_i::AngularSpectrumBeam{T,D}) where {T,D, M2}
-    ipw = field_i.modes
-    frame_b = Fill(first(comp.frames), size(ipw))
-    frame_f = Fill(last(comp.frames), size(ipw))
-    medium_b = Fill(first(comp.mat), size(ipw))
-    medium_f = Fill(last(comp.mat), size(ipw))
-    e_b = similar(ipw.e, Complex{T})
-    e_f = similar(ipw.e, Complex{T})
-
-    field_b = Beam(StructArray{PlaneWaveScalar{T,Backward,Complex{T},M2}}((ipw.nsx, ipw.nsy, e_b, ipw.wavelength, medium_b, frame_b, ipw.dA)))
-    field_f = Beam(StructArray{PlaneWaveScalar{T,Forward,Complex{T},M2}}((ipw.nsx, ipw.nsy, e_f, ipw.wavelength, medium_f, frame_f, ipw.dA)))
-    (field_b, field_f)
-end

@@ -5,25 +5,25 @@ import Jolab: Forward, Backward
 
 stack_test = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(2.0), ReferenceFrame((1,0,0), (0,0,0)))
+pw = MeshedPlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(2.0), ReferenceFrame((1,0,0), (0,0,0)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,0,0)))
+pw = MeshedPlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,0,0)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,.5,.1)))
+pw = MeshedPlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((2,0,0), (0,.5,.1)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
-pw = PlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((1,0,0), (0,.5,.1)))
+pw = MeshedPlaneWaveScalar(Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((1,0,0), (0,.5,.1)))
 @test_throws ArgumentError light_interaction(stack_test, pw)
 
 ## Test types 
 
 function test_type(T)
     stack_test = DielectricStack(T, Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
-    pw = PlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
+    pw = MeshedPlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
     (rpw, tpw) = light_interaction(stack_test, pw)
-    typeof(rpw.e) == Complex{T} && typeof(rpw.nsx) == T && typeof(tpw.e) == Complex{T} && typeof(tpw.nsx) == T
+    eltype(rpw.e) == Complex{T} && eltype(tpw.e) == Complex{T}
 end
 @test test_type(BigFloat)
 @test test_type(Float64)
@@ -32,9 +32,9 @@ end
 
 function test_type_complex(T)
     stack_test = DielectricStack(T, Medium.((@SVector [1 + im, 1.5 + im, 1 + im])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
-    pw = PlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1 + im), ReferenceFrame((0,0,0), (0,0,0)))
+    pw = MeshedPlaneWaveScalar(T, Forward, 0, 0.1, 1, 1550E-9, Medium(1 + im), ReferenceFrame((0,0,0), (0,0,0)))
     (rpw, tpw) = light_interaction(stack_test, pw)
-    typeof(rpw.e) == Complex{T} && typeof(rpw.nsx) == T && typeof(tpw.e) == Complex{T} && typeof(tpw.nsx) == T
+    eltype(rpw.e) == Complex{T} && eltype(tpw.e) == Complex{T}
 end
 @test test_type_complex(BigFloat)
 @test test_type_complex(Float64)
@@ -43,9 +43,9 @@ end
 
 ## Test values
 function test_reflection_coeffiecient(nsx, nsy, λ, mls)
-    pw = PlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(mls.mat), ReferenceFrame((0,0,0), (0,0,0)))
+    pw = Jolab.MeshedPlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(mls.mat), ReferenceFrame((0,0,0), (0,0,0)))
     (rpw, tpw) = light_interaction(mls, pw)
-    (rpw.e, tpw.e)
+    (rpw.e[1], tpw.e[1])
 end
 ref = ReferenceFrame((0,0,0), (0,0,0))
 stack_test = DielectricStack(Medium.((@SVector [1, 2, 1])), (@SVector [100E-9]), ref)
@@ -81,26 +81,26 @@ stack_test = DielectricStack(Medium.((@SVector [1.33, 1, 1])), (@SVector Float64
 stack_f = DielectricStack(Medium.((@SVector [1, 4, 2+im, 1])), (@SVector [500E-9, 200E-9]), ref)
 stack_b = DielectricStack(Medium.((@SVector [1, 2+im, 4, 1])), (@SVector [200E-9, 500E-9]), ref)
 function test_reflection_coeffiecient(stack_forward, stack_backward, nsx, nsy, λ)
-    pw_f = PlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(stack_forward.mat), ref)
-    pw_b = PlaneWaveScalar(Backward, nsx, nsy, 1, λ, first(stack_backward.mat), last(stack_backward.frames))
+    pw_f = MeshedPlaneWaveScalar(Forward, nsx, nsy, 1, λ, first(stack_forward.mat), ref)
+    pw_b = MeshedPlaneWaveScalar(Backward, nsx, nsy, 1, λ, first(stack_backward.mat), last(stack_backward.frames))
     (rpw_b, tpw_b) = light_interaction(stack_backward, pw_b)
     (rpw_f, tpw_f) = light_interaction(stack_forward, pw_f)
-    rpw_f.e ≈ tpw_b.e && tpw_f.e ≈ rpw_b.e
+    rpw_f.e[1] ≈ tpw_b.e[1] && tpw_f.e[1] ≈ rpw_b.e[1]
 end
 @test test_reflection_coeffiecient(stack_b, stack_f, 0.1, 0.2, 1500E-9)
 
 function f_beam(λ)
     mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
-    nsx = range(0, 0.95, length = 100) .+ zeros(100)'
-    beam = Jolab.monochromatic_angularspectrum(Float64, Forward, nsx, nsx', (nsx .* nsx)', λ, Medium(1.0), ReferenceFrame((0,0,0), (0,0,1)));
+    nsx = range(-.95, 0.95, length = 100)
+    beam = MonochromaticAngularSpectrum(Forward, nsx, nsx, (nsx .* nsx'), λ, Medium(1.0), ReferenceFrame((0,0,0), (0,0,1)));
     (rbeam, tbeam) = light_interaction(mls, beam)
 end
 f_beam(1550E-9);
 
 function test_scatmat_f(mls)
-    nsx = range(0, 0.95, length = 100) .+ zeros(100)'
-    beam = Jolab.monochromatic_angularspectrum(Float64, Forward, nsx, nsx', (nsx .* nsx)', 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)));
-    mat = Jolab.ScatteringMatrix(mls, beam)
+    nsx = range(0, 0.95, length = 100)
+    beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, (nsx .* nsx'), 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)));
+    mat = ScatteringMatrix(mls, beam)
     (mat_r, mat_t) = light_interaction(mat, beam)
     (aux_r, aux_t) = light_interaction(mls, beam)
     mat_r ≈ aux_r && mat_t ≈ aux_t
@@ -111,9 +111,9 @@ mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)), re
 @test test_scatmat_f(mirror)
 
 function test_scatmat_b(mls)
-    nsx = range(0, 0.95, length = 100) .+ zeros(100)'
-    beam = Jolab.monochromatic_angularspectrum(Float64, Backward, nsx, nsx', (nsx .* nsx)', 1550E-9, Medium(1.0), last(mls.frames));
-    mat = Jolab.ScatteringMatrix(mls, beam)
+    nsx = range(0, 0.95, length = 100)
+    beam = MonochromaticAngularSpectrum(Float64, Backward, nsx, nsx, (nsx .* nsx'), 1550E-9, Medium(1.0), last(mls.frames));
+    mat = ScatteringMatrix(mls, beam)
     (mat_r, mat_t) = mat * beam
     (aux_r, aux_t) = light_interaction(mls, beam)
     mat_r ≈ aux_r && mat_t ≈ aux_t
@@ -130,7 +130,7 @@ Enzyme.API.runtimeActivity!(true)
 function jac(x)
     n, k, h, nsx, nsy, λ = x
     stack_test = DielectricStack(Float64, Medium.((@SVector [1 + k*im, n, 1])), (@SVector [h]), ReferenceFrame((0,0,0), (0,0,1)))
-    Jolab.rtss(stack_test, Forward, nsx, nsy, λ)
+    Jolab.rtss(stack_test, Forward, sqrt(nsx^2 + nsy^2), λ)
 end
 enz_jac = Enzyme.jacobian(Enzyme.Forward, jac, [2, 1, 100E-9, .1, .1, 1550E-9])
 
@@ -145,20 +145,20 @@ fin_jac_t = FiniteDiff.finite_difference_jacobian(x -> jac(x)[2], [2, 1, 100E-9,
 
 stack_test = DielectricStack(Medium.((@SVector [1+0im, 2.0, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
 
-ad_diff = autodiff(Enzyme.Forward, Jolab.rtss, Duplicated, Const(stack_test), Const(Forward), Const(0.1), Const(0.1), Duplicated(1550E-9, 1.0))[2]
-num_diff = (finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, 0.1, 0.1, i)[1], 1550E-9; absstep = 1E-18), finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, 0.1, 0.1, i)[2], 1550E-9; absstep = 1E-18))
+ad_diff = autodiff(Enzyme.Forward, Jolab.rtss, Duplicated, Const(stack_test), Const(Forward), Const(0.1), Duplicated(1550E-9, 1.0))[2]
+num_diff = (finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, 0.1, i)[1], 1550E-9; absstep = 1E-18), finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, 0.1, i)[2], 1550E-9; absstep = 1E-18))
 @test all((num_diff) .≈ ad_diff)
 
 # direction dependency
-ad_diff = autodiff(Enzyme.Forward, Jolab.rtss, Duplicated, Const(stack_test), Const(Forward), Duplicated(0.1, 1.0), Const(0.1), Const(1550E-9))[2]
-num_diff = (finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, i, 0.1, 1550E-9)[1], 0.1; absstep = 1E-18),
-    finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, i, 0.1, 1550E-9)[2], 0.1; absstep = 1E-10))
+ad_diff = autodiff(Enzyme.Forward, Jolab.rtss, Duplicated, Const(stack_test), Const(Forward), Duplicated(0.1, 1.0), Const(1550E-9))[2]
+num_diff = (finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, i, 1550E-9)[1], 0.1; absstep = 1E-18),
+    finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, i, 1550E-9)[2], 0.1; absstep = 1E-10))
 @test all((num_diff) .≈ ad_diff)
 
 # Refractive index dependency
 function f(n)
     mls = DielectricStack(Medium.((@SVector [1+0im, n, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
-    Jolab.rtss(mls, Forward, 0.1, 0.1, 1550E-9)
+    Jolab.rtss(mls, Forward, 0.1, 1550E-9)
 end
 ad_diff = autodiff(Enzyme.Forward, f, Duplicated, Duplicated(2.0, 1.0))[2]
 num_diff = (finite_difference_derivative(i -> f(i)[1], 2.0; absstep = 1E-18),
@@ -168,7 +168,7 @@ num_diff = (finite_difference_derivative(i -> f(i)[1], 2.0; absstep = 1E-18),
 # Thickness dependency
 function f(h)
     mls = DielectricStack(Medium.((@SVector [1+0im, 2, 1])), (@SVector [h]), ReferenceFrame((0,0,0), (0,0,1)))
-    Jolab.rtss(mls, Forward, 0.1, 0.1, 1550E-9)
+    Jolab.rtss(mls, Forward, 0.1, 1550E-9)
 end
 ad_diff = autodiff(Enzyme.Forward, f, Duplicated, Duplicated(10E-9, 1.0))[2]
 num_diff = (finite_difference_derivative(i -> f(i)[1], 10E-9; absstep = 1E-20),
@@ -177,22 +177,22 @@ num_diff = (finite_difference_derivative(i -> f(i)[1], 10E-9; absstep = 1E-20),
 
 
 function f_rbeam(mls, nsx, nsy, e, medium, frame, λ)
-    beam2 = Jolab.monochromatic_angularspectrum(Float64, Forward, nsx, nsy, e, λ, medium, frame)
+    beam2 = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsy, e, λ, medium, frame)
     (rbeam, tbeam) = light_interaction(mls, beam2)
     intensity(rbeam)
 end
 
 function f_tbeam(mls, nsx, nsy, e, medium, frame, λ)
-    beam2 = Jolab.monochromatic_angularspectrum(Float64, Forward, nsx, nsy, e, λ, medium, frame)
+    beam2 = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsy, e, λ, medium, frame)
     (rbeam, tbeam) = light_interaction(mls, beam2)
     intensity(tbeam)
 end
 
 medium = Medium(1.0)
 frame = ReferenceFrame((0,0,0), (0,0,1))
-nsx = range(0, 0.5, length = 100) .+ zeros(100)'
-nsy = collect(nsx')
-e = deepcopy(nsx)
+nsx = range(0, 0.5, length = 100)
+nsy = nsx
+e = deepcopy(nsx * nsx')
 T = Float64
 mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
 

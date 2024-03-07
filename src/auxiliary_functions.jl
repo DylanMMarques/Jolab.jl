@@ -2,8 +2,8 @@ reverse_if_backward(::Type{Forward}, x) = x
 reverse_if_backward(::Type{Backward}, x) = reverse(x)
 
 import Base.!
-Base.length(beam::Beam) = length(beam.modes)
-Base.size(beam::Beam) = size(beam.modes)
+Base.length(beam::MeshedBeam) = length(beam.e)
+Base.size(beam::MeshedBeam) = size(beam.e)
 (!)(::Type{Forward}) = Backward
 (!)(::Type{Backward}) = Forward
 
@@ -17,15 +17,13 @@ function check_same_definition(mode1::M1, mode2::M2) where {M2<:AbstractFieldMod
     return true
 end
 
-function check_same_definition(beam1::Beam{T1,D1,<:StructArray{M1}}, beam2::Beam{T2,D2,<:StructArray{M2}}) where {T1,T2,D1,D2,M1,M2}
-    same_mode_type(M1, M2) || return false
-    D1 == D2 || return false 
-    fields = fieldnames(M1)
-    for field in Iterators.filter(!=(:e), fields)
-        all(component(beam1.modes, field) .≈ component(beam2.modes, field)) || return false
-    end
+function check_same_definition(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}) where {T1,T2,D, C}
+    beam1.mesh ≈ beam2.mesh || return false
+    beam1.frame ≈ beam2.frame || return false
+    beam1.medium ≈ beam2.medium || return false
     return true
 end
+check_same_definition(beam1::MeshedBeam, beam2::MeshedBeam) = false
 
 same_mode_type(::Type{<:PlaneWaveScalar}, ::Type{<:PlaneWaveScalar}) = true
 same_mode_type(::Type{<:PlaneWaveVectorial}, ::Type{<:PlaneWaveVectorial}) = true
