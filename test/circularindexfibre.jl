@@ -1,5 +1,5 @@
 import Pkg
-Pkg.activate("/home/dylan/JolabADTest/")
+Pkg.activate("/home/dylan/JolabAaTest/")
 using Jolab, Test, Enzyme, Optim
 import Jolab: Forward, Backward
 
@@ -9,11 +9,9 @@ fibre = Fibre(profile, 1, Medium.((1,1)), (ReferenceFrame((0,0,0), (0,0,0)), Ref
 
 Jolab.findmodes!(fibre, 1500E-9)
 
-_x = -100E-6:1E-6:100E-6
-x = _x .+ 0(_x')
-y = x'
+x = -100E-6:1E-6:100E-6
 
-field = Jolab.monochromatic_fieldspace(Float64, Forward, x, y, ones(size(x)), 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
+field = MonochromaticSpatialBeam(Float64, Forward, x, x, x .* x', 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 
 (back, forw) = light_interaction(fibre, field)
 

@@ -21,15 +21,15 @@ for coordi in coord_list
     end)
 end
 
-for (cart, polar) in zip((NSX_NSY_λ, NSX_NSY_t, X_Y_λ, X_Y_t), (NSR_NSθ_λ, NSR_NSθ_t, R_θ_λ, R_θ_t))
+for (cart, polar) in zip((:NSX_NSY_λ, :NSX_NSY_t, :X_Y_λ, :X_Y_t), (:NSR_NSθ_λ, :NSR_NSθ_t, :R_θ_λ, :R_θ_t))
     eval(quote
-        function Base.convert(::Type{<:$cart}, coords::$polar)
-            car = CartesianFromPolar()(coords[1:2])
-            $cart((car.x, car.y, coords[3]))
+        function $cart(coords::$(polar){T}) where T
+            car = CartesianFromPolar()(Polar(coords[1], coords[2]))
+            $cart{T}((car.x, car.y, coords[3]))
         end
-        function Base.convert(::Type{<:$polar}, coords::$cart)
+        function $polar(coords::$(cart){T}) where T
             car = PolarFromCartesian()(coords[1:2])
-            $cart((car.r, car.θ, coords[3]))
+            $polar{T}((car.r, car.θ, coords[3]))
         end
     end)
 end
@@ -72,6 +72,9 @@ end
 
 const AngularSpectrumCoords = Union{NSX_NSY_λ, NSR_NSθ_λ}
 const MeshedAngularSpectrum{T,D,C<:AngularSpectrumCoords} = MeshedBeam{T,D,C}
+
+const SpatialCoords = Union{X_Y_λ, R_θ_λ, X_Y_t, R_θ_t}
+const MeshedSpatialBeam{T,D,C<:SpatialCoords} = MeshedBeam{T,D,C}
 
 function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium, frame) where {T,D,T2}
     mesh = CartesianGrid((1, 1, 1),

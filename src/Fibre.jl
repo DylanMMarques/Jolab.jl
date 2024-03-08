@@ -15,13 +15,14 @@ end
 Fibre(profile, length, media, frames) = Fibre(Float64, profile, length, media, frames)
 
 
-function check_input_field(fibre::Fibre, beam::ScalarSpatialBeam{T,D}) where {T,D}
+function check_input_field(fibre::Fibre, beam::MeshedSpatialBeam{<:Any,D}) where {D}
     (n_fibre, frame_fibre) = D == Forward ? first.((fibre.media, fibre.frames)) : last.((fibre.media, fibre.frames))
-    @argcheck all(broadcast((ni, λi) -> ni(λi) == n_fibre(λi), beam.modes.medium, beam.modes.wavelength)) ArgumentError("The medium of the beam and outside the fibre are not the same.")
-    @argcheck all(isapprox.(Ref(frame_fibre), beam.modes.frame)) ArgumentError("The reference frame of the beam and the fibre are not the same.")
+    @show beam.medium n_fibre
+    @argcheck beam.medium ≈ n_fibre ArgumentError("The medium of the beam and outside the fibre are not the same.")
+    @argcheck frame_fibre ≈ beam.frame ArgumentError("The reference frame of the beam and the fibre are not the same.")
     true
 end
-check_input_field(fibre::Fibre, beam::Beam) = false
+check_input_field(fibre::Fibre, beam::MeshedBeam) = false
 
 export Fibre, CircularStepIndexProfile
 
@@ -59,6 +60,7 @@ function find_wavefunction_solutions(profile::AbstractWaveguideProfile{T}, m, λ
     end
     map(i -> wavefunction_solutions(profile, λ, i, m), rough_βs)
 end
+function wavefunction_solutions() end
 
 function findmodes(profile::P, _λ) where {P<:AbstractWaveguideProfile{T}} where T
     λ = T(_λ)
@@ -162,39 +164,34 @@ function modeconstant(profile::CircularStepIndexProfile{T}, λ::Real, m::Integer
     (C, D)
 end
 
-function mode_field(mode::CircularStepIndexMode, coord::Polar)
+function mode_field(mode::CircularStepIndexMode, coord::R_θ_λ)
     α_1 = α1(mode.profile.na, mode.profile.ncore.n, mode.wavelength, mode.β)
     α_2 = α2(mode.profile.na, mode.profile.ncore.n, mode.wavelength, mode.β)
 
-    if coord.r < mode.profile.radius
-        mode.C * besselj(mode.m, α_1 * coord.r) * exp(im * mode.m * coord.θ)
+    if coord[1] < mode.profile.radius
+        mode.C * besselj(mode.m, α_1 * coord[1]) * exp(im * mode.m * coord[2])
     else
-        mode.D * besselk(mode.m, α_2 * coord.r) * exp(im * mode.m * coord.θ)
+        mode.D * besselk(mode.m, α_2 * coord[1]) * exp(im * mode.m * coord[2])
     end
 end
+mode_field(mode::CircularStepIndexMode, coord::X_Y_λ) = mode_field(mode, R_θ_λ(coord))
 
-function mode_field(mode::CircularStepIndexMode, x, y)
-    radial_coord = PolarFromCartesian()(Point2D(x, y))
-    mode_field(mode, radial_coord)
+function mode_coupling(mode::CircularStepIndexMode, field::MeshedSpatialBeam{T,D,C}) where {T,D,C}
+   overlap_integral(field.e, (coord) -> mode_field(mode, C(coord)), field.mesh)
 end
 
-function mode_coupling(mode::CircularStepIndexMode, field, x, y, dA)
-   overlap_integral(field, (x,y) -> mode_field(mode, x, y), x, y, dA) 
-end
-
-mode_coupling(mode::AbstractWaveguideMode, field::ScalarSpatialBeam) = mode_coupling(mode, field.e, field.x, field.y, field.dA)
-
-function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, <:CircularStepIndexMode}, field::ScalarSpatialBeam{T,D,<:Any,M}) where {T,D,M}
-    allequal(field.modes.wavelength) || error("not done yet")
-    number_modes = length(fibre.modes[field.modes.wavelength[1]])
-    modes_e = similar(field.modes.e, Complex{T}, number_modes)
-    modes_wavelength = Fill(field.modes.wavelength[1], number_modes)
-    modes_m = similar(field.modes.e, Int, number_modes)
-    modes_β = similar(field.modes.e, T, number_modes)
-    modes_C = similar(field.modes.e, T, number_modes)
-    modes_D = similar(field.modes.e, T, number_modes)
+function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, <:CircularStepIndexMode}, field::MeshedBeam{T,D,C}) where {T,D,C}
+    isone(size(field.mesh)[3]) || error("not done yet")
+    λ = centroid(field.mesh, 1).coords[3]
+    number_modes = length(fibre.modes[λ])
+    modes_e = similar(field.e, Complex{T}, number_modes)
+    modes_wavelength = Fill(λ, number_modes)
+    modes_m = similar(field.e, Int, number_modes)
+    modes_β = similar(field.e, T, number_modes)
+    modes_C = similar(field.e, T, number_modes)
+    modes_D = similar(field.e, T, number_modes)
     i = 1
-    for λi in unique(field.modes.wavelength)
+    for λi in (λ,)
         modes = fibre.modes[λi]
         number_modes_λ = length(modes)
         modes_e[i:i+number_modes_λ-1] .= modes.e
@@ -205,16 +202,16 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
     end
     frame = Fill((D == Forward ? first : last)(fibre.frames), number_modes)
     field_t = Beam(StructVector{CircularStepIndexMode{T,Forward,Complex{T}}}((modes_e, modes_wavelength, modes_m, modes_β, modes_C, modes_D, Fill(fibre.refractive_index_profile, number_modes), frame)))
-    field_r = Beam(StructArray{ScalarPointSource{T,Backward,T,M}}((field.modes.x, field.modes.y, Zeros(size(field.modes)), field.modes.wavelength, field.modes.medium, field.modes.frame, field.modes.dA)))
+    field_r = MeshedBeam{T,D,C}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 
 # TODO check_input_field(fibre, field)
 
-function _light_interaction!(back_beam::Beam, forw_beam::Beam, fibre::Fibre, ifield::ScalarSpatialBeam{T,D}) where {T,D}
+function _light_interaction!(back_beam, forw_beam, fibre::Fibre, ifield::MeshedSpatialBeam{T,D,C}) where {T,D,C}
     (r_field, t_field) = reverse_if_backward(D, (back_beam, forw_beam))
 
-    f(modei) = mode_coupling(modei, ifield.modes.e, ifield.modes.x, ifield.modes.y, ifield.modes.dA)
+    f(modei) = mode_coupling(modei, ifield)
     t_field.modes.e .= f.(t_field.modes)
     (back_beam, forw_beam)
 end

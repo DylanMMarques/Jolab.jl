@@ -1,7 +1,7 @@
 module Jolab
 
 using CoordinateTransformations, Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, Rotations, LinearAlgebra
-using Bessels, HCubature, Requires, Meshes
+using Bessels, HCubature, Meshes
 
 export light_interaction, intensity
 export translate_referenceframe, rotate_referenceframe
@@ -42,11 +42,5 @@ include("Fibre.jl")
 include("auxiliary_functions.jl")
 
 function __init__()
-    @info "Jolab initialized"
-    @require Enzyme="7da242da-08ed-463a-9acd-ee780be4f1d9" begin
-        @require Optim ="429524aa-4258-5aef-a3af-852621145aeb" begin
-            include("FIbreModeFinding.jl")
-        end
-    end
 end
 end

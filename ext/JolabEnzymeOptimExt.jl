@@ -1,10 +1,11 @@
 module JolabEnzymeOptimExt
 
-using Enzyme, Optim
+using Jolab, Enzyme, Optim, StaticArrays
+import Jolab: modecondition
 
 # Find the β that satisfies the mode condition, i.e. the mode condition == 0
 # The algorithm performs better if the initial guess is close to the solution
-function wavefunction_solutions(profile, λ, β, m_i)
+function Jolab.wavefunction_solutions(profile, λ, β, m_i)
     f(β) = modecondition(profile, λ, m_i, β[1])^2
     g(β) = autodiff(Enzyme.Forward, f, Duplicated, Duplicated(β[1], one(β[1])))
     function fgh!(F, G, H, β)

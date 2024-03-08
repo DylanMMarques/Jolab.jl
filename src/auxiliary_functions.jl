@@ -50,14 +50,16 @@ function find_local_minima(f, x::AbstractVector{T}, initial_size) where T
     local_minima[1:(ind_zeros-1)]
 end
 
-function overlap_integral(f1::F1, f2::F2, x, y, dA) where {F1, F2}
-    @argcheck size(x) == size(dA) == size(y) DimensionMismatch
-    F1 <: AbstractArray && @argcheck size(f1) == size(x) DimensionMismatch
-    F2 <: AbstractArray && @argcheck size(f2) == size(x) DimensionMismatch
+function overlap_integral(f1::F1, f2::F2, mesh) where {F1, F2}
+    F1 <: AbstractArray && @argcheck size(f1) == size(mesh) DimensionMismatch
+    F2 <: AbstractArray && @argcheck size(f2) == size(mesh) DimensionMismatch
 
-    f(val_1::Number, val_2::Number, x, y, dA::Number) = val_1 * conj(val_2) * dA
-    f(val_1::Number, val_2::Function, x, y, dA) = f(val_1, val_2(x, y), x, y, dA)
-    f(val_1::Function, val_2::Number, x, y, dA) = f(val_1(x, y), val_2, x, y, dA)
-    f(val_1::Function, val_2::Function, x, y, dA) = f(val_1(x, y), val_2(x, y), x, y, dA)
-    mapreduce(f, +, f1 isa Function ? Ref(f1) : f1, f2 isa Function ? Ref(f2) : f2 , x, y, dA)
+    @inline f(val_1::Number, val_2::Number, index) = val_1 * conj(val_2) * measure(mesh, index)
+    @inline f(val_1::Number, val_2::Function, index) = f(val_1, val_2(centroid(mesh, index)), index)
+    @inline f(val_1::Function, val_2::Number, index) = f(val_1(centroid(mesh, index)), val_2, index)
+    @inline f(val_1::Function, val_2::Function, index) = begin 
+        coord = centroid(mesh, index)
+        f(val_1(coord), val_2(coord), index)
+    end
+    mapreduce(f, +, f1 isa Function ? Ref(f1) : f1, f2 isa Function ? Ref(f2) : f2 , eachindex(mesh))
 end

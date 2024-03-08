@@ -27,7 +27,7 @@ Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 
 [extensions]
-JolabEnzymeOptimExt = ("Optim", "Enzyme")
+JolabEnzymeOptimExt = ["Optim", "Enzyme"]
 
 [compat]
 DSP = ">=0.7"
