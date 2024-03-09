@@ -134,7 +134,7 @@ struct CircularStepIndexMode{T,Dir<:AbstractDirection,T2<:RealOrComplex{T},M} <:
     D::T
     profile::CircularStepIndexProfile{T,M}
     frame::ReferenceFrame{T}
-    function CircularStepIndexMode(e::T2, wavelength::T, m::Int, β::T, C::T, D::T, profile::CircularStepIndexProfile{T,M}, frame::ReferenceFrame{T}) where {T,Dir,T2<:RealOrComplex{T}, M}
+    function CircularStepIndexMode(e::T2, wavelength::T, m::Int, β::T, C::T, D::T, profile::CircularStepIndexProfile{T,M}, frame::ReferenceFrame{T}) where {T,T2<:RealOrComplex{T}, M} # Missing Dir. Not sure how to deal with that
         new{T,Forward,T2,M}(e, wavelength, m, β, C, D, profile, frame)
     end
 end

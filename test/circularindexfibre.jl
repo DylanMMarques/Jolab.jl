@@ -1,10 +1,10 @@
 import Pkg
-Pkg.activate("/home/dylan/JolabADTest/")
+Pkg.activate("/home/dylan/.julia/dev/Jolab/test")
 using Jolab, Test, Enzyme, Optim
 import Jolab: Forward, Backward
 Enzyme.API.runtimeActivity!(true)
 
-profile = CircularStepIndexProfile(100E-6, 0.2, Medium(1.55))
+profile = CircularStepIndexProfile(10E-6, 0.2, Medium(1.55))
 
 fibre = Fibre(profile, 1, Medium.((1,1)), (ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,1), (0,0,0))))
 
@@ -37,9 +37,10 @@ n_modes(r_i) = begin
 end
 val = n_modes.(r_s)
 
-(back, forw) = Jolab.forward_backward_field(fibre, field)
+using Enzyme, Jolab, StaticArrays, FiniteDiff
+import FiniteDiff: finite_difference_derivative
 
-function coupling_field_derivative_2(x, fibre, e, λ, medium,ref)
+function coupling_field_derivative(x, fibre, e, λ, medium,ref)
     e_m = zeros(ComplexF64, length(x), length(x))
     e_m[1] = e
     field = MonochromaticSpatialBeam(Forward, x, x, e_m, λ, medium, ref)
@@ -54,10 +55,23 @@ const fibre2 = fibre
 
 frame = ReferenceFrame((0,0,0), (0,0,0))
 e = 1.0
-tmp(e) = coupling_field_derivative_2(x2, fibre, e, 1500E-9, Medium(1.0), frame)
-enz = autodiff(Enzyme.Forward, tmp, Duplicated, Duplicated(e, deepcopy(e)))
+tmp_(e, λ) = coupling_field_derivative(x2, fibre, e, λ, Medium(1.0), frame)
 
-using Enzyme, Jolab, StaticArrays, FiniteDiff
-import FiniteDiff: finite_difference_derivative
-fd_val = finite_difference_derivative(tmp, 1.0)
+enz = autodiff(Enzyme.Forward, tmp_, Duplicated, Duplicated(e, deepcopy(e)), Const(1500E-9))
+fd_val = finite_difference_derivative(i -> tmp_(i, 1500E-9), 1.0)
 @test all(isapprox.(fd_val, enz[2]))
+
+enz = autodiff(Enzyme.Forward, tmp_, Duplicated, Const(e), Duplicated(1500E-9, 1.0))
+
+function coupling_field_derivative(x, fibre, e, λ, medium,ref)
+    e_2 = reshape(e, length(x), length(x))
+    field = MonochromaticSpatialBeam(Forward, x, x, e_2, λ, medium, ref)
+    (back, forw) = light_interaction(fibre, field)
+    forw.modes.e
+end
+tmp_2(e) = coupling_field_derivative(x2, fibre, e, 1500E-9, Medium(1.0), frame)
+e = ones(length(x), length(x)) .+ eps()
+tmp_2(e)
+enz_2 = autodiff(Enzyme.Forward, tmp_2, DuplicatedNoNeed, Duplicated(vec(e), ones(length(e))))
+enz = jacobian(Enzyme.Reverse, tmp_2, vec(e), Val(17))
+all(isapprox.(enz * vec(e), enz_2.var"1"; atol = 1E-5))
