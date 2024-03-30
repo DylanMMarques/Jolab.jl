@@ -8,7 +8,7 @@ profile = CircularStepIndexProfile(10E-6, 0.2, Medium(1.55))
 
 fibre = Fibre(profile, 1, Medium.((1,1)), (ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,1), (0,0,0))))
 
-Jolab.findmodes!(fibre, 1500E-9)
+@time Jolab.findmodes!(fibre, 1500E-9)
 
 x = range(-100E-6, 100E-6, length = 20)
 
