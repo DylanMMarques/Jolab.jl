@@ -26,6 +26,7 @@ struct Bothway <: AbstractDirection end
 
 const RealOrComplex{T} = Union{T, Complex{T}}
 
+include("arrays.jl")
 include("meshes.jl")
 include("Medium.jl")
 include("ReferenceFrame.jl")

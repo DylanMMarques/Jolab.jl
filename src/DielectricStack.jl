@@ -97,12 +97,14 @@ end
 
 ## Beam calculations
 function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirror}, beam::MeshedAngularSpectrum{T,D,C}) where {T,D, C<:AngularSpectrumCoords}
-    aux_struct = StructArray{Point2D{Complex{T}}}(reverse_if_backward(D, (field_b.e, field_f.e)))
-    function f(index)
-        (a, b) = rtss(comp, D, C(centroid(beam.mesh, index).coords))
-        Point2D(a * beam.e[index], b * beam.e[index])
+    (field_r, field_t) = reverse_if_backward(D, (field_b.e, field_f.e))
+
+    function f(index, e)
+        (r, t) = rtss(comp, D, C(centroid(beam.mesh, index).coords))
+        (r * e, t * e)
     end
-    broadcast!(f, vec(aux_struct), eachindex(beam.e))
+    tmp = StructArray{Tuple{Complex{T}, Complex{T}}}((vec(field_r), vec(field_t)))
+    tmp .= f.(eachindex(beam.e), vec(beam.e))
     (field_b, field_f)
 end
 
@@ -110,12 +112,9 @@ function _ScatteringMatrix(field_b::MeshedAngularSpectrum, field_f::MeshedAngula
     r = similar(field_i.e, Complex{T})
     t = similar(r)
 
-    aux_struct = StructArray{Point2D{Complex{T}}}((r, t))
-    function f(index)
-        (a, b) = rtss(comp, D, C(centroid(field_i.mesh, index)))
-        Point2D(a, b)
-    end
-    broadcast!(f, vec(aux_struct), eachindex(field_i.e))
+    f(index) = rtss(comp, D, C(centroid(field_i.mesh, index)))
+    tmp = StructArray{Tuple{Complex{T}, Complex{T}}}((vec(r), vec(t)))
+    tmp .= f.(eachindex(field_i.e))
     
     (mat_i_to_b, mat_i_to_f) = reverse_if_backward(D, (r, t))
     ScatteringMatrix(T, field_b, field_f, Diagonal(vec(mat_i_to_b)), Diagonal(vec(mat_i_to_f)), field_i)

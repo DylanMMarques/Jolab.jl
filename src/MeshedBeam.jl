@@ -67,7 +67,7 @@ MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::Abstr
 
 function intensity(beam::MeshedBeam)
     f(e, ind) = abs2(e) * (volume(beam.mesh, ind) * beam.medium.n)
-    mapreduce(f, +, vec(beam.e), eachindex(beam.e))
+    mapreduce(f, +, vec(values_nonzeros(beam.e)), eachindex_nonzeros(beam.e))
 end
 
 const AngularSpectrumCoords = Union{NSX_NSY_λ, NSR_NSθ_λ}
@@ -107,7 +107,7 @@ function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin
     phase_term(medium, rΔpos, coord::NSR_NSθ_λ) = phase_term(medium, rΔpos, convert(NSX_NSY_λ, coord))
     phase_term(medium, rΔpos, index) = phase_term(medium, rΔpos, C(centroid(beam.mesh, index).coords))
 
-    new_e = reshape(map(i -> beam.e[i] * phase_term(beam.medium, rΔpos, i), eachindex(beam.e)), size(beam.e))
+    new_e = reshape(map(i -> beam.e[i] * phase_term(beam.medium, rΔpos, i), eachindex_nonzeros(beam.e)), size(beam.e))
     MeshedBeam{T,D,C}(deepcopy(beam.mesh), new_e, deepcopy(beam.medium), ReferenceFrame(new_origin, beam.frame.direction))
 end
 
@@ -124,7 +124,7 @@ function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point3D) wh
 
     nsz_val = nsz_nocomplex(pw.medium.n, pw.nsx, pw.nsy) 
     (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point3D{T}(pw.nsx, pw.nsy, nsz_val))
-
+    
     PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
 end
 
