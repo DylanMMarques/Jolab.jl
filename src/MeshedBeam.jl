@@ -56,6 +56,16 @@ function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, 
 end
 MonochromaticAngularSpectrum(::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticAngularSpectrum(Float64, D, nsx, nsy, e, λ, medium, frame)
 
+function MonochromaticAngularSpectrum_gaussian(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, ω, λ, medium, frame) where {T,D}
+	norm = 	T(ω * √(1 / 32 / π^3 / eps(T) / real(medium.n)) * 4π^2 / λ)
+    k = T(2π / λ)
+    e = T.(exp.(.-(nsx.^2 .+ (nsy').^2) .* ((ω * k)^2 / 16)) .* norm)
+    MonochromaticAngularSpectrum(T, D, nsx, nsy, e, λ, medium, frame)
+end,
+function MonochromaticAngularSpectrum_gaussian(D, nsx, nsy, ω, λ, medium, frame) 
+    MonochromaticAngularSpectrum_gaussian(Float64, D, nsx, nsy, ω, λ, medium, frame) 
+end
+
 function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     @argcheck size(e) == (length(x), length(y)) DimensionMismatch
     mesh = CartesianGrid((length(x), length(y), 1),
@@ -64,6 +74,15 @@ function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::Ab
     MeshedBeam{T, D, X_Y_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end
 MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticSpatialBeam(Float64, D, x, y, e, λ, medium, frame)
+
+function MonochromaticSpatialBeam_gaussian(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, ω, λ, medium, frame) where {T,D}
+    norm = 	T(√(T(8 / π / ω^2)  / real(medium.n) / eps(T))) # need EPS for λ integration. Not sure if good idea for
+    e = T.(exp.((x.^2 .+ (y').^2) .* (-4 / ω^2)) .* norm)
+    MonochromaticSpatialBeam(T, D, x, y, e, λ, medium, frame)
+end,
+function MonochromaticSpatialBeam_gaussian(D, x, y, ω, λ, medium, frame) 
+    MonochromaticSpatialBeam_gaussian(Float64, D, x, y, ω, λ, medium, frame) 
+end
 
 function intensity(beam::MeshedBeam)
     f(e, ind) = abs2(e) * (volume(beam.mesh, ind) * beam.medium.n)
@@ -143,7 +162,8 @@ function light_interaction!(field_b, field_f, comp, beam)
 end
 
 function light_interaction(comp, beam)
-    @argcheck check_input_field(comp, beam) ArgumentError
+    msg_code = check_input_field(comp, beam)
+    msg_code == 0 || throw_error_msg(msg_code)
     (field_b, field_f) = forward_backward_field(comp, beam)
     _light_interaction!(field_b, field_f, comp, beam)
 end

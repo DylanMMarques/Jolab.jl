@@ -17,13 +17,13 @@ Fibre(profile, length, media, frames) = Fibre(Float64, profile, length, media, f
 
 
 function check_input_field(fibre::Fibre, beam::MeshedSpatialBeam{<:Any,D}) where {D}
-    return true
     (n_fibre, frame_fibre) = D == Forward ? first.((fibre.media, fibre.frames)) : last.((fibre.media, fibre.frames))
-    @argcheck beam.medium ≈ n_fibre ArgumentError("The medium of the beam and outside the fibre are not the same.")
-    @argcheck frame_fibre ≈ beam.frame ArgumentError("The reference frame of the beam and the fibre are not the same.")
-    true
+    code = zero(UInt64)
+    (beam.medium ≈ n_fibre) || (code += 1 << INVALID_MEDIUM)
+    (frame_fibre ≈ beam.frame) || (code += 1 << INVALID_FRAME)
+    code
 end
-check_input_field(fibre::Fibre, beam::MeshedBeam) = false
+check_input_field(fibre::Fibre, beam::MeshedBeam) = 1 << INVALID_BEAM_TYPE 
 
 export Fibre, CircularStepIndexProfile
 

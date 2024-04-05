@@ -7,7 +7,7 @@ export light_interaction, intensity
 export translate_referenceframe, rotate_referenceframe
 export Forward, Backward
 export ScatteringMatrix
-export MonochromaticAngularSpectrum, MonochromaticSpatialBeam, MeshedPlaneWaveScalar
+export MonochromaticAngularSpectrum, MonochromaticSpatialBeam, MeshedPlaneWaveScalar, MonochromaticAngularSpectrum_gaussian, MonochromaticSpatialBeam_gaussian
 
 import StructArrays: component
 
@@ -26,6 +26,7 @@ struct Bothway <: AbstractDirection end
 
 const RealOrComplex{T} = Union{T, Complex{T}}
 
+include("errors.jl")
 include("arrays.jl")
 include("meshes.jl")
 include("Medium.jl")
@@ -37,6 +38,7 @@ include("MeshedBeam.jl")
 include("ScatteringMatrix.jl")
 
 include("DielectricStack.jl")
+include("Lens.jl")
 # include("SingleModeFibre.jl")
 include("Fibre.jl")
 

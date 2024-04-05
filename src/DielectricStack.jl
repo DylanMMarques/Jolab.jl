@@ -120,22 +120,11 @@ function _ScatteringMatrix(field_b::MeshedAngularSpectrum, field_f::MeshedAngula
     ScatteringMatrix(T, field_b, field_f, Diagonal(vec(mat_i_to_b)), Diagonal(vec(mat_i_to_f)), field_i)
 end
 
-function check_output_fields(field_b, field_f, comp, field_i::AngularSpectrumBeam)
-    all(field_b.nsx .≈ field_f.nsx .≈ field_i.nsx) || return false
-    all(field_b.nsy .≈ field_f.nsy .≈ field_i.nsy) || return false
-    all(field_b.wavelength .≈ field_f.wavelength .≈ field_i.wavelength) || return false
-    all(field_b.medium .≈ first.(comp.mat)) || return false
-    all(field_f.medium .≈ last.(comp.mat)) || return false
-    all(field_f.dA .≈ field_i.dA .≈ field_b.dA) || return false
-    all(field_b.frame .≈ first(comp.frames)) || return false
-    all(field_f.frame .≈ last(comp.frames)) || return false
-    return true
-end
-
 function check_input_field(comp::Union{DielectricStack, Mirror}, field_i::MeshedAngularSpectrum{T,D}) where {D,T}
-    field_i.frame ≈ (D == Forward ? first : last)(comp.frames) || return false
-    field_i.medium ≈ (D == Forward ? first : last)(comp.mat) || return false
-    return true
+    msg_code = zero(UInt64)
+    field_i.frame ≈ (D == Forward ? first : last)(comp.frames) || (msg_code += 1 << INVALID_FRAME)
+    field_i.medium ≈ (D == Forward ? first : last)(comp.mat) || (msg_code += 1 << INVALID_MEDIUM)
+    msg_code
 end
 
 function forward_backward_field(comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any,<:Any,M2}}, field_i::MeshedAngularSpectrum{T,D, C}) where {T,D, M2, C}
