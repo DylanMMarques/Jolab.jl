@@ -37,7 +37,6 @@ for (cart, polar) in zip((:NSX_NSY_λ, :NSX_NSY_t, :X_Y_λ, :X_Y_t), (:NSR_NSθ_
     end)
 end
 
-
 struct MeshedBeam{T, D, C, V, E<:AbstractArray{<:RealOrComplex{T},3}, M<:Medium{T,<:RealOrComplex{T}}, T2<:RealOrComplex{T}} <: AbstractField{T, D}
     mesh::V
     e::E
@@ -139,22 +138,19 @@ function nsz_nocomplex(n, nsx, nsy)
     return √tmp
 end
 
-function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point3D) where {T,D}
-    is_complex_medium(pw.medium) && throw(ArgumentError("Thereference frame of a angular spectrum defined in a medium with a complex refractive index is not defined."))
+# function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point3D) where {T,D}
+#     is_complex_medium(pw.medium) && throw(ArgumentError("Thereference frame of a angular spectrum defined in a medium with a complex refractive index is not defined."))
     
-    rot_matrix = RotXYZ(pw.frame.direction.x, pw.frame.direction.y, pw.frame.direction.z)
+#     rot_matrix = RotXYZ(pw.frame.direction.x, pw.frame.direction.y, pw.frame.direction.z)
 
-    nsz_val = nsz_nocomplex(pw.medium.n, pw.nsx, pw.nsy) 
-    (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point3D{T}(pw.nsx, pw.nsy, nsz_val))
+#     nsz_val = nsz_nocomplex(pw.medium.n, pw.nsx, pw.nsy) 
+#     (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point3D{T}(pw.nsx, pw.nsy, nsz_val))
     
-    PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
-end
-
-rotate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point3D{T}, new_angles))
-translate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point3D{T}, new_origin))
+#     PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
+# end,
+# rotate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point3D{T}, new_angles))
+translate_referenceframe(pw::Union{AbstractFieldMode{T}, MeshedBeam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point3D{T}, new_origin))
 ()
-number_modes(beam::Beam) = length(beam.modes)
-
 
 ## Light light_interaction
 
@@ -169,9 +165,4 @@ function light_interaction(comp, beam)
     msg_code == 0 || throw_error_msg(msg_code)
     (field_b, field_f) = forward_backward_field(comp, beam)
     _light_interaction!(field_b, field_f, comp, beam)
-end
-
-function light_interaction(comp, beam::PlaneWaveScalar)
-    @argcheck check_input_field(comp, beam) ArgumentError
-    _light_interaction(comp, beam)
 end

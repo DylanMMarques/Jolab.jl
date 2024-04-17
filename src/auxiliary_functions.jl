@@ -25,8 +25,6 @@ function check_same_definition(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D
 end
 check_same_definition(beam1::MeshedBeam, beam2::MeshedBeam) = false
 
-same_mode_type(::Type{<:PlaneWaveScalar}, ::Type{<:PlaneWaveScalar}) = true
-same_mode_type(::Type{<:PlaneWaveVectorial}, ::Type{<:PlaneWaveVectorial}) = true
 same_mode_type(::Type{<:AbstractFieldMode}, ::Type{<:AbstractFieldMode}) = false
 
 function find_local_minima(f, x::AbstractVector{T}, initial_size) where T

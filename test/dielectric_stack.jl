@@ -89,7 +89,7 @@ function test_reflection_coeffiecient(stack_forward, stack_backward, nsx, nsy, �
 end
 @test test_reflection_coeffiecient(stack_b, stack_f, 0.1, 0.2, 1500E-9)
 
-function f_beam(λ)
+function f_beam(λ) Const(1500E-9)
     mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
     nsx = range(-.95, 0.95, length = 100)
     beam = MonochromaticAngularSpectrum(Forward, nsx, nsx, (nsx .* nsx'), λ, Medium(1.0), ReferenceFrame((0,0,0), (0,0,1)));
@@ -120,11 +120,6 @@ function test_scatmat_b(mls)
 end
 @test test_scatmat_b(mls)
 @test test_scatmat_b(mirror)
-
-## Enzyme tests on Dielectric Stack
-using Enzyme, Jolab, StaticArrays, FiniteDiff
-import FiniteDiff: finite_difference_derivative
-Enzyme.API.runtimeActivity!(true)
 
 ## Jacobian tests
 function jac(x)

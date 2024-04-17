@@ -15,12 +15,12 @@ struct Fibre{T,R, M, VM <: AbstractVector{M}}
 end
 Fibre(profile, length, media, frames) = Fibre(Float64, profile, length, media, frames)
 
-
 function check_input_field(fibre::Fibre, beam::MeshedSpatialBeam{<:Any,D}) where {D}
-    (n_fibre, frame_fibre) = D == Forward ? first.((fibre.media, fibre.frames)) : last.((fibre.media, fibre.frames))
+    n_fibre = reverse_if_backward(D, fibre.media)[1]
+    frame_fibre = reverse_if_backward(D, fibre.frames)[1]
     code = zero(UInt64)
-    (beam.medium ≈ n_fibre) || (code += 1 << INVALID_MEDIUM)
-    (frame_fibre ≈ beam.frame) || (code += 1 << INVALID_FRAME)
+    (beam.medium ≈ n_fibre) || (code &= 1 << INVALID_MEDIUM)
+    (frame_fibre ≈ beam.frame) || (code &= 1 << INVALID_FRAME)
     code
 end
 check_input_field(fibre::Fibre, beam::MeshedBeam) = 1 << INVALID_BEAM_TYPE 
@@ -212,8 +212,6 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
     field_r = MeshedBeam{T,D,C}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
-
-# TODO check_input_field(fibre, field)
 
 function _light_interaction!(back_beam::MeshedSpatialBeam, forw_beam::Beam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Forward,C}) where {T,C}
     f(modei) = mode_coupling(modei, ifield)

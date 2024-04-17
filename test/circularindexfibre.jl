@@ -1,8 +1,4 @@
-import Pkg
-Pkg.activate("/home/dylan/.julia/dev/Jolab/test")
-using Jolab, Test, Enzyme, Optim
-import Jolab: Forward, Backward
-Enzyme.API.runtimeActivity!(true)
+using Optim
 
 profile = CircularStepIndexProfile(10E-6, 0.2, Medium(1.55))
 
@@ -37,9 +33,6 @@ n_modes(r_i) = begin
 end
 val = n_modes.(r_s)
 
-using Enzyme, Jolab, StaticArrays, FiniteDiff
-import FiniteDiff: finite_difference_derivative
-
 function coupling_field_derivative(x, fibre, e, λ, medium,ref)
     e_m = zeros(ComplexF64, length(x), length(x))
     e_m[1] = e
@@ -68,11 +61,11 @@ function coupling_field_derivative(x, fibre, e, λ, medium,ref)
     e_2 = reshape(e, length(x), length(x))
     field = MonochromaticSpatialBeam(Forward, x, x, e_2, λ, medium, ref)
     (back, forw) = light_interaction(fibre, field)
-    forw.modes.e
+    real.(forw.modes.e)
 end
-tmp_2(e) = coupling_field_derivative(x2, fibre, e, 1500E-9, Medium(1.0), frame)
+tmp_2(e) = coupling_field_derivative(x2, fibre2, e, 1500E-9, Medium(1.0), frame)
 e = ones(length(x), length(x)) .+ eps()
 tmp_2(e)
 enz_2 = autodiff(Enzyme.Forward, tmp_2, DuplicatedNoNeed, Duplicated(vec(e), ones(length(e))))
 enz = jacobian(Enzyme.Reverse, tmp_2, vec(e), Val(17))
-all(isapprox.(enz * vec(e), enz_2.var"1"; atol = 1E-5))
+@test all(isapprox.(enz * vec(e), enz_2.var"1"; atol = 1E-5))

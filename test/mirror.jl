@@ -44,3 +44,27 @@ mirror = Mirror((Medium(2.0), Medium(2.0)), ReferenceFrame((0,0,0), (0,0,0)), re
 mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (.2,0,0)), reflectivity = R)
 @test_throws ArgumentError light_interaction(mirror, pw_b)
 @test_throws ArgumentError light_interaction(mirror, pw_f)
+
+function test_scatmat_f(mls)
+    nsx = range(0, 0.95, length = 100)
+    beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, (nsx .* nsx'), 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)));
+    mat = ScatteringMatrix(mls, beam)
+    (mat_r, mat_t) = light_interaction(mat, beam)
+    (aux_r, aux_t) = light_interaction(mls, beam)
+    mat_r ≈ aux_r && mat_t ≈ aux_t
+end
+mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
+mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)), reflectivity = 0.9)
+@test test_scatmat_f(mls)
+@test test_scatmat_f(mirror)
+
+function test_scatmat_b(mls)
+    nsx = range(0, 0.95, length = 100)
+    beam = MonochromaticAngularSpectrum(Float64, Backward, nsx, nsx, (nsx .* nsx'), 1550E-9, Medium(1.0), last(mls.frames));
+    mat = ScatteringMatrix(mls, beam)
+    (mat_r, mat_t) = mat * beam
+    (aux_r, aux_t) = light_interaction(mls, beam)
+    mat_r ≈ aux_r && mat_t ≈ aux_t
+end
+@test test_scatmat_b(mls)
+@test test_scatmat_b(mirror)
