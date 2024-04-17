@@ -53,6 +53,9 @@ intensity(bfield)
 @test iszero(intensity(ffield))
 @test isapprox(intensity(bfield), intensity(field); rtol = 1E-5)
 
+sca = ScatteringMatrix(lens, field)
+@test all(light_interaction(sca, field) .≈ light_interaction(lens, field))
+
 x = LinRange(-.5, .5, 1000)
 field = MonochromaticAngularSpectrum_gaussian(Backward, x, x, 10E-6, 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
 (bfield, ffield) = light_interaction(lens, field)
@@ -60,6 +63,9 @@ field = MonochromaticAngularSpectrum_gaussian(Backward, x, x, 10E-6, 1500E-9, Me
 @test ffield isa Jolab.MeshedAngularSpectrum
 @test iszero(intensity(ffield))
 @test isapprox(intensity(bfield), intensity(field); rtol = 1E-2) # Not sure if correct
+
+sca = ScatteringMatrix(lens, field)
+@test all(light_interaction(sca, field) .≈ light_interaction(lens, field))
 
 using Enzyme
 using FiniteDiff
