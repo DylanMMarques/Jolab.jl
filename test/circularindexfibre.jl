@@ -47,6 +47,7 @@ function coupling_field_derivative(x, fibre, e, λ, medium,ref)
     (back, forw) = light_interaction(fibre, field)
     forw.modes.e
 end
+
 x = range(-150E-6, 150E-6, length = 10)
 const x2 = x
 e = ones(length(x), length(x)) .+ eps()

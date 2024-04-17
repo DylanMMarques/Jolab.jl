@@ -28,6 +28,7 @@ Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 JolabEnzymeOptimExt = ["Optim", "Enzyme"]
 
 [compat]
+Enzyme = ">=0.12"
 DSP = ">=0.7"
 FFTW = ">=1.2"
 HCubature = ">=1.4"

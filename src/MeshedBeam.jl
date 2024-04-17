@@ -16,7 +16,10 @@ for coordi in coord_list
         struct $coordi{T}
             coords::Vec{3, T}
         end
-        Base.getindex(c::$coordi, i) = c.coords[i]
+        function Base.getindex(c::$coordi, i)
+            @boundscheck checkbounds(c.coords, i)
+            @inbounds c.coords[i]
+        end
         $coordi(coords::Point3) = $coordi(coords.coords)
     end)
 end
@@ -120,7 +123,7 @@ function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin
 
     function phase_term(medium, rΔpos, coord::NSX_NSY_λ)
         (nsx, nsy, λ) = coord.coords
-        nsz = (medium.n^2 - nsx^2 - nsy^2)^(1/2) # for Enzyme
+        nsz = √(medium.n^2 - nsx^2 - nsy^2) # for Enzyme
         exp(im * 2T(π) / λ * dot(rΔpos, (nsx, nsy, nsz)))
     end
     phase_term(medium, rΔpos, coord::NSR_NSθ_λ) = phase_term(medium, rΔpos, convert(NSX_NSY_λ, coord))

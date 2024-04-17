@@ -71,7 +71,8 @@ function forward_backward_field(lens::Lens, field_i::MeshedBeam{T,D,C}) where {T
     mesh = if C <: AngularSpectrumCoords
         Scale(T(f / n), T(f / n), T(1))(field_i.mesh)
     else
-        Scale(T(n / f), T(n / f), T(1))(field_i.mesh) # Miss a negative factor here due to Meshes limitations
+        # Scale(T(-n / f), T(-n / f), T(1))(field_i.mesh) # Miss a negative factor here due to Meshes limitations
+        Affine(SA[T(-n / f) 0 0; 0 T(-n / f) 0; 0 0 1], SA[0, 0.0, 0])(field_i.mesh) # Should be using Scale but it is not implemented in Meshes
     end
 
     frame_t = D == Forward ? last(lens.frames) : first(lens.frames)
@@ -107,7 +108,7 @@ end
  function check_input_field(lens::Lens, field_i::MeshedBeam{T,D}) where {D,T}
     ref = (D == Forward ? first : last)(lens.frames)
     code = 0 
-    (field_i.frame ≈ ref) || (code += 1 << INVALID_FRAME)
-    (field_i.medium ≈ (D == Forward ? first : last)(lens.mat)) || (code += 1 << INVALID_MEDIUM)
+    (field_i.frame ≈ ref) || (code |= 1 << INVALID_FRAME)
+    (field_i.medium ≈ (D == Forward ? first : last)(lens.mat)) || (code |= 1 << INVALID_MEDIUM)
     code
 end
