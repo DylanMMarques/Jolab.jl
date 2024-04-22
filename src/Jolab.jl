@@ -8,6 +8,7 @@ export translate_referenceframe, rotate_referenceframe
 export Forward, Backward
 export ScatteringMatrix
 export MonochromaticAngularSpectrum, MonochromaticSpatialBeam, MeshedPlaneWaveScalar, MonochromaticAngularSpectrum_gaussian, MonochromaticSpatialBeam_gaussian
+export MonochromaticAngularSpectrumRadialSymmetric, MonochromaticAngularSpectrumRadialSymmetric_gaussian
 
 import StructArrays: component
 

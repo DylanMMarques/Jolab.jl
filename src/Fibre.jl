@@ -16,8 +16,17 @@ end
 Fibre(profile, length, media, frames) = Fibre(Float64, profile, length, media, frames)
 
 function check_input_field(fibre::Fibre, beam::MeshedSpatialBeam{<:Any,D}) where {D}
-    n_fibre = reverse_if_backward(D, fibre.media)[1]
-    frame_fibre = reverse_if_backward(D, fibre.frames)[1]
+    code = zero(UInt64)
+    eltype(beam.modes) <: CircularStepIndexMode || (return 1 << INVALID_MODE_TYPE)
+    all(beam.modes.profile .== fibre.refractive_index_profile) || (code &= 1 << INVALID_MEDIUM)
+    fib_frame = fibre.frames[D == Forward ? 1 : 2]
+    all(beam.modes.fream .≈ fib_frame) || (code &= 1 << INVALID_FRAME)
+    code
+end,
+function check_input_field(fibre::Fibre, beam::Beam{<:Any,D}) where {D}
+    ind = D == Forward ? 1 : 2
+    n_fibre = fibre.media[ind]
+    frame_fibre = fibre.frames[ind]
     code = zero(UInt64)
     (beam.medium ≈ n_fibre) || (code &= 1 << INVALID_MEDIUM)
     (frame_fibre ≈ beam.frame) || (code &= 1 << INVALID_FRAME)
@@ -147,8 +156,6 @@ CircularStepIndexMode(::Type{Dir}, e, wavelength, m, β, C, D, profile, frame) w
 mode_type(::Type{<:CircularStepIndexProfile{T}}) where T = CircularStepIndexMode{T, Bothway, T, Medium{T,T}}
 struct_type(::Type{<:CircularStepIndexProfile{T}}) where T =  StructVector{CircularStepIndexMode{T, Bothway, T, Medium{T, T}}, @NamedTuple{e::Ones{T, 1, Tuple{Base.OneTo{Int}}}, wavelength::Fill{T, 1, Tuple{Base.OneTo{Int}}}, m::Vector{Int}, β::Vector{T}, C::Vector{T}, D::Vector{T}, profile::Fill{CircularStepIndexProfile{T, Medium{T, T}}, 1, Tuple{Base.OneTo{Int}}}, frame::Fill{ReferenceFrame{T}, 1, Tuple{Base.OneTo{Int}}}}, Int}
 
-
-
 function modecondition(profile::CircularStepIndexProfile, λ, m, β)
     α_1 = α1(profile.na, profile.ncore.n, λ, β) # Doesn't work for dispersiveModes
     α_2 = α2(profile.na, profile.ncore.n, λ, β) # Doens't work for dispersiveModes
@@ -220,7 +227,19 @@ function _light_interaction!(back_beam::MeshedSpatialBeam, forw_beam::Beam, fibr
     end
     (back_beam, forw_beam)
 end
-
 function _light_interaction!(back_beam::Beam, forw_beam::MeshedSpatialBeam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Backward,C}) where {T,C}
     _light_interaction!(forw_beam, back_beam, fibre, ifield)
+end
+
+function _light_interaction!(back_beam, forw_beam::MeshedSpatialBeam, fibre::Fibre, ifield::Beam{T,Forward}) where T
+    eltype(ifield.modes) <: CircularStepIndexMode || error("Invalid mode type")
+    error("not donw yet")
+end
+
+function translate_referenceframe(beam::Beam, new_origin::Point3D)
+    eltype(beam.modes) <: CircularStepIndexMode || error("Invalid mode type")
+    all(iscollinear.(beam.modes.frame.position, beam.modes.frame.position .+ beam.modes.frame.direction, new_origin))
+    error("To be done")
+    new_frame = ReferenceFrame(new_origin, beam.frame.direction)
+    Beam(StructVector{CircularStepIndexMode{T,Forward,Complex{T}, Medium{T,T}}}((beam.modes.e, beam.modes.wavelength, beam.modes.m, beam.modes.β, beam.modes.C, beam.modes.D, beam.modes.profile, Fill(new_frame, length(beam.modes)))))
 end

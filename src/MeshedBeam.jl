@@ -58,14 +58,37 @@ function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, 
 end
 MonochromaticAngularSpectrum(::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticAngularSpectrum(Float64, D, nsx, nsy, e, λ, medium, frame)
 
-function MonochromaticAngularSpectrum_gaussian(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, ω, λ, medium, frame) where {T,D}
-	norm = 	T(ω * √(1 / 32 / π^3 / eps(T) / real(medium.n)) * 4π^2 / λ)
+function gaussianbeam_electricfield_angspe(::Type{T}, nsr_squared, ω, λ, n) where T
+	norm = 	T(ω * √(1 / 32 / π^3 / eps(T) / real(n)) * 4π^2 / λ)
     k = T(2π / λ)
-    e = T.(exp.(.-(nsx.^2 .+ (nsy').^2) .* ((ω * k)^2 / 16)) .* norm)
+    T(exp(-nsr_squared * ((ω * k)^2 / 16)) * norm)
+end,
+function gaussianbeam_electricfield_angspe(::Type{T}, nsx, nsy, ω, λ, n) where T
+    gaussianbeam_electricfield_angspe(T, (nsx^2 + nsy^2), ω, λ, n)
+end
+
+
+function MonochromaticAngularSpectrum_gaussian(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, ω, λ, medium, frame) where {T,D}
+    e = gaussianbeam_electricfield_angspe.(T, nsx, nsy', ω, λ, medium.n)
     MonochromaticAngularSpectrum(T, D, nsx, nsy, e, λ, medium, frame)
 end,
 function MonochromaticAngularSpectrum_gaussian(D, nsx, nsy, ω, λ, medium, frame) 
     MonochromaticAngularSpectrum_gaussian(Float64, D, nsx, nsy, ω, λ, medium, frame) 
+end
+
+function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
+    mesh = CylindricalGrid((length(nsr), 1, 1),
+        Point3(first(nsr), T(0), λ - eps(T) / 2), 
+        (step(nsr), 2π, eps(T)))
+    MeshedBeam{T, D, NSR_NSθ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
+end
+
+function MonochromaticAngularSpectrumRadialSymmetric_gaussian(::Type{T}, ::Type{D}, nsr::AbstractRange, ω, λ, medium, frame) where {T,D}
+    e = gaussianbeam_electricfield_angspe.(T, nsr.^2, ω, λ, medium.n)
+    MonochromaticAngularSpectrumRadialSymmetric(T, D, nsr, reshape(e, size(e)..., 1), λ, medium, frame)
+end,
+function MonochromaticAngularSpectrumRadialSymmetric_gaussian(D, nsr, ω, λ, medium, frame) 
+    MonochromaticAngularSpectrumRadialSymmetric_gaussian(Float64, D, nsr, ω, λ, medium, frame) 
 end
 
 function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
@@ -85,6 +108,7 @@ end,
 function MonochromaticSpatialBeam_gaussian(D, x, y, ω, λ, medium, frame) 
     MonochromaticSpatialBeam_gaussian(Float64, D, x, y, ω, λ, medium, frame) 
 end
+
 
 function intensity(beam::MeshedBeam)
     f(e, ind) = abs2(e) * (volume(beam.mesh, ind) * beam.medium.n)
@@ -107,6 +131,7 @@ function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium
 end
 MeshedPlaneWaveScalar(::Type{D}, nsx, nsy, e, λ, medium, frame) where D = MeshedPlaneWaveScalar(Float64, D, nsx, nsy, e, λ, medium, frame)
 
+
 function Base.isapprox(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}; kwargs...) where {T1, T2, D, C}
     isapprox(beam1.mesh, beam2.mesh; kwargs...) || return false
     isapprox(beam1.frame, beam2.frame; kwargs...) || return false
@@ -122,7 +147,7 @@ function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin
 
     function phase_term(medium, rΔpos, coord::NSX_NSY_λ)
         (nsx, nsy, λ) = coord.coords
-        nsz = √(medium.n^2 - nsx^2 - nsy^2) # for Enzyme
+        nsz = √(medium.n^2 - nsx^2 - nsy^2)
         exp(im * 2T(π) / λ * dot(rΔpos, (nsx, nsy, nsz)))
     end
     phase_term(medium, rΔpos, coord::NSR_NSθ_λ) = phase_term(medium, rΔpos, convert(NSX_NSY_λ, coord))
