@@ -77,6 +77,11 @@ stack_test = DielectricStack(Medium.((@SVector [1.33, 1, 1])), (@SVector Float64
 @test all(test_reflection_coeffiecient(0.7 * 1.333, 0, 1550E-9, stack_test) .≈ (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im))
 @test all(test_reflection_coeffiecient(0, 0.7 * 1.333, 1550E-9, stack_test) .≈ (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im))
 
+## Test radial with cartesian beam
+stack_test = DielectricStack(Medium.((@SVector [1, 2, 3])), (@SVector Float64[10E-6]), ref)
+test_cartesian_with_radialsymmetric(10E-6, stack_test, Medium(1), 10000, 100; rtol = 1E-2)
+
+
 ## Backward mode
 stack_f = DielectricStack(Medium.((@SVector [1, 4, 2+im, 1])), (@SVector [500E-9, 200E-9]), ref)
 stack_b = DielectricStack(Medium.((@SVector [1, 2+im, 4, 1])), (@SVector [200E-9, 500E-9]), ref)
@@ -89,7 +94,7 @@ function test_reflection_coeffiecient(stack_forward, stack_backward, nsx, nsy, �
 end
 @test test_reflection_coeffiecient(stack_b, stack_f, 0.1, 0.2, 1500E-9)
 
-function f_beam(λ) Const(1500E-9)
+function f_beam(λ)
     mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
     nsx = range(-.95, 0.95, length = 100)
     beam = MonochromaticAngularSpectrum(Forward, nsx, nsx, (nsx .* nsx'), λ, Medium(1.0), ReferenceFrame((0,0,0), (0,0,1)));
@@ -203,3 +208,15 @@ num_diff = finite_difference_derivative(i -> f_tbeam(mls, nsx, nsy, e, medium, f
 val = f_tbeam(mls, nsx, nsy, e, medium, frame, 1550E-9)
 ad_diff = Tuple(autodiff(Enzyme.Forward, at, Duplicated, Duplicated(1550E-9, 1.0)))
 @test all((ad_diff) .≈ (val, num_diff))
+
+## Auto diff on Radial symmetric beams
+function f_beam(mls, nsr, ω, medium, frame, λ)
+    beam2 = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Float64, Forward, nsr, ω, λ, medium, frame)
+    (rbeam, tbeam) = light_interaction(mls, beam2)
+    (intensity(tbeam), intensity(rbeam))
+end
+aux_f(λ) = f_beam(mls, nsx, 10E-6, medium, frame, λ)
+ad_diff = autodiff(Enzyme.Forward, aux_f, Duplicated, Duplicated(1550E-9, 1.0))
+num_diff_t = finite_difference_derivative(i -> aux_f(i)[1], 1550E-9; absstep = 1E-20)
+num_diff_r = finite_difference_derivative(i -> aux_f(i)[2], 1550E-9; absstep = 1E-20)
+@test all(ad_diff[2] .≈ (num_diff_t, num_diff_r))

@@ -15,11 +15,12 @@ end
 
 function volume(grid::CylindricalGrid{3}, ind)
     pos = centroid(grid, ind)
-    prod(grid.spacing) * pos[1]
+    prod(grid.spacing) * pos.coords[1]
 end
 
 function Meshes.centroid(grid::CylindricalGrid{3}, ind::CartesianIndex{3})
-    grid.origin.coords .+ grid.spacing .* (ind.I .- 1 ./ 2)
+    vec3 = grid.origin.coords .+ grid.spacing .* (ind.I .- 1 ./ 2)
+    Point(vec3.coords)
 end
 Meshes.centroid(grid::CylindricalGrid{3}, ind::Integer) = centroid(grid, CartesianIndices(grid.lengths)[ind])
 
