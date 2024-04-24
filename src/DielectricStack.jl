@@ -122,8 +122,8 @@ end
 
 function check_input_field(comp::Union{DielectricStack, Mirror}, field_i::MeshedAngularSpectrum{T,D}) where {D,T}
     msg_code = zero(UInt64)
-    field_i.frame ≈ (D == Forward ? first : last)(comp.frames) || (msg_code &= 1 << INVALID_FRAME)
-    field_i.medium ≈ (D == Forward ? first : last)(comp.mat) || (msg_code &= 1 << INVALID_MEDIUM)
+    field_i.frame ≈ (D == Forward ? first : last)(comp.frames) || (msg_code |= 1 << INVALID_FRAME)
+    field_i.medium ≈ (D == Forward ? first : last)(comp.mat) || (msg_code |= 1 << INVALID_MEDIUM)
     msg_code
 end
 

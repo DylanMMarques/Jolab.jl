@@ -126,6 +126,12 @@ end
 @test test_scatmat_b(mls)
 @test test_scatmat_b(mirror)
 
+nsr = range(0, 0.5, length = 1000)
+field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,100E-9), (0,0,0)))
+@test_throws ArgumentError light_interaction(mls, field)
+@test_throws ArgumentError ScatteringMatrix(mls, field)
+
 ## Jacobian tests
 function jac(x)
     n, k, h, nsx, nsy, λ = x

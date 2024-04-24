@@ -9,6 +9,8 @@ export Forward, Backward
 export ScatteringMatrix
 export MonochromaticAngularSpectrum, MonochromaticSpatialBeam, MeshedPlaneWaveScalar, MonochromaticAngularSpectrum_gaussian, MonochromaticSpatialBeam_gaussian
 export MonochromaticAngularSpectrumRadialSymmetric, MonochromaticAngularSpectrumRadialSymmetric_gaussian
+export MonochromaticSpatialBeamRadialSymmetric_gaussian, MonochromaticSpatialBeamRadialSymmetric
+export Propagation
 
 import StructArrays: component
 
@@ -35,9 +37,12 @@ include("ReferenceFrame.jl")
 include("Beam.jl")
 include("MeshedBeam.jl")
 include("ScatteringMatrix.jl")
+include("Propagation.jl")
 
+include("AbstractOpticalElement.jl")
 include("DielectricStack.jl")
 include("Lens.jl")
+include("Axicon.jl")
 # include("SingleModeFibre.jl")
 include("Fibre.jl")
 

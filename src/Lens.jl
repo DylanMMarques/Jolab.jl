@@ -61,7 +61,7 @@ function t(lens::Lens, coord::X_Y_λ)
     t(lens, R_θ_λ(coord))
 end
 
-function _ScatteringMatrix(field_b::MeshedBeam, field_f::MeshedBeam, comp::Lens, field_i::MeshedBeam{T,D,C}) where {T,D, M2, C}
+function _ScatteringMatrix(field_b::MeshedBeam, field_f::MeshedBeam, comp::Lens, field_i::MeshedBeam{T,D,C}) where {T,D, C}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     r = Zeros(length(field_r), length(field_i.e))
     t_dia = similar(field_i.e, Complex{T}, length(field_i.e))

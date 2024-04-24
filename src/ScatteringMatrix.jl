@@ -34,6 +34,9 @@ function ScatteringMatrix(field_b, field_f, comp, field_i)
 end
 
 function ScatteringMatrix(comp, field_i)
+    code = check_input_field(comp, field_i)
+    @show code
+    code == 0 || throw_error_msg(code)
     (field_b, field_f) = forward_backward_field(comp, field_i)
     _ScatteringMatrix(field_b, field_f, comp, field_i)
 end

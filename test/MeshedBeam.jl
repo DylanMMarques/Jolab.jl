@@ -16,16 +16,22 @@ nsx = range(-0.5, 0.5, length = 100)
 beam = MonochromaticAngularSpectrum_gaussian(Forward, nsx, nsx, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 @test intensity(beam) ≈ 1
 
-nsr = range(0, 0.5, length = 10000)[2:end]
+nsr = range(0, 0.5, length = 10000)
 beam = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 @test intensity(beam) ≈ 1 rtol = 1E-3
 
+r = range(0, 40E-6, length = 1000)
+beam = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test intensity(beam) ≈ 1 rtol = 1E-2
 
-nsr = range(0, 0.5, length = 100)[2:end]
+nsr = range(0, 0.5, length = 100)
 nsy = range(0, stop = eps(), length = 2)
 beam = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 beam_cart = MonochromaticAngularSpectrum_gaussian(Forward, nsr, nsy, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 @test beam_cart.e[:,1] ≈ beam.e
 
-
-
+r = range(0, 40E-6, length = 100)
+y = range(0, stop = eps(), length = 2)
+beam = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+beam_cart = MonochromaticSpatialBeam_gaussian(Forward, r, y, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test beam_cart.e[:,1] ≈ beam.e

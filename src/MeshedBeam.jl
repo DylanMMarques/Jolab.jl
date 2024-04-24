@@ -100,15 +100,40 @@ function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::Ab
 end
 MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticSpatialBeam(Float64, D, x, y, e, λ, medium, frame)
 
+
+function gaussianbeam_electricfield_space(::Type{T}, r_squared, ω, λ, n) where T
+    norm = 	T(√(T(8 / π / ω^2)  / real(n) / eps(T))) # need EPS for λ integration. Not sure if good idea for
+    T(exp(r_squared * (-4 / ω^2)) * norm)
+end,
+function gaussianbeam_electricfield_space(::Type{T}, x, y, ω, λ, n) where T
+    gaussianbeam_electricfield_space(T, (x^2 + y^2), ω, λ, n)
+end
+
 function MonochromaticSpatialBeam_gaussian(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, ω, λ, medium, frame) where {T,D}
-    norm = 	T(√(T(8 / π / ω^2)  / real(medium.n) / eps(T))) # need EPS for λ integration. Not sure if good idea for
-    e = T.(exp.((x.^2 .+ (y').^2) .* (-4 / ω^2)) .* norm)
+    e = gaussianbeam_electricfield_space.(T, x, y', ω, λ, medium.n)
     MonochromaticSpatialBeam(T, D, x, y, e, λ, medium, frame)
 end,
 function MonochromaticSpatialBeam_gaussian(D, x, y, ω, λ, medium, frame) 
     MonochromaticSpatialBeam_gaussian(Float64, D, x, y, ω, λ, medium, frame) 
 end
 
+function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, r::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
+    mesh = CylindricalGrid((length(r), 1, 1),
+        Point3(first(r), T(0), λ - eps(T) / 2), 
+        (step(r), 2π, eps(T)))
+    MeshedBeam{T, D, R_θ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
+end,
+function MonochromaticSpatialBeamRadialSymmetric(::Type{D}, r, e, λ, medium, frame) where D
+    MonochromaticSpatialBeamRadialSymmetric(Float64, D, r, e, λ, medium, frame) 
+end
+
+function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{T}, ::Type{D}, r::AbstractRange, ω, λ, medium, frame) where {T,D}
+    e = gaussianbeam_electricfield_space.(T, r.^2, ω, λ, medium.n)
+    MonochromaticSpatialBeamRadialSymmetric(T, D, r, reshape(e, size(e)..., 1), λ, medium, frame)
+end,
+function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{D}, r, ω, λ, medium, frame) where D
+    MonochromaticSpatialBeamRadialSymmetric_gaussian(Float64, D, r, ω, λ, medium, frame) 
+end
 
 function intensity(beam::MeshedBeam)
     f(e, ind) = abs2(e) * (volume(beam.mesh, ind) * beam.medium.n)
@@ -145,13 +170,6 @@ function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin
     rot = RotXYZ(beam.frame.direction.x, beam.frame.direction.y, beam.frame.direction.z) 
     rΔpos = inv(rot) * Δpos
 
-    function phase_term(medium, rΔpos, coord::NSX_NSY_λ)
-        (nsx, nsy, λ) = coord.coords
-        nsz = √(medium.n^2 - nsx^2 - nsy^2)
-        exp(im * 2T(π) / λ * dot(rΔpos, (nsx, nsy, nsz)))
-    end
-    phase_term(medium, rΔpos, coord::NSR_NSθ_λ) = phase_term(medium, rΔpos, convert(NSX_NSY_λ, coord))
-    phase_term(medium, rΔpos, index) = phase_term(medium, rΔpos, C(centroid(beam.mesh, index).coords))
 
     new_e = reshape(map(i -> beam.e[i] * phase_term(beam.medium, rΔpos, i), eachindex_nonzeros(beam.e)), size(beam.e))
     MeshedBeam{T,D,C}(deepcopy(beam.mesh), new_e, deepcopy(beam.medium), ReferenceFrame(new_origin, beam.frame.direction))
