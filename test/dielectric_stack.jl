@@ -215,6 +215,21 @@ val = f_tbeam(mls, nsx, nsy, e, medium, frame, 1550E-9)
 ad_diff = Tuple(autodiff(Enzyme.Forward, at, Duplicated, Duplicated(1550E-9, 1.0)))
 @test all((ad_diff) .≈ (val, num_diff))
 
+mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)); reflectivity = 0.99)
+ar(λ) = f_rbeam(mirror, nsx, nsy, e, medium, frame, λ)
+at(λ) = f_tbeam(mirror, nsx, nsy, e, medium, frame, λ)
+
+num_diff = finite_difference_derivative(i -> f_rbeam(mirror, nsx, nsy, e, medium, frame, i), 1550E-9; absstep = 1E-20)
+val = f_rbeam(mirror, nsx, nsy, e, medium, frame, 1550E-9)
+ad_diff = Tuple(autodiff(Enzyme.Forward, ar, Duplicated, Duplicated(1550E-9, 1.0)))
+@test all((ad_diff) .≈ (val, num_diff))
+
+num_diff = finite_difference_derivative(i -> f_tbeam(mirror, nsx, nsy, e, medium, frame, i), 1550E-9; absstep = 1E-20)
+val = f_tbeam(mirror, nsx, nsy, e, medium, frame, 1550E-9)
+ad_diff = Tuple(autodiff(Enzyme.Forward, at, Duplicated, Duplicated(1550E-9, 1.0)))
+@test all((ad_diff) .≈ (val, num_diff))
+
+
 ## Auto diff on Radial symmetric beams
 function f_beam(mls, nsr, ω, medium, frame, λ)
     beam2 = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Float64, Forward, nsr, ω, λ, medium, frame)

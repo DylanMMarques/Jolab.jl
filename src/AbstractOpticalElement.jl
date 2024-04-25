@@ -5,31 +5,19 @@ function light_interaction(comps::NTuple{N,AbstractOpticalElement}, field::Meshe
 end
 
 function ScatteringMatrix(comps::NTuple{N,AbstractOpticalElement{T}}, field_forward::MeshedBeam{T,D}) where {N,D,T}
-    function f(comp, field_i)
-        scat_forward = ScatteringMatrix(comp, field_i)
-        scat_backward = ScatteringMatrix(comp, reverse_direction(scat_forward.field_f))
-        (scat_backward, scat_forward)
+    function fg(scat12, comp)
+        prop = Propagation(T, (scat12[2].field_f.frame, first(comp.frames)), scat12[2].field_f.medium)
+        scat23 = ScatteringMatrix(prop, scat12[2].field_f)
+        scat32 = ScatteringMatrix(prop, reverse_direction(scat23.field_f))
+        scat13 = recursive_light_interaction_inverse(scat12, (scat32, scat23))
+        scat34 = ScatteringMatrix(comp, scat13[2].field_f)
+        scat43 = ScatteringMatrix(comp, reverse_direction(scat34.field_f))
+        recursive_light_interaction_inverse(scat13, (scat43, scat34))
     end
-    scats = map(comp_i -> f(comp_i, field_forward), comps)
-    
-    function g(scat_1, scat_2)
-        frame_f = scat_1[2].field_f.frame 
-        frame_f_i = scat_2[2].field_i.frame
-        prop = Propagation(T, (frame_f, frame_f_i), scat_1[2].field_f.medium)
-        scat_f = ScatteringMatrix(prop, scat_1[2].field_f)
-        
-        frame_b = scat_2[1].field_b.frame
-        frame_b_i = scat_1[1].field_i.frame
-        @show frame_b == frame_f_i
-        @show frame_b_i == frame_f
-        scat_b = ScatteringMatrix(prop, scat_2[1].field_b)
-        (scat_b, scat_f)
-    end
-    scat_props = g.(scats[1:end-1], scats[2:end])
-    return scats
-    scats_2 = map(recursive_light_interaction_inverse, scat_props, scats[2:end])
-    res = reduce(recursive_light_interaction_inverse, scats_2, init = first(scats))
-    res[D == Forward ? 2 : 1]
+    scat12 = ScatteringMatrix(comps[1], field_forward)
+    scat21 = ScatteringMatrix(comps[1], reverse_direction(scat12.field_f))
+    res = mapreduce(identity, fg, comps[2:end], init = (scat21, scat12))
+    return res[D == Forward ? 2 : 1]
 end
 
 function reverse_direction(field::MeshedBeam{T,D,C}) where {T,D<:Union{Forward, Backward},C}

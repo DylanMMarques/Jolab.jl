@@ -7,7 +7,7 @@ struct Mirror{T, R, T2, M1<:Medium{T}, M2<:Medium{T}} <: AbstractOpticalElement{
     frames::Tuple{ReferenceFrame{T}, ReferenceFrame{T}}
     function Mirror(::Type{T}, media::Tuple{M1,M2}, frame; reflectivity::R) where {T,R,M1,M2}
         r = √reflectivity
-        t = √(1 - reflectivity) * √(real(media[1].n) / real(media[2].n))
+        t = √(1 - reflectivity)
         new{T,R,R,M1,M2}(r, t, (media), (frame, frame))
     end
     function Mirror(::Type{T}, r::R, t::T2, media::Tuple{M1,M2}, frame) where {T,T2,R,M1,M2}
@@ -18,11 +18,19 @@ end
 Mirror(media, frame; reflectivity) = Mirror(Float64, media, frame; reflectivity = reflectivity)
 Mirror(r, t, media, frame) = Mirror(Float64, r, t, media, frame)
 
-reflection_coefficient(mirror::Mirror{<:Any, <:Number}, coords) = mirror.reflection_coefficient
-transmission_coefficient(mirror::Mirror{<:Any, <:Any, <:Number}, coords) = mirror.transmission_coefficient
+reflection_coefficient(mirror::Mirror{<:Any, <:Number}) = mirror.reflection_coefficient
+transmission_coefficient(mirror::Mirror{<:Any, <:Any, <:Number}) = mirror.transmission_coefficient
 
-function rtss(mirror::Mirror, ::Type{Forward}, coords)
-    (reflection_coefficient(mirror, coords), transmission_coefficient(mirror, coords))
+function rtss(mirror::Mirror, ::Type{Forward}, coords::NSR_NSθ_λ)
+    r = reflection_coefficient(mirror)
+    t = transmission_coefficient(mirror)
+
+    nsz1 = √(first(mirror.mat).n^2 - coords.coords[1]^2)
+	nsz2 = √(last(mirror.mat).n^2 - coords.coords[1]^2)
+    return (r, t * nsz1 / nsz2)
+end,
+function rtss(mirror::Mirror, ::Type{Forward}, coords::NSX_NSY_λ)
+    rtss(mirror, Forward, NSR_NSθ_λ(coords))
 end
 
 function Base.reverse(mirror::Mirror{T}) where T 
@@ -108,14 +116,15 @@ function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirr
     (field_b, field_f)
 end
 
-function _ScatteringMatrix(field_b::MeshedAngularSpectrum, field_f::MeshedAngularSpectrum, comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any}}, field_i::MeshedAngularSpectrum{T,D,C}) where {T,D, M2, C}
-    r = similar(field_i.e, Complex{T})
+# Need inline or bug with enzyme
+@inline function _ScatteringMatrix(field_b::MeshedAngularSpectrum, field_f::MeshedAngularSpectrum, comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any}}, field_i::MeshedAngularSpectrum{T,D,C}) where {T,D, M2, C}
+    r = similar(field_i.e, Complex{T}, length(field_i.e))
     t = similar(r)
-
+    
     f(index) = rtss(comp, D, C(centroid(field_i.mesh, index)))
     tmp = StructArray{Tuple{Complex{T}, Complex{T}}}((vec(r), vec(t)))
     tmp .= f.(eachindex(field_i.e))
-    
+
     (mat_i_to_b, mat_i_to_f) = reverse_if_backward(D, (r, t))
     ScatteringMatrix(T, field_b, field_f, Diagonal(vec(mat_i_to_b)), Diagonal(vec(mat_i_to_f)), field_i)
 end
@@ -139,4 +148,3 @@ function forward_backward_field(comp::Union{DielectricStack{<:Any, <:AbstractVec
     field_t = MeshedBeam{T, Forward, C}(field_i.mesh, e_f, medium_f, frame_f)
     (field_b, field_t)
 end
-

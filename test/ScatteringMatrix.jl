@@ -18,4 +18,27 @@ int_1 = DielectricStack(Medium.([1,2]), Float64[], ReferenceFrame((0,0,0), (0,0,
 int_2 = DielectricStack(Medium.([2,3]), Float64[], ReferenceFrame((0,0,100E-9), (0,0,0)))
 comps = (int_1, int_2)
 b = ScatteringMatrix(comps, field)
-a[1] ≈ b[1]
+
+@test a.mat_itob ≈ b.mat_itob
+@test a.mat_itof ≈ b.mat_itof
+
+
+mls = DielectricStack(Medium.([1,2,3]), [100E-9], ReferenceFrame((0,0,0), (0,0,0)))
+
+function tmp(λ)
+    # mirror_1 = Mirror((Medium(1), Medium(1)), ReferenceFrame((0,0,0), (0,0,0)); reflectivity = 0.99)
+    # mirror_2 = Mirror((Medium(1), Medium(1)), ReferenceFrame((0,0,100E-6), (0,0,0)); reflectivity = 0.99)
+    # fp = (mirror_1, mirror_2)
+
+    fp = DielectricStack(Medium.([1,2,3]), [100E-9], ReferenceFrame((0,0,0), (0,0,0)))
+    nsr = LinRange(0, 0.5, 1000)
+    field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, λ, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+    scat = ScatteringMatrix(fp, field)
+    res = light_interaction(scat, field)
+    intensity(res[1])
+end
+
+tmp(1550E-9);
+sens(λ) = autodiff_deferred(Enzyme.Reverse, tmp, DuplicatedNoNeed, Duplicated(λ, 1.0))[1]
+sens(1550E-9)
+dsens_dλ = autodiff_deferred(Enzyme.Forward, sens, Duplicated, Duplicated(1550E-9, 1.0))
