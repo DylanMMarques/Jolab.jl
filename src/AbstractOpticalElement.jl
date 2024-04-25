@@ -1,7 +1,7 @@
 function light_interaction(comps::NTuple{N,AbstractOpticalElement}, field::MeshedBeam{T,D}) where {T,D,N}
     scat = ScatteringMatrix(comps, field)
     ind = D == Forward ? 2 : 1
-    light_interaction(scat[ind], field)
+    light_interaction(scat, field)
 end
 
 function ScatteringMatrix(comps::NTuple{N,AbstractOpticalElement{T}}, field_forward::MeshedBeam{T,D}) where {N,D,T}

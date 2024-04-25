@@ -31,8 +31,8 @@ end
 
 function t(::Type{Propagation}, ::Type{D}, n, rΔpos, coord::NSX_NSY_λ{T}) where {D,T}
     (nsx, nsy, λ) = coord.coords
-    abs_nsz = √(n^2 - nsx^2 - nsy^2)
-    nsz = D == Forward ? abs_nsz : -abs_nsz
+    positive_nsz = √(complex(n^2 - nsx^2 - nsy^2))
+    nsz = D == Forward ? positive_nsz : -positive_nsz
     exp(im * 2T(π) / λ * dot(rΔpos, (nsx, nsy, nsz)))
 end
 t(::Type{Propagation}, ::Type{D}, medium, rΔpos, coord::NSR_NSθ_λ) where D = t(Propagation, D, medium, rΔpos, NSX_NSY_λ(coord))
@@ -45,7 +45,7 @@ function _ScatteringMatrix(field_b, field_f, prop::Propagation, field_i::MeshedA
     rpos = delta_pos_referenceframe(field_i.frame, frame.origin)
     f(ind) = t(Propagation, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))
     t_vec .= f.(eachindex(field_i.e))
-
+    
     (mat_i_to_b, mat_i_to_f) = reverse_if_backward(D, (r, Diagonal(vec(t_vec))))
     ScatteringMatrix(T, field_b, field_f, mat_i_to_b, mat_i_to_f, field_i)
 end

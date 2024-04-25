@@ -165,14 +165,10 @@ function Base.isapprox(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}; kwa
 end
 
 function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin::Point3D) where {T,D,C}
-    Δpos = new_origin - beam.frame.origin
-
-    rot = RotXYZ(beam.frame.direction.x, beam.frame.direction.y, beam.frame.direction.z) 
-    rΔpos = inv(rot) * Δpos
-
-
-    new_e = reshape(map(i -> beam.e[i] * phase_term(beam.medium, rΔpos, i), eachindex_nonzeros(beam.e)), size(beam.e))
-    MeshedBeam{T,D,C}(deepcopy(beam.mesh), new_e, deepcopy(beam.medium), ReferenceFrame(new_origin, beam.frame.direction))
+    dir = beam.frame.direction # should not matter
+    frames = reverse_if_backward(D, (beam.frame, ReferenceFrame(T, new_origin, dir)))
+    prop = Propagation(T, frames, beam.medium)
+    light_interaction(prop, beam)
 end
 
 function nsz_nocomplex(n, nsx, nsy) 

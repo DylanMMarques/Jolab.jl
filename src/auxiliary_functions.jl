@@ -70,3 +70,18 @@ function overlap_integral(f1::Function, f2::Function, mesh::Domain)
     end
     mapreduce(f, +, eachindex(mesh))
 end
+
+
+function get_ranges(grid::CartesianGrid{N}) where N
+    ntuple(i -> LinRange(grid.origin.coords[i], grid.spacing[i], grid.lengths[i]), N)
+end,
+function get_ranges(grid::CylindricalGrid{N}) where N
+    function f(i)
+        if isone(grid.lengths[i])
+            LinRange(grid.origin.coords[i], grid.origin.coords[i], grid.lengths[i])
+        else
+            LinRange(grid.origin.coords[i], grid.origin.coords[i] + grid.lengths[i] * grid.spacing[i], grid.lengths[i])
+        end
+    end
+    ntuple(f, N)
+end

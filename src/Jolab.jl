@@ -11,6 +11,7 @@ export MonochromaticAngularSpectrum, MonochromaticSpatialBeam, MeshedPlaneWaveSc
 export MonochromaticAngularSpectrumRadialSymmetric, MonochromaticAngularSpectrumRadialSymmetric_gaussian
 export MonochromaticSpatialBeamRadialSymmetric_gaussian, MonochromaticSpatialBeamRadialSymmetric
 export Propagation
+export Fourier
 
 import StructArrays: component
 
@@ -42,6 +43,7 @@ include("Propagation.jl")
 include("AbstractOpticalElement.jl")
 include("DielectricStack.jl")
 include("Lens.jl")
+include("Fourier.jl")
 include("Axicon.jl")
 # include("SingleModeFibre.jl")
 include("Fibre.jl")

@@ -6,6 +6,7 @@ axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,0), (0,0,
 r = range(0, 2E-3, length = 10000)
 field = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 1E-3, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 (rfield, tfield) = light_interaction(axicon, field)
+@test tfield isa Jolab.MeshedBeam{<:Any, <:Any, <:Jolab.NSR_NSθ_t}
 intensity(tfield)
 intensity(field)
 
