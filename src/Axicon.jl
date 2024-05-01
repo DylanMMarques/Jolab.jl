@@ -13,19 +13,19 @@ end
 Axicon(α, axicon_medium, medium, frame; kwargs...) = Axicon(Float64, α, axicon_medium, medium, frame; kwargs...)
 
 # Meshed beam is input type because needs checking for radial symmetry
-function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::NSR_NSθ_λ, coord_out::R_θ_λ, area)
+@inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::NSR_NSθ_λ, coord_out::R_θ_λ, area)
     (nsr, nsθ, λ) = coord_in.coords
     (r, θ, tmp) = coord_out.coords
-    return im * 2π * (2π / λ)^2 * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
+    return im / 2π * (2π / λ) * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
 end
 
-function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::R_θ_λ, coord_out::NSR_NSθ_λ, area)
+@inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::R_θ_λ, coord_out::NSR_NSθ_λ, area)
     (nsr, nsθ, λ) = coord_out.coords
     (r, θ, tmp) = coord_in.coords
     return - im / 2π * (2π / λ) * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
 end
 
-function _light_interaction!(field_b, field_f::FF, axicon::O, field_i::F) where {FF<:MeshedBeam{TF,Forward,CF}, F<:MeshedBeam{T,D,C}, O<:Union{Fourier, Axicon}} where {T,D,C, TF, CF}
+function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) where {FB<:MeshedBeam{TB, Backward, CB}, FF<:MeshedBeam{TF,Forward,CF}, F<:MeshedBeam{T,D,C}, O<:Union{Fourier, Axicon}} where {T,D,C, TF, CF, TB, CB}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     field_r.e .= 0
     
@@ -33,11 +33,12 @@ function _light_interaction!(field_b, field_f::FF, axicon::O, field_i::F) where 
         β = (axicon.axicon_medium.n − axicon.medium.n) * axicon.α
     end
     
+    CT = D == Forward ? CF : CB
     function out_value(ind_out)
         t_in(ind_i) = if O <: Axicon
-            t(F, axicon, β, C(centroid(field_i.mesh, ind_i)), CF(centroid(field_t.mesh, ind_out)), volume(field_i.mesh, ind_i) / field_i.mesh.spacing[3]) * field_i.e[ind_i]
+            t(F, axicon, β, C(centroid(field_i.mesh, ind_i)), CT(centroid(field_t.mesh, ind_out)), volume(field_i.mesh, ind_i) / field_i.mesh.spacing[3]) * field_i.e[ind_i]
         else
-            t(F, axicon, C(centroid(field_i.mesh, ind_i)), CF(centroid(field_t.mesh, ind_out)), volume(field_i.mesh, ind_i) / field_i.mesh.spacing[3]) * field_i.e[ind_i]
+            t(F, axicon, C(centroid(field_i.mesh, ind_i)), CT(centroid(field_t.mesh, ind_out)), volume(field_i.mesh, ind_i) / field_i.mesh.spacing[3]) * field_i.e[ind_i]
         end
         mapreduce(t_in, +, eachindex_nonzeros(field_i.e))
     end

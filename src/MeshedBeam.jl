@@ -140,6 +140,7 @@ function intensity(beam::MeshedBeam)
     mapreduce(f, +, vec(values_nonzeros(beam.e)), eachindex_nonzeros(beam.e))
 end
 
+
 const AngularSpectrumCoords = Union{NSX_NSY_λ, NSR_NSθ_λ}
 const MeshedAngularSpectrum{T,D,C<:AngularSpectrumCoords} = MeshedBeam{T,D,C}
 

@@ -54,3 +54,23 @@ function get_mesh(::Type{<:CylindricalGrid}, r::AbstractRange, θ::AbstractRange
     start = first.(rθz)
     CylindricalGrid(lengths, Point(start), spacing)
 end
+
+function Meshes.apply(scale::Meshes.Scale{3, T1}, mesh::Jolab.CylindricalGrid{3, T2}) where {T1, T2}
+    (CylindricalGrid(mesh.lengths, Point(mesh.origin.coords .* scale.factors), mesh.spacing .* scale.factors),)
+end
+
+struct Scale{Dim, T}
+    factors::NTuple{Dim, T}
+    function Scale(factors::NTuple{Dim, T}) where {Dim, T}
+        new{Dim, T}(factors)
+    end
+end
+Scale(factors...) = Scale(factors)
+
+function (scale::Scale{N})(mesh::CylindricalGrid{N}) where N
+    CylindricalGrid(mesh.lengths, Point(mesh.origin.coords .* scale.factors), mesh.spacing .* scale.factors)
+end
+
+function (scale::Scale{N})(mesh::CartesianGrid{N}) where N
+    CartesianGrid(mesh.topology.dims, Point(mesh.origin.coords .* scale.factors), mesh.spacing .* scale.factors)
+end
