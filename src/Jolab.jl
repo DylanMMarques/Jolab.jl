@@ -45,8 +45,8 @@ include("DielectricStack.jl")
 include("Lens.jl")
 include("Fourier.jl")
 include("Axicon.jl")
-# include("SingleModeFibre.jl")
 include("Fibre.jl")
+include("SingleModeFibre.jl")
 
 include("auxiliary_functions.jl")
 

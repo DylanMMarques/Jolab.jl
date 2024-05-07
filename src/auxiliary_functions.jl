@@ -50,37 +50,36 @@ end
 
 function overlap_integral(array1::AbstractArray, array2::AbstractArray, mesh::Domain)
     @argcheck size(array1) == size(mesh) == size(array2) DimensionMismatch
-    mapreduce((i) -> array1[i] * conj(array2[i]), +, eachindex(mesh))
+    mapreduce((i) -> array1[i] * conj(array2[i]) * area(mesh, i), +, eachindex(mesh))
 end
 
 function overlap_integral(array::AbstractArray, f2::Function, mesh::Domain)
     @argcheck size(array) == size(mesh) DimensionMismatch
-    mapreduce((i) -> array[i] * conj(f2(centroid(mesh, i).coords)), +, eachindex(mesh))
+    mapreduce((i) -> array[i] * conj(f2(centroid(mesh, i).coords)) * area(mesh, i), +, eachindex(mesh))
 end
 
 function overlap_integral(f2::Function, array::AbstractArray, mesh::Domain)
     @argcheck size(array) == size(mesh) DimensionMismatch
-    mapreduce((i) -> conj(array[i]) * f2(centroid(mesh, index).coords), +, eachindex(mesh))
+    mapreduce((i) -> conj(array[i]) * f2(centroid(mesh, index).coords) * area(mesh, i), +, eachindex(mesh))
 end
 
 function overlap_integral(f1::Function, f2::Function, mesh::Domain)
     function f(index)
         coord = centroid(mesh, index).coords
-        f1(coord) * conj(f2(coord))
+        f1(coord) * conj(f2(coord)) * area(mesh, index)
     end
     mapreduce(f, +, eachindex(mesh))
 end
 
 
-function get_ranges(grid::CartesianGrid{N}) where N
-    ntuple(i -> LinRange(grid.origin.coords[i], grid.spacing[i], grid.lengths[i]), N)
-end,
-function get_ranges(grid::CylindricalGrid{N}) where N
+function get_ranges(grid::Union{<:CylindricalGrid{N}, <:CartesianGrid{N}}) where N
     function f(i)
-        if isone(grid.lengths[i])
-            LinRange(grid.origin.coords[i], grid.origin.coords[i], grid.lengths[i])
+        length_i = size(grid, i)
+        if isone(length_i)
+            val = centroid(grid, 1).coords[i]
+            LinRange(val, val, length_i)
         else
-            LinRange(grid.origin.coords[i], grid.origin.coords[i] + grid.lengths[i] * grid.spacing[i], grid.lengths[i])
+            LinRange(grid.origin.coords[i], grid.origin.coords[i] + length_i * grid.spacing[i], length_i)
         end
     end
     ntuple(f, N)

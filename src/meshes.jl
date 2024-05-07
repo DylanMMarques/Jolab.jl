@@ -4,7 +4,7 @@ volume(grid::Domain, ind) = Meshes.volume(element(grid, ind))
 measure(grid::CartesianGrid, ind) = prod(grid.spacing)
 measure(grid::Domain, ind) = Meshes.measure(element(grid, ind))
 
-struct CylindricalGrid{Dim,T}
+struct CylindricalGrid{Dim,T} <: Meshes.Domain{Dim, T}
     spacing::NTuple{Dim, T}
     origin::Point{Dim, T}
     lengths::NTuple{Dim, Int}
@@ -13,19 +13,31 @@ struct CylindricalGrid{Dim,T}
     end
 end
 
-function volume(grid::CylindricalGrid{3}, ind)
+function area(grid::CylindricalGrid{3}, ind::Int)
+    pos = centroid(grid, ind)
+    grid.spacing[1] * grid.spacing[2] * pos.coords[1]
+end
+
+function area(grid::CartesianGrid{3}, ind::Int)
+    grid.spacing[1] * grid.spacing[2]
+end
+
+function volume(grid::CylindricalGrid{3, T}, ind::Int) where T
     pos = centroid(grid, ind)
     prod(grid.spacing) * pos.coords[1]
 end
 
-function Meshes.centroid(grid::CylindricalGrid{3}, ind::CartesianIndex{3})
+function Meshes.centroid(grid::CylindricalGrid{3,T}, ind::CartesianIndex{3}) where T
     vec3 = grid.origin.coords .+ grid.spacing .* (ind.I .- 1 ./ 2)
     Point(vec3.coords)
 end
-Meshes.centroid(grid::CylindricalGrid{3}, ind::Integer) = centroid(grid, CartesianIndices(grid.lengths)[ind])
+Meshes.centroid(grid::CylindricalGrid{3,T}, ind::Int) where T = centroid(grid, CartesianIndices(grid.lengths)[ind])
+Meshes.nelements(grid::CylindricalGrid{3}) = prod(grid.lengths)
 
 Base.eachindex(grid::CylindricalGrid{3}) = 1:prod(grid.lengths)
-Base.size(grid::CylindricalGrid{3}) = grid.lengths
+Base.size(grid::CylindricalGrid) = grid.lengths
+Base.size(grid::CylindricalGrid, ind::Integer) = grid.lengths[ind]
+Base.size(grid::CartesianGrid, ind::Integer) = topology(grid).dims[ind]
 
 function Base.isapprox(grid::CylindricalGrid{3}, grid2::CylindricalGrid{3}; kwargs...)
     all(isapprox.(grid.spacing, grid2.spacing, kwargs...)) &&

@@ -14,3 +14,7 @@ function Base.isapprox(a::Beam{T1,D1,<:StructArray{M1}}, b::Beam{T2,D2,<:StructA
     end
     return true
 end
+
+function intensity(beam::Beam)
+    sum(abs2, beam.modes.e)
+end

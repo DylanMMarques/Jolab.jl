@@ -1,5 +1,13 @@
 abstract type AbstractWaveguideProfile{T} end
 abstract type AbstractWaveguideMode{T,D} <: AbstractMode{T} end
+
+function intensity(mode::AbstractFieldMode, ::Type{C}, mesh) where C
+    f(i) = begin
+        abs2(mode_field(mode, C(centroid(mesh, i)))) * area(mesh, i)
+    end
+    mapreduce(f, +, eachindex(mesh))
+end
+
 struct Fibre{T,R, M, VM <: AbstractVector{M}}
     refractive_index_profile::R
     length::T
@@ -15,21 +23,21 @@ struct Fibre{T,R, M, VM <: AbstractVector{M}}
 end
 Fibre(profile, length, media, frames) = Fibre(Float64, profile, length, media, frames)
 
-function check_input_field(fibre::Fibre, beam::MeshedSpatialBeam{<:Any,D}) where {D}
+function check_input_field(fibre::Fibre, beam::Beam{<:Any,D}) where {D}
     code = zero(UInt64)
     eltype(beam.modes) <: CircularStepIndexMode || (return 1 << INVALID_MODE_TYPE)
-    all(beam.modes.profile .== fibre.refractive_index_profile) || (code &= 1 << INVALID_MEDIUM)
+    all(beam.modes.profile .== fibre.refractive_index_profile) || (code |= 1 << INVALID_MEDIUM)
     fib_frame = fibre.frames[D == Forward ? 1 : 2]
-    all(beam.modes.fream .≈ fib_frame) || (code &= 1 << INVALID_FRAME)
+    all(beam.modes.fream .≈ fib_frame) || (code |= 1 << INVALID_FRAME)
     code
 end,
-function check_input_field(fibre::Fibre, beam::Beam{<:Any,D}) where {D}
+function check_input_field(fibre::Fibre, beam::MeshedSpatialBeam{<:Any,D}) where {D}
     ind = D == Forward ? 1 : 2
     n_fibre = fibre.media[ind]
     frame_fibre = fibre.frames[ind]
     code = zero(UInt64)
-    (beam.medium ≈ n_fibre) || (code &= 1 << INVALID_MEDIUM)
-    (frame_fibre ≈ beam.frame) || (code &= 1 << INVALID_FRAME)
+    (beam.medium ≈ n_fibre) || (code |= 1 << INVALID_MEDIUM)
+    (frame_fibre ≈ beam.frame) || (code |= 1 << INVALID_FRAME)
     code
 end
 check_input_field(fibre::Fibre, beam::MeshedBeam) = 1 << INVALID_BEAM_TYPE 
@@ -115,14 +123,19 @@ function findmodes(profile::P, _λ) where {P<:AbstractWaveguideProfile{T}} where
 end
 
 function findmodes!(fibre::Fibre, λ)
-    if λ ∉ keys(fibre.modes)
-        push!(fibre.modes, λ => findmodes(fibre.refractive_index_profile, λ))
+    _λ = round_to_attometre(λ) 
+    if _λ ∉ keys(fibre.modes)
+        push!(fibre.modes, _λ => findmodes(fibre.refractive_index_profile, _λ))
     end
 end
 
+round_to_attometre(val) = round(Int, val * 1E18)
 function modes(fibre, λ)
-    @argcheck haskey(fibre.modes, λ) ErrorException("Mode for that wavelength not yet calculated. Use `findmodes!(fibre, λ)` to pre calculate the modes")
-    fibre.modes[λ]
+    _λ = round_to_attometre(λ)
+    @show _λ
+    @show haskey(fibre.modes, _λ)
+    @argcheck haskey(fibre.modes, _λ) ErrorException("Mode for that wavelength not yet calculated. Use `findmodes!(fibre, λ)` to pre calculate the modes")
+    fibre.modes[_λ]
 end
 
 ## CicurlarStepIndexMode
@@ -191,7 +204,7 @@ function mode_field(mode::CircularStepIndexMode, coord::R_θ_λ)
 end
 mode_field(mode::CircularStepIndexMode, coord::X_Y_λ) = mode_field(mode, R_θ_λ(coord))
 
-function mode_coupling(mode::CircularStepIndexMode, field::MeshedSpatialBeam{T,D,C}) where {T,D,C}
+function mode_coupling(mode, field::MeshedSpatialBeam{T,D,C}) where {T,D,C}
    overlap_integral(field.e, (coord) -> mode_field(mode, C(coord)), field.mesh)
 end
 
@@ -215,12 +228,12 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
     modes_C .= modes.C
     modes_D .= modes.D
     frame = Fill((D == Forward ? first : last)(fibre.frames), number_modes)
-    field_t = Beam(StructVector{CircularStepIndexMode{T,Forward,Complex{T}, Medium{T,T}}}((modes_e, modes_wavelength, modes_m, modes_β, modes_C, modes_D, Fill(fibre.refractive_index_profile, number_modes), frame)))
-    field_r = MeshedBeam{T,D,C}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
+    field_t = Beam(StructVector{CircularStepIndexMode{T,D,Complex{T}, Medium{T,T}}}((modes_e, modes_wavelength, modes_m, modes_β, modes_C, modes_D, Fill(fibre.refractive_index_profile, number_modes), frame)))
+    field_r = MeshedBeam{T,!D,C}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 
-function _light_interaction!(back_beam::MeshedSpatialBeam, forw_beam::Beam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Forward,C}) where {T,C}
+function _light_interaction!(back_beam, forw_beam::Beam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Forward,C}) where {T,C}
     f(modei) = mode_coupling(modei, ifield)
     for i in eachindex(forw_beam.modes)
         forw_beam.modes.e[i] = f(forw_beam.modes[i])

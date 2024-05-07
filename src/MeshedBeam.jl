@@ -59,14 +59,12 @@ end
 MonochromaticAngularSpectrum(::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticAngularSpectrum(Float64, D, nsx, nsy, e, λ, medium, frame)
 
 function gaussianbeam_electricfield_angspe(::Type{T}, nsr_squared, ω, λ, n) where T
-	norm = 	T(ω * √(1 / 32 / π^3 / eps(T) / real(n)) * 4π^2 / λ)
-    k = T(2π / λ)
-    T(exp(-nsr_squared * ((ω * k)^2 / 16)) * norm)
+    norm = T(ω) / (4 * T(√2) * T(π)^T(3/2))
+    exp(-T(ω)^2 * T(π)^2 * T(nsr_squared) / 4 / T(λ)^2) * norm
 end,
 function gaussianbeam_electricfield_angspe(::Type{T}, nsx, nsy, ω, λ, n) where T
     gaussianbeam_electricfield_angspe(T, (nsx^2 + nsy^2), ω, λ, n)
 end
-
 
 function MonochromaticAngularSpectrum_gaussian(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, ω, λ, medium, frame) where {T,D}
     e = gaussianbeam_electricfield_angspe.(T, nsx, nsy', ω, λ, medium.n)
@@ -102,8 +100,8 @@ MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::Abstr
 
 
 function gaussianbeam_electricfield_space(::Type{T}, r_squared, ω, λ, n) where T
-    norm = 	T(√(T(8 / π / ω^2)  / real(n) / eps(T))) # need EPS for λ integration. Not sure if good idea for
-    T(exp(r_squared * (-4 / ω^2)) * norm)
+    norm = 2 * T(√(2 / π)) / T(ω)
+    T(exp(T(r_squared) * (-4 / T(ω)^2)) * norm)
 end,
 function gaussianbeam_electricfield_space(::Type{T}, x, y, ω, λ, n) where T
     gaussianbeam_electricfield_space(T, (x^2 + y^2), ω, λ, n)
@@ -135,8 +133,9 @@ function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{D}, r, ω, λ, 
     MonochromaticSpatialBeamRadialSymmetric_gaussian(Float64, D, r, ω, λ, medium, frame) 
 end
 
-function intensity(beam::MeshedBeam)
-    f(e, ind) = abs2(e) * (volume(beam.mesh, ind) * beam.medium.n)
+function intensity(beam::MeshedBeam{T,D,C}) where {T,D,C}
+    norm(ind) = C <: AngularSpectrumCoords ? T(16π^4) / (centroid(beam.mesh, ind).coords[3])^2 : 1
+    f(e, ind) = abs2(e) * area(beam.mesh, ind) * norm(ind)
     mapreduce(f, +, vec(values_nonzeros(beam.e)), eachindex_nonzeros(beam.e))
 end
 
