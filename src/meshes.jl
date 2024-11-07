@@ -12,9 +12,17 @@ function Base.getindex(p::Point, i)
 end
 Point(::Type{C}, coords::NTuple) where C = Point(C, SVector(coords...))
 
+import Base.+, Base.-
+(-)(p1::Point{C, Dim}, p2::Point{C, Dim}) where {C, Dim} = Point(C, p1.coords .- p2.coords)
+(+)(p1::Point{C, Dim}, p2::Point{C, Dim}) where {C, Dim} = Point(C, p1.coords .+ p2.coords)
+(-)(p::Point{C, Dim}) where {C, Dim} = Point(C, -p.coords)
+
+Base.convert(::Type{Point{C, Dim, T}}, p::Point{C,Dim, T2}) where {C, Dim, T, T2} = Point(C, T.(p.coords))
+
 Base.isapprox(p1::Point, p2::Point; kwargs...) = isapprox(p1.coords, p2.coords, kwargs...)
 
 abstract type CoordType end
+struct X_Y_Z <: CoordType end
 struct X_Y_λ <: CoordType end
 struct X_Y_t <: CoordType end
 struct X_NSY_λ <: CoordType end

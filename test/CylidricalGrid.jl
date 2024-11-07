@@ -1,7 +1,7 @@
 using Jolab, Test
-using Jolab.Meshes
+using Meshes
 
-grid = Jolab.CylindricalGrid((10, 1, 10), Jolab.Point(0,0,0), (0.1, 2π, 0.1))
+grid = Jolab.CylindricalGrid((10, 1, 10), Jolab.Point(Jolab.R_θ_λ, (0.0,0.0,0.0)), (0.1, float(2π), 0.1))
 
 
 r = 0.1

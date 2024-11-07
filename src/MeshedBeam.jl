@@ -16,7 +16,7 @@ function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, 
     mesh = CartesianGrid((length(nsx), length(nsy), 1),
         Point(NSX_NSY_λ, (first(nsx), first(nsy), λ - eps_factor * eps(T) / 2)), 
         (step(nsx), step(nsy), eps_factor * eps(T)))
-    e ./= sqrt(eps(T))
+    e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, NSX_NSY_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end
 MonochromaticAngularSpectrum(::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticAngularSpectrum(Float64, D, nsx, nsy, e, λ, medium, frame)
@@ -41,7 +41,7 @@ function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::
     mesh = CylindricalGrid((length(nsr), 1, 1),
         Point(NSR_NSθ_λ, (first(nsr), T(0), λ - eps_factor * eps(T) / 2)), 
         (step(nsr), 2π, eps_factor * eps(T)))
-    e ./= sqrt(eps(T))
+    e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, NSR_NSθ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end
 
@@ -58,7 +58,7 @@ function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::Ab
     mesh = CartesianGrid((length(x), length(y), 1),
         Point(X_Y_λ, (first(x), first(y), λ - eps_factor * eps(T) / 2)),  # The -0.5 is to center the point on the face
         (step(x), step(y), eps_factor * eps(T)))
-    e ./= sqrt(eps(T))
+    e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, X_Y_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end
 MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticSpatialBeam(Float64, D, x, y, e, λ, medium, frame)
@@ -84,7 +84,7 @@ function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, r::Abstra
     mesh = CylindricalGrid((length(r), 1, 1),
         Point(R_θ_λ, (first(r), T(0), λ - eps_factor * eps(T) / 2)), 
         (step(r), 2π, eps_factor * eps(T)))
-    e ./= sqrt(eps(T))
+    e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, R_θ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end,
 function MonochromaticSpatialBeamRadialSymmetric(::Type{D}, r, e, λ, medium, frame) where D

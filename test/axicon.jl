@@ -1,4 +1,4 @@
-using Jolab
+using Jolab, Test
 
 nsr = range(0, 0.5, length = 100)
 axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,0), (0,0,0)); solver = (nsr = nsr,))
@@ -6,7 +6,7 @@ axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,0), (0,0,
 r = range(0, 2E-3, length = 100)
 field = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 1E-3, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 (rfield, tfield) = light_interaction(axicon, field)
-@test tfield isa Jolab.MeshedBeam{<:Any, <:Any, <:Jolab.NSR_NSθ_t}
+@test tfield isa Jolab.MeshedBeam{<:Any, <:Any, Jolab.NSR_NSθ_λ}
 intensity(tfield) 
 intensity(field)
 
@@ -16,8 +16,8 @@ mirror = Mirror(Medium.((1, 1.44)), ReferenceFrame((0,0,2f), (0,0,0)); reflectiv
 r = range(0, 2E-3, length = 500)
 nsr = range(0, 0.2, length = 500)
 field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-lens = Lens(f, 1, (Medium(1), Medium(1)), ReferenceFrame((0,0,f), (0,0,0)))
-axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,2f), (0,0,0)); solver = (nsr = nsr, r = r))
+lens = Lens(f, 1, (Medium(1), Medium(1)), ReferenceFrame((0.0,0.0,f), (0.0,0.0,0.0)))
+    axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,2f), (0,0,0)); solver = (nsr = nsr, r = r))
 
 function coherent_sum(beam)
     f(e, ind) = e * (Jolab.volume(beam.mesh, ind) * beam.medium.n)

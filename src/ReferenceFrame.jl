@@ -1,22 +1,15 @@
 export ReferenceFrame
-struct Point3D{T} <: FieldVector{3,T}
-    x::T
-    y::T
-    z::T 
-end
-
-struct Point2D{T} <: FieldVector{2,T}
-    x::T
-    y::T
-end
 
 struct ReferenceFrame{T}
-    origin::Point3D{T}
-    direction::Point3D{T}
+    origin::Point{X_Y_Z, 3, T}
+    direction::Point{X_Y_Z, 3, T}
+    function ReferenceFrame(::Type{T}, origin::Point{X_Y_Z, 3}, direction::Point{X_Y_Z, 3}) where T
+        new{T}(origin, direction)
+    end
 end
 
 function ReferenceFrame(::Type{T}, origin, direction) where T
-    ReferenceFrame{T}(origin, direction)
+    ReferenceFrame(T, Point(X_Y_Z, origin), Point(X_Y_Z, direction))
 end
 ReferenceFrame(origin, direction) = ReferenceFrame(Float64, origin, direction)
 
@@ -28,3 +21,4 @@ end
 
 RotXYZ(direction::FieldVector{3}) = Rotations.RotXYZ(direction.x, direction.y, direction.z)
 RotXYZ(x, y, z) = Rotations.RotXYZ(x, y, z)
+RotXYZ(p::Point{X_Y_Z, 3}) = Rotations.RotXYZ(p.coords[1], p.coords[2], p.coords[3])

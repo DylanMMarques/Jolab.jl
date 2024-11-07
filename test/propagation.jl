@@ -1,14 +1,15 @@
+using Jolab, Test
 nsr = range(0, 0.5, length = 1000)
 field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 
-prop = Propagation((ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,100E-9), (0,0,0))), Medium(2))
+prop = Propagation((ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0.0,0.0,100E-9), (0,0,0))), Medium(2))
 
 @test all((0, intensity(field)) .≈ intensity.(light_interaction(prop, field)))
 
-field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+afield = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 mls = DielectricStack([Medium(2), Medium(2), Medium(2)], [100E-9], ReferenceFrame((0,0,0), (0,0,0)))
 field_mls = light_interaction(mls, field)
-prop = Propagation((ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,100E-9), (0,0,0))), Medium(2))
+prop = Propagation((ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0.0,0.0,100E-9), (0,0,0))), Medium(2))
 fields_prop = light_interaction(prop, field)
 @test all((field_mls) .≈ (fields_prop))
 
@@ -20,7 +21,7 @@ scat_mls = ScatteringMatrix(mls, field)
 field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2+im), ReferenceFrame((0,0,0), (0,0,0)))
 mls = DielectricStack([Medium(2 + im), Medium(2 + im), Medium(2 + im)], [100E-9], ReferenceFrame((0,0,0), (0,0,0)))
 field_mls = light_interaction(mls, field)
-prop = Propagation((ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,100E-9), (0,0,0))), Medium(2 + im))
+prop = Propagation((ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0.0,0.0,100E-9), (0,0,0))), Medium(2 + im))
 fields_prop = light_interaction(prop, field)
 @test all((field_mls) .≈ (fields_prop))
 

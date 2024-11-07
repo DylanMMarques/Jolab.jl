@@ -46,10 +46,11 @@ struct DielectricStack{T, N<:AbstractVector, H<:AbstractVector} <: AbstractOptic
     frames::Tuple{ReferenceFrame{T}, ReferenceFrame{T}}
     function DielectricStack{T,N,H}(n::N, h::H, frame::ReferenceFrame) where {N,H,T}
         @argcheck length(n) == length(h) + 2
-        last_frame = ReferenceFrame(frame.origin + RotXYZ(frame.direction) * Point3D(0,0,sum(h)), frame.direction)
+        last_frame = ReferenceFrame(frame.origin + Point(X_Y_Z, RotXYZ(frame.direction) * SVector((T(0),T(0),sum(h)))), frame.direction)
         new{T,N,H}(n, h, (frame, last_frame))
     end
 end
+
 
 function DielectricStack(::Type{T}, n::N, h::H, frame) where {T<:Real,N<:AbstractVector{<:Medium{T,<:Union{T,Complex{T}}}}, H<:AbstractVector{T}}
     DielectricStack{T,N,H}(n, h, frame)

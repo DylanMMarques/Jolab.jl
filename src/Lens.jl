@@ -7,8 +7,8 @@ struct Lens{T, F, N, M1<:Medium{T}, M2<:Medium{T}} <: AbstractOpticalElement{T}
 
         any(is_complex_medium, media) && throw(ArgumentError("A lens cannot be in a medium with absortion. Use media with real refractive index."))
 
-        frame_1 = frame.origin + RotXYZ(frame.direction) * (Vec3(0, 0, -focal_length))
-        frame_2 = frame.origin + RotXYZ(frame.direction) * (Vec3(0, 0, focal_length))
+        frame_1 = frame.origin + RotXYZ(frame.direction) * Point(X_Y_Z, (zero(T), zero(T), -focal_length)).coords
+        frame_2 = frame.origin + RotXYZ(frame.direction) * Point(X_Y_Z, (zero(T), zero(T), focal_length)).coords
         new{T,F,N,M1,M2}(focal_length, numerical_aperture, media, map(o -> ReferenceFrame(o, frame.direction), (frame_1, frame_2)))
     end
 end
@@ -82,15 +82,15 @@ function forward_backward_field(lens::Lens, field_i::MeshedBeam{T,D,C}) where {T
     
     mesh = if C <: AngularSpectrumCoords
         if C <: Point{NSR_NSθ_λ}
-            Scale(T(f / n), T(1), T(1))(field_i.mesh)
+            Scale((T(f / n), T(1), T(1)))(field_i.mesh)
         else
-            Scale(T(f / n), T(f / n), T(1))(field_i.mesh)
+            Scale((T(f / n), T(f / n), T(1)))(field_i.mesh)
         end
     else
         if C <: Point{R_θ_λ}
-            Scale(T(n / f), T(1), T(1))(field_i.mesh)
+            Scale((T(n / f), T(1), T(1)))(field_i.mesh)
         else
-            Scale(-T(n / f), -T(n / f), T(1))(field_i.mesh)
+            Scale((-T(n / f), -T(n / f), T(1)))(field_i.mesh)
         end
     end
 
@@ -101,10 +101,10 @@ function forward_backward_field(lens::Lens, field_i::MeshedBeam{T,D,C}) where {T
     reverse_if_backward(D, (field_r, field_t))
 end
 
-get_transmitted_coord_type(::Type{Lens}, ::Type{Point{NSX_NSY_λ,3,T}}) where T = Point{X_Y_λ, 3, T}
-get_transmitted_coord_type(::Type{Lens}, ::Type{Point{NSR_NSθ_λ,3,T}}) where T = Point{R_θ_λ, 3, T}
-get_transmitted_coord_type(::Type{Lens}, ::Type{Point{X_Y_λ,3,T}}) where T = Point{NSX_NSY_λ, 3, T}
-get_transmitted_coord_type(::Type{Lens}, ::Type{Point{R_θ_λ,3,T}}) where T = Point{NSR_NSθ_λ, 3, T}
+get_transmitted_coord_type(::Type{Lens}, ::Type{NSX_NSY_λ}) = X_Y_λ
+get_transmitted_coord_type(::Type{Lens}, ::Type{NSR_NSθ_λ}) = R_θ_λ
+get_transmitted_coord_type(::Type{Lens}, ::Type{X_Y_λ}) = NSX_NSY_λ
+get_transmitted_coord_type(::Type{Lens}, ::Type{R_θ_λ}) = NSR_NSθ_λ
 
 function check_output_fields(field_b, field_f, comp::Lens, field_i::MeshedAngularSpectrum)
     error("to be done")
