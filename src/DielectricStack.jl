@@ -21,15 +21,15 @@ Mirror(r, t, media, frame) = Mirror(Float64, r, t, media, frame)
 reflection_coefficient(mirror::Mirror{<:Any, <:Number}) = mirror.reflection_coefficient
 transmission_coefficient(mirror::Mirror{<:Any, <:Any, <:Number}) = mirror.transmission_coefficient
 
-function rtss(mirror::Mirror, ::Type{Forward}, coords::NSR_NSθ_λ)
+function rtss(mirror::Mirror, ::Type{Forward}, coords::Point{NSR_NSθ_λ})
     r = reflection_coefficient(mirror)
     t = transmission_coefficient(mirror)
 
-    nsz1 = √(first(mirror.mat).n^2 - coords.coords[1]^2)
-	nsz2 = √(last(mirror.mat).n^2 - coords.coords[1]^2)
-    return (r, t * nsz1 / nsz2)
+    # nsz1 = √(first(mirror.mat).n^2 - coords.coords[1]^2)
+	# nsz2 = √(last(mirror.mat).n^2 - coords.coords[1]^2)
+    return (r, t)
 end,
-function rtss(mirror::Mirror, ::Type{Forward}, coords::NSX_NSY_λ)
+function rtss(mirror::Mirror, ::Type{Forward}, coords::Point{NSX_NSY_λ})
     rtss(mirror, Forward, NSR_NSθ_λ(coords))
 end
 
@@ -90,8 +90,8 @@ function rtss(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsr::T, λ) wh
 	return (ri, ti)
 end
 
-rtss(stack::DielectricStack, ::Type{Forward}, coords::NSX_NSY_λ) = rtss(stack, Forward, √(coords[1]^2 + coords[2]^2), coords[3])
-rtss(stack::DielectricStack, ::Type{Forward}, coords::NSR_NSθ_λ) = rtss(stack, Forward, coords[1], coords[3])
+rtss(stack::DielectricStack, ::Type{Forward}, coords::Point{NSX_NSY_λ}) = rtss(stack, Forward, √(coords[1]^2 + coords[2]^2), coords[3])
+rtss(stack::DielectricStack, ::Type{Forward}, coords::Point{NSR_NSθ_λ}) = rtss(stack, Forward, coords[1], coords[3])
 
 @inline function rtss(stack::Union{DielectricStack, Mirror}, ::Type{Backward}, coords)
     rtss(reverse(stack), Forward, coords)
@@ -108,7 +108,7 @@ function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirr
     (field_r, field_t) = reverse_if_backward(D, (field_b.e, field_f.e))
 
     function f(index, e)
-        (r, t) = rtss(comp, D, C(centroid(beam.mesh, index).coords))
+        (r, t) = rtss(comp, D, C(centroid(beam.mesh, index)))
         (r * e, t * e)
     end
     tmp = StructArray{Tuple{Complex{T}, Complex{T}}}((vec(field_r), vec(field_t)))

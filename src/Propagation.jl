@@ -29,7 +29,7 @@ function delta_pos_referenceframe(frame::ReferenceFrame{T}, new_origin::Point3D{
     inv(rot) * Δpos
 end
 
-function t(::Type{Propagation}, ::Type{D}, n, rΔpos, coord::NSX_NSY_λ{T}) where {D,T}
+function t(::Type{Propagation}, ::Type{D}, n, rΔpos, coord::Point{NSX_NSY_λ,3,T}) where {D,T}
     (nsx, nsy, λ) = coord.coords
     positive_nsz = √(complex(n^2 - nsx^2 - nsy^2))
     nsz = D == Forward ? positive_nsz : -positive_nsz
@@ -72,6 +72,7 @@ function forward_backward_field(prop::Propagation, field_i::MeshedAngularSpectru
 end
 
 function _ScatteringMatrix(field_b, field_f, prop::Propagation, field_i::MeshedBeam{T, D}) where {T,D}
+    # Only called if same reference frame. Defined for inverse scattering matrix solving
     t_vec = Ones(T, length(field_i.e))
     r = Zeros(T, (length(field_i.e), length(field_i.e)))
     (mat_i_to_b, mat_i_to_f) = reverse_if_backward(D, (r, Diagonal(vec(t_vec))))

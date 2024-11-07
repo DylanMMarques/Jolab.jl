@@ -72,15 +72,15 @@ function overlap_integral(f1::Function, f2::Function, mesh::Domain)
 end
 
 
-function get_ranges(grid::Union{<:CylindricalGrid{N}, <:CartesianGrid{N}}) where N
-    function f(i)
-        length_i = size(grid, i)
-        if isone(length_i)
-            val = centroid(grid, 1).coords[i]
-            LinRange(val, val, length_i)
-        else
-            LinRange(grid.origin.coords[i], grid.origin.coords[i] + length_i * grid.spacing[i], length_i)
-        end
-    end
-    ntuple(f, N)
-end
+# function get_ranges(grid::Union{<:CylindricalGrid{N}, <:CartesianGrid{N}}) where N
+#     function f(i)
+#         length_i = size(grid, i)
+#         if isone(length_i)
+#             val = centroid(grid, 1).coords[i]
+#             LinRange(val, val, length_i)
+#         else
+#             LinRange(grid.origin.coords[i], grid.origin.coords[i] + (length_i-1) * grid.spacing[i], length_i)
+#         end
+#     end
+#     ntuple(f, N)
+# end

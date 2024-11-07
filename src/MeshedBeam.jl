@@ -1,41 +1,3 @@
-coord_list = (:X_Y_λ,
-    :X_Y_t,
-    :X_NSY_λ,
-    :X_NSY_t,
-    :NSX_Y_λ,
-    :NSX_Y_t,
-    :NSX_NSY_λ,
-    :NSX_NSY_t,
-    :R_θ_λ,
-    :R_θ_t,
-    :NSR_NSθ_λ,
-    :NSR_NSθ_t
-)
-for coordi in coord_list
-    eval(quote
-        struct $coordi{T}
-            coords::Vec{3, T}
-        end
-        function Base.getindex(c::$coordi, i)
-            @boundscheck checkbounds(c.coords, i)
-            @inbounds c.coords[i]
-        end
-        $coordi(coords::Point3) = $coordi(coords.coords)
-    end)
-end
-
-for (cart, polar) in zip((:NSX_NSY_λ, :NSX_NSY_t, :X_Y_λ, :X_Y_t), (:NSR_NSθ_λ, :NSR_NSθ_t, :R_θ_λ, :R_θ_t))
-    eval(quote
-        function $cart(coords::$(polar){T}) where T
-            car = CartesianFromPolar()(Polar(coords[1], coords[2]))
-            $cart{T}((car.x, car.y, coords[3]))
-        end
-        function $polar(coords::$(cart){T}) where T
-            car = PolarFromCartesian()(coords[1:2])
-            $polar{T}((car.r, car.θ, coords[3]))
-        end
-    end)
-end
 
 struct MeshedBeam{T, D, C, V, E<:AbstractArray{<:RealOrComplex{T},3}, M<:Medium{T,<:RealOrComplex{T}}, T2<:RealOrComplex{T}} <: AbstractField{T, D}
     mesh::V
@@ -52,8 +14,9 @@ end
 
 function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     mesh = CartesianGrid((length(nsx), length(nsy), 1),
-        Point3(first(nsx), first(nsy), λ - eps(T) / 2), 
-        (step(nsx), step(nsy), eps(T)))
+        Point(NSX_NSY_λ, (first(nsx), first(nsy), λ - eps_factor * eps(T) / 2)), 
+        (step(nsx), step(nsy), eps_factor * eps(T)))
+    e ./= sqrt(eps(T))
     MeshedBeam{T, D, NSX_NSY_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end
 MonochromaticAngularSpectrum(::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticAngularSpectrum(Float64, D, nsx, nsy, e, λ, medium, frame)
@@ -76,8 +39,9 @@ end
 
 function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
     mesh = CylindricalGrid((length(nsr), 1, 1),
-        Point3(first(nsr), T(0), λ - eps(T) / 2), 
-        (step(nsr), 2π, eps(T)))
+        Point(NSR_NSθ_λ, (first(nsr), T(0), λ - eps_factor * eps(T) / 2)), 
+        (step(nsr), 2π, eps_factor * eps(T)))
+    e ./= sqrt(eps(T))
     MeshedBeam{T, D, NSR_NSθ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end
 
@@ -92,8 +56,9 @@ end
 function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     @argcheck size(e) == (length(x), length(y)) DimensionMismatch
     mesh = CartesianGrid((length(x), length(y), 1),
-        Point3(first(x), first(y), λ - eps(T) / 2),  # The -0.5 is to center the point on the face
-        (step(x), step(y), eps(T)))
+        Point(X_Y_λ, (first(x), first(y), λ - eps_factor * eps(T) / 2)),  # The -0.5 is to center the point on the face
+        (step(x), step(y), eps_factor * eps(T)))
+    e ./= sqrt(eps(T))
     MeshedBeam{T, D, X_Y_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end
 MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticSpatialBeam(Float64, D, x, y, e, λ, medium, frame)
@@ -114,11 +79,12 @@ end,
 function MonochromaticSpatialBeam_gaussian(D, x, y, ω, λ, medium, frame) 
     MonochromaticSpatialBeam_gaussian(Float64, D, x, y, ω, λ, medium, frame) 
 end
-
+const eps_factor = 1000
 function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, r::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
     mesh = CylindricalGrid((length(r), 1, 1),
-        Point3(first(r), T(0), λ - eps(T) / 2), 
-        (step(r), 2π, eps(T)))
+        Point(R_θ_λ, (first(r), T(0), λ - eps_factor * eps(T) / 2)), 
+        (step(r), 2π, eps_factor * eps(T)))
+    e ./= sqrt(eps(T))
     MeshedBeam{T, D, R_θ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
 end,
 function MonochromaticSpatialBeamRadialSymmetric(::Type{D}, r, e, λ, medium, frame) where D
@@ -135,10 +101,9 @@ end
 
 function intensity(beam::MeshedBeam{T,D,C}) where {T,D,C}
     norm(ind) = C <: AngularSpectrumCoords ? T(16π^4) / (centroid(beam.mesh, ind).coords[3])^2 : 1
-    f(e, ind) = abs2(e) * area(beam.mesh, ind) * norm(ind)
+    f(e, ind) = abs2(e) * volume(beam.mesh, ind) * norm(ind)
     mapreduce(f, +, vec(values_nonzeros(beam.e)), eachindex_nonzeros(beam.e))
 end
-
 
 const AngularSpectrumCoords = Union{NSX_NSY_λ, NSR_NSθ_λ}
 const MeshedAngularSpectrum{T,D,C<:AngularSpectrumCoords} = MeshedBeam{T,D,C}
@@ -148,8 +113,8 @@ const MeshedSpatialBeam{T,D,C<:SpatialCoords} = MeshedBeam{T,D,C}
 
 function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium, frame) where {T,D,T2}
     mesh = CartesianGrid((1, 1, 1),
-        Point{3,T}(nsx - eps(T) / 2, nsy - eps(T) / 2, λ - eps(T) / 2), 
-        (eps(T), eps(T), eps(T))
+        Point(NSX_NSY_λ, (nsx - eps_factor * eps(T) / 2, nsy - eps_factor * eps(T) / 2, λ - eps_factor * eps(T) / 2)), 
+        eps_factor .* (eps(T), eps(T), eps(T))
         )
     TE = T2 <: Complex ? Complex{T} : T
     MeshedBeam{T, D, NSX_NSY_λ}(mesh, (@SArray [TE(e);;;]), medium, frame)
@@ -164,7 +129,7 @@ function Base.isapprox(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}; kwa
     return true
 end
 
-function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin::Point3D) where {T,D,C}
+function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin::Point) where {T,D,C}
     dir = beam.frame.direction # should not matter
     frames = reverse_if_backward(D, (beam.frame, ReferenceFrame(T, new_origin, dir)))
     prop = Propagation(T, frames, beam.medium)
@@ -177,18 +142,18 @@ function nsz_nocomplex(n, nsx, nsy)
     return √tmp
 end
 
-# function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point3D) where {T,D}
+# function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point) where {T,D}
 #     is_complex_medium(pw.medium) && throw(ArgumentError("Thereference frame of a angular spectrum defined in a medium with a complex refractive index is not defined."))
     
 #     rot_matrix = RotXYZ(pw.frame.direction.x, pw.frame.direction.y, pw.frame.direction.z)
 
 #     nsz_val = nsz_nocomplex(pw.medium.n, pw.nsx, pw.nsy) 
-#     (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point3D{T}(pw.nsx, pw.nsy, nsz_val))
+#     (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point{T}(pw.nsx, pw.nsy, nsz_val))
     
 #     PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
 # end,
-# rotate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point3D{T}, new_angles))
-translate_referenceframe(pw::Union{AbstractFieldMode{T}, MeshedBeam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point3D{T}, new_origin))
+# rotate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point{T}, new_angles))
+translate_referenceframe(pw::Union{AbstractFieldMode{T}, MeshedBeam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point{T}, new_origin))
 ()
 
 ## Light light_interaction

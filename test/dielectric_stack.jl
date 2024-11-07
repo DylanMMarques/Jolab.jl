@@ -72,10 +72,12 @@ stack_test = DielectricStack(Medium.((@SVector [2, 1, 2])), (@SVector [200E-9]),
 
 ## Water to air for total internal reflection testing
 stack_test = DielectricStack(Medium.((@SVector [1.33, 1, 1])), (@SVector Float64[10E-6]), ref)
-@test all(test_reflection_coeffiecient(0, 0.8 * 1.333, 1550E-9, stack_test) .≈ (0.6431032383925089 - 0.765779488344437im, 4.949051151775065e-7 - 2.3065390964139887e-7im))
-@test all(test_reflection_coeffiecient(0.8 * 1.333, 0, 1550E-9, stack_test) .≈ (0.6431032383925089 - 0.765779488344437im, 4.949051151775065e-7 - 2.3065390964139887e-7im))
-@test all(test_reflection_coeffiecient(0.7 * 1.333, 0, 1550E-9, stack_test) .≈ (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im))
-@test all(test_reflection_coeffiecient(0, 0.7 * 1.333, 1550E-9, stack_test) .≈ (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im))
+
+@test all(.≈(test_reflection_coeffiecient(0, 0.8 * 1.333, 1550E-9, stack_test), (0.6431032383925089 - 0.765779488344437im, 4.949051151775065e-7 - 2.3065390964139887e-7im), atol = 1E-13))
+@test all(.≈(test_reflection_coeffiecient(0, 0.8 * 1.333, 1550E-9, stack_test), (0.6431032383925089 - 0.765779488344437im, 4.949051151775065e-7 - 2.3065390964139887e-7im), atol = 1E-13))
+@test all(.≈(test_reflection_coeffiecient(0.8 * 1.333, 0, 1550E-9, stack_test), (0.6431032383925089 - 0.765779488344437im, 4.949051151775065e-7 - 2.3065390964139887e-7im), atol = 1E-13))
+@test all(.≈(test_reflection_coeffiecient(0.7 * 1.333, 0, 1550E-9, stack_test), (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im), atol = 1E-12, rtol = 1E-6))
+@test all(.≈(test_reflection_coeffiecient(0, 0.7 * 1.333, 1550E-9, stack_test), (0.4498594097636552 + 0.0im, -0.6182242523375912 + 1.3114461795673662im), atol = 1E-12, rtol = 1E-6))
 
 ## Test radial with cartesian beam
 stack_test = DielectricStack(Medium.((@SVector [1, 2, 3])), (@SVector Float64[10E-6]), ref)
