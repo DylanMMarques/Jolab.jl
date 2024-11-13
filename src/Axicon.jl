@@ -27,7 +27,6 @@ end
 
 function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) where {FB<:MeshedBeam{TB, Backward, CB}, FF<:MeshedBeam{TF,Forward,CF}, F<:MeshedBeam{T,D,C}, O<:Union{Fourier, Axicon}} where {T,D,C, TF, CF, TB, CB}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
-    @show CB CF
     field_r.e .= 0
     
     if O <: Axicon

@@ -132,8 +132,6 @@ end
 round_to_attometre(val) = round(Int, val * 1E18)
 function modes(fibre, λ)
     _λ = round_to_attometre(λ)
-    @show _λ
-    @show haskey(fibre.modes, _λ)
     @argcheck haskey(fibre.modes, _λ) ErrorException("Mode for that wavelength not yet calculated. Use `findmodes!(fibre, λ)` to pre calculate the modes")
     fibre.modes[_λ]
 end
