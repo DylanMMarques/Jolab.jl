@@ -7,8 +7,8 @@ struct Lens{T, F, N, M1<:Medium{T}, M2<:Medium{T}} <: AbstractOpticalElement{T}
 
         any(is_complex_medium, media) && throw(ArgumentError("A lens cannot be in a medium with absortion. Use media with real refractive index."))
 
-        frame_1 = frame.origin + RotXYZ(frame.direction) * Point(X_Y_Z, (zero(T), zero(T), -focal_length)).coords
-        frame_2 = frame.origin + RotXYZ(frame.direction) * Point(X_Y_Z, (zero(T), zero(T), focal_length)).coords
+        frame_1 = frame.origin + RotXYZ(frame.direction) * X_Y_Z(zero(T), zero(T), -focal_length)
+        frame_2 = frame.origin + RotXYZ(frame.direction) * X_Y_Z(zero(T), zero(T), focal_length)
         new{T,F,N,M1,M2}(focal_length, numerical_aperture, media, map(o -> ReferenceFrame(o, frame.direction), (frame_1, frame_2)))
     end
 end
@@ -26,8 +26,8 @@ function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::Meshe
     (field_b, field_f)
 end
 
-function t(lens::Lens, coord::Point{NSR_NSθ_λ, 3, T}) where T<:AbstractFloat
-    (nsr, θ, λ) = coord.coords
+function t(lens::Lens{T}, coord::NSR_NSθ_λ) where T<:AbstractFloat
+    (nsr, θ, λ) = coord
     cosθ² = 1 - (nsr / real(lens.mat[1].n))^2
     return if cosθ² < 0 # Evasnecent waves
     	zero(Complex{T})
@@ -40,11 +40,11 @@ function t(lens::Lens, coord::Point{NSR_NSθ_λ, 3, T}) where T<:AbstractFloat
         end
     end
 end,
-function t(lens::Lens, coord::Point{NSX_NSY_λ})
+function t(lens::Lens, coord::NSX_NSY_λ)
     t(lens, NSR_NSθ_λ(coord))
 end,
-function t(lens::Lens, coord::Point{R_θ_λ,3,T}) where T<:AbstractFloat
-    (r, θ, λ) = coord.coords
+function t(lens::Lens{T}, coord::R_θ_λ) where T<:AbstractFloat
+    (r, θ, λ) = coord
     cosθ² = 1 - (r / lens.focal_length)^2
 	if cosθ² < 0 # Evasnecent waves
 		return zero(Complex{T})
@@ -57,7 +57,7 @@ function t(lens::Lens, coord::Point{R_θ_λ,3,T}) where T<:AbstractFloat
 		end
 	end
 end,
-function t(lens::Lens, coord::Point{X_Y_λ})
+function t(lens::Lens, coord::X_Y_λ)
     t(lens, R_θ_λ(coord))
 end
 
@@ -81,13 +81,13 @@ function forward_backward_field(lens::Lens, field_i::MeshedBeam{T,D,C}) where {T
     n = D == Forward ? first(lens.mat).n : last(lens.mat).n 
     
     mesh = if C <: AngularSpectrumCoords
-        if C <: Point{NSR_NSθ_λ}
+        if C <: NSR_NSθ_λ
             Scale((T(f / n), T(1), T(1)))(field_i.mesh)
         else
             Scale((T(f / n), T(f / n), T(1)))(field_i.mesh)
         end
     else
-        if C <: Point{R_θ_λ}
+        if C <: R_θ_λ
             Scale((T(n / f), T(1), T(1)))(field_i.mesh)
         else
             Scale((-T(n / f), -T(n / f), T(1)))(field_i.mesh)

@@ -21,7 +21,7 @@ Mirror(r, t, media, frame) = Mirror(Float64, r, t, media, frame)
 reflection_coefficient(mirror::Mirror{<:Any, <:Number}) = mirror.reflection_coefficient
 transmission_coefficient(mirror::Mirror{<:Any, <:Any, <:Number}) = mirror.transmission_coefficient
 
-function rtss(mirror::Mirror, ::Type{Forward}, coords::Point{NSR_NSθ_λ})
+function rtss(mirror::Mirror, ::Type{Forward}, coords::NSR_NSθ_λ)
     r = reflection_coefficient(mirror)
     t = transmission_coefficient(mirror)
 
@@ -29,7 +29,7 @@ function rtss(mirror::Mirror, ::Type{Forward}, coords::Point{NSR_NSθ_λ})
 	# nsz2 = √(last(mirror.mat).n^2 - coords.coords[1]^2)
     return (r, t)
 end,
-function rtss(mirror::Mirror, ::Type{Forward}, coords::Point{NSX_NSY_λ})
+function rtss(mirror::Mirror, ::Type{Forward}, coords::NSX_NSY_λ)
     rtss(mirror, Forward, NSR_NSθ_λ(coords))
 end
 
@@ -46,7 +46,7 @@ struct DielectricStack{T, N<:AbstractVector, H<:AbstractVector} <: AbstractOptic
     frames::Tuple{ReferenceFrame{T}, ReferenceFrame{T}}
     function DielectricStack{T,N,H}(n::N, h::H, frame::ReferenceFrame) where {N,H,T}
         @argcheck length(n) == length(h) + 2
-        last_frame = ReferenceFrame(frame.origin + Point(X_Y_Z, RotXYZ(frame.direction) * SVector((T(0),T(0),sum(h)))), frame.direction)
+        last_frame = ReferenceFrame(frame.origin + X_Y_Z(RotXYZ(frame.direction) * SVector((T(0),T(0),sum(h)))), frame.direction)
         new{T,N,H}(n, h, (frame, last_frame))
     end
 end
@@ -91,8 +91,8 @@ function rtss(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsr::T, λ) wh
 	return (ri, ti)
 end
 
-rtss(stack::DielectricStack, ::Type{Forward}, coords::Point{NSX_NSY_λ}) = rtss(stack, Forward, √(coords[1]^2 + coords[2]^2), coords[3])
-rtss(stack::DielectricStack, ::Type{Forward}, coords::Point{NSR_NSθ_λ}) = rtss(stack, Forward, coords[1], coords[3])
+rtss(stack::DielectricStack, ::Type{Forward}, coords::NSX_NSY_λ) = rtss(stack, Forward, √(coords[1]^2 + coords[2]^2), coords[3])
+rtss(stack::DielectricStack, ::Type{Forward}, coords::NSR_NSθ_λ) = rtss(stack, Forward, coords[1], coords[3])
 
 @inline function rtss(stack::Union{DielectricStack, Mirror}, ::Type{Backward}, coords)
     rtss(reverse(stack), Forward, coords)

@@ -5,7 +5,6 @@ lens = Lens(focal_len, .5, (Medium(1), Medium(1.0)), ReferenceFrame((0,0, focal_
 
 @test_throws ArgumentError Lens(1E-3, .5, (Medium(1 + im), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)))
 
-
 nsx = range(-1, 1, length=10)
 field = MonochromaticAngularSpectrum(Forward, nsx, nsx, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 @test_throws ArgumentError light_interaction(lens, field)

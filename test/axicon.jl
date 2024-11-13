@@ -69,7 +69,7 @@ function field_focal_plane(λ)
     fieldt = light_interaction(lens, field)[2]
     fieldt2 = light_interaction(axicon, fieldt)[2]
 end
-z_vec = range(0, 5E-2, length = 100)
+z_vec = range(0, 5E-2, length = 2)
 fieldi = field_focal_plane(1550E-9)
 axial = tmap(z -> reflectance_axi_mirror(fieldi, z), z_vec)
 z_max = z_vec[findmax(axial)[2]]

@@ -14,7 +14,7 @@ function _light_interaction!(field_b, field_f, prop::Propagation, field_i::Meshe
     field_t = D == Forward ? field_f : field_b
     rpos = delta_pos_referenceframe(field_i.frame, frame.origin)
 
-    f(ind) = t(Propagation, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))
+    f(ind) = t(prop, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))
     @show size(field_t.e), size(field_i.e), size(eachindex(field_i.e))
     vec(field_t.e) .= f.(eachindex(field_i.e)) .* vec(field_i.e)
   
@@ -24,19 +24,19 @@ end
 """
 Calculates the cartesians distance between the origin of a reference frame and a new origin. The new origin is given in the coordinate system of the input reference frame.
 """
-function delta_pos_referenceframe(frame::ReferenceFrame{T}, new_origin::Point{X_Y_Z, 3, T}) where T
+function delta_pos_referenceframe(frame::ReferenceFrame{T}, new_origin::X_Y_Z) where T
     Δpos = new_origin - frame.origin
-    rot = RotXYZ(frame.direction.coords[1], frame.direction.coords[2], frame.direction.coords[3]) 
-    Point(X_Y_Z, inv(rot) * Δpos.coords)
+    rot = RotXYZ(frame.direction)
+    X_Y_Z(inv(rot) * Δpos)
 end
 
-function t(::Type{Propagation}, ::Type{D}, n, rΔpos::Point{X_Y_Z, 3}, coord::Point{NSX_NSY_λ, 3, T}) where {D,T}
-    (nsx, nsy, λ) = coord.coords
+function t(prop::Propagation{T}, ::Type{D}, n, rΔpos::X_Y_Z, coord::NSX_NSY_λ) where {D,T}
+    (nsx, nsy, λ) = coord
     positive_nsz = √(complex(n^2 - nsx^2 - nsy^2))
     nsz = D == Forward ? positive_nsz : -positive_nsz
-    exp(im * 2T(π) / λ * dot(rΔpos.coords, (nsx, nsy, nsz)))
+    exp(im * 2T(π) / λ * dot(rΔpos, (nsx, nsy, nsz)))
 end
-t(::Type{Propagation}, ::Type{D}, medium, rΔpos::Point{X_Y_Z}, coord::Point{NSR_NSθ_λ}) where D = t(Propagation, D, medium, rΔpos, NSX_NSY_λ(coord))
+t(prop::Propagation, ::Type{D}, medium, rΔpos::X_Y_Z, coord::NSR_NSθ_λ) where D = t(prop, D, medium, rΔpos, NSX_NSY_λ(coord))
 
 function _ScatteringMatrix(field_b, field_f, prop::Propagation, field_i::MeshedAngularSpectrum{T,D,C}) where {T,D,C<:AngularSpectrumCoords}
     t_vec = similar(field_i.e, Complex{T}, length(field_i.e))
@@ -44,7 +44,7 @@ function _ScatteringMatrix(field_b, field_f, prop::Propagation, field_i::MeshedA
 
     frame = D == Forward ? prop.frames[2] : prop.frames[1]
     rpos = delta_pos_referenceframe(field_i.frame, frame.origin)
-    f(ind) = t(Propagation, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))
+    f(ind) = t(prop, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))
     t_vec .= f.(eachindex(field_i.e))
     
     (mat_i_to_b, mat_i_to_f) = reverse_if_backward(D, (r, Diagonal(vec(t_vec))))

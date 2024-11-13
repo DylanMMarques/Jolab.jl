@@ -249,7 +249,7 @@ function _light_interaction!(back_beam, forw_beam::MeshedSpatialBeam, fibre::Fib
     error("not donw yet")
 end
 
-function translate_referenceframe(beam::Beam, new_origin::Point{X_Y_Z})
+function translate_referenceframe(beam::Beam, new_origin::X_Y_Z)
     eltype(beam.modes) <: CircularStepIndexMode || error("Invalid mode type")
     all(iscollinear.(beam.modes.frame.position, beam.modes.frame.position .+ beam.modes.frame.direction, new_origin))
     error("To be done")

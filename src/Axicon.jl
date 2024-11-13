@@ -13,15 +13,15 @@ end
 Axicon(α, axicon_medium, medium, frame; kwargs...) = Axicon(Float64, α, axicon_medium, medium, frame; kwargs...)
 
 # Meshed beam is input type because needs checking for radial symmetry
-@inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::Point{NSR_NSθ_λ}, coord_out::Point{R_θ_λ}, area)
+@inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::NSR_NSθ_λ, coord_out::R_θ_λ, area)
     (nsr, nsθ, λ) = coord_in.coords
     (r, θ, tmp) = coord_out.coords
     return im / 2π * (2π / λ) * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
 end
 
-@inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::Point{R_θ_λ}, coord_out::Point{NSR_NSθ_λ}, area)
-    (nsr, nsθ, λ) = coord_out.coords
-    (r, θ, tmp) = coord_in.coords
+@inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::R_θ_λ, coord_out::NSR_NSθ_λ, area)
+    (nsr, nsθ, λ) = coord_out
+    (r, θ, tmp) = coord_in
     return - im / 2π * (2π / λ) * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
 end
 
@@ -59,7 +59,7 @@ function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) wher
 
     lengths = (length(r), size(field_i.mesh)[2], size(field_i.mesh)[3]) 
     spacing = (step(r), field_i.mesh.spacing[2], field_i.mesh.spacing[3])
-    origin = Point(C_T, (first(r), field_i.mesh.origin.coords[2], field_i.mesh.origin.coords[3]))
+    origin = C_T(first(r), field_i.mesh.origin[2], field_i.mesh.origin[3])
     mesh = CylindricalGrid(lengths, origin, spacing)
     
     (dir_r, dir_t) = reverse_if_backward(D, (Backward, Forward))

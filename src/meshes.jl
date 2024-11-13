@@ -1,94 +1,82 @@
 abstract type Domain{C, Dim, T} end
 
-struct Point{C, Dim, T}
-    coords::SVector{Dim, T}
-    function Point(::Type{C}, coords::SVector{Dim, T}) where {Dim, T, C}
-        new{C, Dim, T}(coords)
-    end
+struct X_Y_Z{T} <: FieldVector{3, T}
+    x::T
+    y::T
+    z::T
 end
-function Base.getindex(p::Point, i)
-    @boundscheck checkbounds(p.coords, i)
-    @inbounds p.coords[i]
+
+struct X_Y_λ{T} <: FieldVector{3, T}
+    x::T
+    y::T
+    λ::T
 end
-Point(::Type{C}, coords::NTuple) where C = Point(C, SVector(coords...))
 
-import Base.+, Base.-
-(-)(p1::Point{C, Dim}, p2::Point{C, Dim}) where {C, Dim} = Point(C, p1.coords .- p2.coords)
-(+)(p1::Point{C, Dim}, p2::Point{C, Dim}) where {C, Dim} = Point(C, p1.coords .+ p2.coords)
-(-)(p::Point{C, Dim}) where {C, Dim} = Point(C, -p.coords)
+struct R_θ_λ{T} <: FieldVector{3, T}
+    r::T
+    θ::T
+    λ::T
+end
 
-Base.convert(::Type{Point{C, Dim, T}}, p::Point{C,Dim, T2}) where {C, Dim, T, T2} = Point(C, T.(p.coords))
+struct NSX_NSY_λ{T} <: FieldVector{3, T}
+    nsx::T
+    nsy::T
+    λ::T
+end
 
-Base.isapprox(p1::Point, p2::Point; kwargs...) = isapprox(p1.coords, p2.coords, kwargs...)
+struct NSR_NSθ_λ{T} <: FieldVector{3, T}
+    nsr::T
+    nsθ::T
+    λ::T
+end
 
-abstract type CoordType end
-struct X_Y_Z <: CoordType end
-struct X_Y_λ <: CoordType end
-struct X_Y_t <: CoordType end
-struct X_NSY_λ <: CoordType end
-struct X_NSY_t <: CoordType end
-struct NSX_Y_λ <: CoordType end
-struct NSX_Y_t <: CoordType end
-struct NSX_NSY_λ <: CoordType end
-struct NSX_NSY_t <: CoordType end
-struct R_θ_λ <: CoordType end
-struct R_θ_t <: CoordType end
-struct NSR_NSθ_λ <: CoordType end
-struct NSR_NSθ_t <: CoordType end
-
-for (cart, polar) in zip((:NSX_NSY_λ, :NSX_NSY_t, :X_Y_λ, :X_Y_t), (:NSR_NSθ_λ, :NSR_NSθ_t, :R_θ_λ, :R_θ_t))
+for (cart, polar) in zip((:NSX_NSY_λ, :X_Y_λ, :X_Y_t), (:NSR_NSθ_λ, :R_θ_λ))
     eval(quote
-        function $cart(coords::Point{$polar, 3})
+        function $cart(coords::$polar{T}) where T
             car = CartesianFromPolar()(Polar(coords[1], coords[2]))
-            Point($cart, (car.x, car.y, coords[3]))
+            $cart(car.x, car.y, coords[3])
         end
-        function $polar(coords::Point{$cart, 3})
+        function $polar(coords::$cart{T}) where T
             car = PolarFromCartesian()(coords[1:2])
-            Point($polar, (car.r, car.θ, coords[3]))
+            $polar(car.r, car.θ, coords[3])
         end
-    end)
-end
-
-for i in (:X_Y_λ, :X_Y_t, :X_NSY_λ, :X_NSY_t, :NSX_Y_λ, :NSX_Y_t, :NSX_NSY_λ, :NSX_NSY_t, :R_θ_λ, :R_θ_t, :NSR_NSθ_λ, :NSR_NSθ_t)
-    eval(quote
-        $i(coords::Point{$i, 3}) = coords
     end)
 end
 
 struct CartesianGrid{C, Dim, T} <: Domain{C, Dim,T}
     spacing::NTuple{Dim, T}
-    origin::Point{C, Dim, T}
+    origin::C
     lengths::NTuple{Dim, Int}
-    function CartesianGrid(lengths::NTuple{Dim, Int}, origin::Point{C, Dim, T}, spacing::NTuple{Dim, T}) where {Dim, T, C}
+    function CartesianGrid(lengths::NTuple{Dim, Int}, origin::C, spacing::NTuple{Dim, T}) where {Dim, T, C}
         new{C, Dim, T}(spacing, origin, lengths)
     end
 end
 
 area(grid::CartesianGrid{C, 2}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2]
 volume(grid::CartesianGrid{C, 3}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2] * grid.spacing[3]
-centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim} = Point(C, grid.origin.coords .+ grid.spacing .* (ind.I .- 1 ./ 2))
+centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim} = C(grid.origin .+ grid.spacing .* (ind.I .- 1 ./ 2))
 
 struct CylindricalGrid{C, Dim,T} <: Domain{C, Dim, T}
     spacing::NTuple{Dim, T}
-    origin::Point{C, Dim, T}
+    origin::C
     lengths::NTuple{Dim, Int}
-    function CylindricalGrid(lengths::NTuple{Dim, Int}, origin::Point{C, Dim, T}, spacing::NTuple{Dim, T}) where {C, Dim, T}
+    function CylindricalGrid(lengths::NTuple{Dim, Int}, origin::C, spacing::NTuple{Dim, T}) where {C, Dim, T}
         new{C, Dim, T}(spacing, origin, lengths)
     end
 end
 function area(grid::CylindricalGrid{C,2}, ind::Integer) where C
     pos = centroid(grid, ind)
-    grid.spacing[1] * grid.spacing[2] * pos.coords[1]
+    grid.spacing[1] * grid.spacing[2] * pos[1]
 end
 
 function volume(grid::CylindricalGrid{C,3}, ind::Integer) where C
     pos = centroid(grid, ind)
-    grid.spacing[1] * grid.spacing[2] * pos.coords[1] * grid.spacing[3]
+    grid.spacing[1] * grid.spacing[2] * pos[1] * grid.spacing[3]
 end
 
 function centroid(grid::CylindricalGrid{C,3}, ind::CartesianIndex{3}) where C
-    vec3 = grid.origin.coords .+ grid.spacing .* (ind.I .- 1 ./ 2)
-    Point(C, vec3)
+    vec3 = grid.origin .+ grid.spacing .* (ind.I .- 1 ./ 2)
+    C(vec3)
 end
 
 centroid(grid::Domain, ind::Integer)= centroid(grid, CartesianIndices(grid.lengths)[ind])
@@ -112,7 +100,7 @@ end
 
 function Base.getindex(grid::CylindricalGrid{C, 3}, ::Colon, ::Colon, ind::Int) where C
     @boundscheck 1 <= ind <= grid.lengths[3] 
-    new_origin = Point(grid.origin.coords .+ (0, 0, grid.spacing[3] * (ind - 1)))
+    new_origin = C(grid.origin .+ (0, 0, grid.spacing[3] * (ind - 1)))
     CylindricalGrid(grid.lengths[1:2], new_origin, grid.spacing)
 end
 
@@ -141,9 +129,9 @@ end
 # Scale(factors...) = Scale(factors)
 
 function (scale::Scale{N})(mesh::CylindricalGrid{C, N}) where {N,C}
-    CylindricalGrid(mesh.lengths, Point(C, mesh.origin.coords .* scale.factors), mesh.spacing .* scale.factors)
+    CylindricalGrid(mesh.lengths, C(mesh.origin .* scale.factors), mesh.spacing .* scale.factors)
 end
 
 function (scale::Scale{N})(mesh::CartesianGrid{C, N}) where {C,N} 
-    CartesianGrid(mesh.lengths, Point(C, mesh.origin.coords .* scale.factors), mesh.spacing .* scale.factors)
+    CartesianGrid(mesh.lengths, C(mesh.origin .* scale.factors), mesh.spacing .* scale.factors)
 end

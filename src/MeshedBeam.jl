@@ -14,7 +14,7 @@ end
 
 function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     mesh = CartesianGrid((length(nsx), length(nsy), 1),
-        Point(NSX_NSY_λ, (first(nsx), first(nsy), λ - eps_factor * eps(T) / 2)), 
+        NSX_NSY_λ(first(nsx), first(nsy), λ - eps_factor * eps(T) / 2), 
         (step(nsx), step(nsy), eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, NSX_NSY_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
@@ -39,7 +39,7 @@ end
 
 function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
     mesh = CylindricalGrid((length(nsr), 1, 1),
-        Point(NSR_NSθ_λ, (first(nsr), T(0), λ - eps_factor * eps(T) / 2)), 
+        NSR_NSθ_λ(first(nsr), T(0), λ - eps_factor * eps(T) / 2), 
         (step(nsr), 2π, eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, NSR_NSθ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
@@ -56,7 +56,7 @@ end
 function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     @argcheck size(e) == (length(x), length(y)) DimensionMismatch
     mesh = CartesianGrid((length(x), length(y), 1),
-        Point(X_Y_λ, (first(x), first(y), λ - eps_factor * eps(T) / 2)),  # The -0.5 is to center the point on the face
+        X_Y_λ(first(x), first(y), λ - eps_factor * eps(T) / 2),  # The -0.5 is to center the point on the face
         (step(x), step(y), eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, X_Y_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
@@ -82,7 +82,7 @@ end
 const eps_factor = 1000
 function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, r::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
     mesh = CylindricalGrid((length(r), 1, 1),
-        Point(R_θ_λ, (first(r), T(0), λ - eps_factor * eps(T) / 2)), 
+        R_θ_λ(first(r), T(0), λ - eps_factor * eps(T) / 2), 
         (step(r), 2π, eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, R_θ_λ}(mesh, reshape(e, size(e)..., 1), medium, frame)
@@ -100,7 +100,7 @@ function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{D}, r, ω, λ, 
 end
 
 function intensity(beam::MeshedBeam{T,D,C}) where {T,D,C}
-    norm(ind) = C <: AngularSpectrumCoords ? T(16π^4) / (centroid(beam.mesh, ind).coords[3])^2 : 1
+    norm(ind) = C <: AngularSpectrumCoords ? T(16π^4) / (centroid(beam.mesh, ind)[3])^2 : 1
     f(e, ind) = abs2(e) * volume(beam.mesh, ind) * norm(ind)
     mapreduce(f, +, vec(values_nonzeros(beam.e)), eachindex_nonzeros(beam.e))
 end
@@ -108,12 +108,12 @@ end
 const AngularSpectrumCoords = Union{NSX_NSY_λ, NSR_NSθ_λ}
 const MeshedAngularSpectrum{T,D,C<:AngularSpectrumCoords} = MeshedBeam{T,D,C}
 
-const SpatialCoords = Union{X_Y_λ, R_θ_λ, X_Y_t, R_θ_t}
+const SpatialCoords = Union{X_Y_λ, R_θ_λ}
 const MeshedSpatialBeam{T,D,C<:SpatialCoords} = MeshedBeam{T,D,C}
 
 function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium, frame) where {T,D,T2}
     mesh = CartesianGrid((1, 1, 1),
-        Point(NSX_NSY_λ, (nsx - eps_factor * eps(T) / 2, nsy - eps_factor * eps(T) / 2, λ - eps_factor * eps(T) / 2)), 
+        NSX_NSY_λ(nsx - eps_factor * eps(T) / 2, nsy - eps_factor * eps(T) / 2, λ - eps_factor * eps(T) / 2), 
         eps_factor .* (eps(T), eps(T), eps(T))
         )
     TE = T2 <: Complex ? Complex{T} : T
@@ -129,7 +129,7 @@ function Base.isapprox(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}; kwa
     return true
 end
 
-function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin::Point) where {T,D,C}
+function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin::X_Y_Z) where {T,D,C}
     dir = beam.frame.direction # should not matter
     frames = reverse_if_backward(D, (beam.frame, ReferenceFrame(T, new_origin, dir)))
     prop = Propagation(T, frames, beam.medium)
@@ -153,8 +153,7 @@ end
 #     PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
 # end,
 # rotate_referenceframe(pw::Union{AbstractFieldMode{T}, Beam{T}}, new_angles) where T = rotate_referenceframe(pw, convert(Point{T}, new_angles))
-translate_referenceframe(pw::Union{AbstractFieldMode{T}, MeshedBeam{T}}, new_origin) where T = translate_referenceframe(pw, convert(Point{T}, new_origin))
-()
+translate_referenceframe(pw::Union{AbstractFieldMode{T}, MeshedBeam{T}}, new_origin) where T = translate_referenceframe(pw, X_Y_Z(new_origin))
 
 ## Light light_interaction
 
