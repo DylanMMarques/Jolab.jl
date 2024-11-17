@@ -209,7 +209,7 @@ at(λ) = f_tbeam(mls, nsx, nsy, e, medium, frame, λ)
 
 num_diff = finite_difference_derivative(i -> f_rbeam(mls, nsx, nsy, e, medium, frame, i), 1550E-9; absstep = 1E-20)
 val = f_rbeam(mls, nsx, nsy, e, medium, frame, 1550E-9)
-ad_diff = Tuple(autodiff(Enzyme.Forward, ar, Duplicated, Duplicated(1550E-9, 1.0)))
+ad_diff = Tuple(autodiff(set_runtime_activity(Enzyme.Forward), ar, Duplicated, Duplicated(1550E-9, 1.0)))
 @test all((ad_diff) .≈ (val, num_diff))
 
 num_diff = finite_difference_derivative(i -> f_tbeam(mls, nsx, nsy, e, medium, frame, i), 1550E-9; absstep = 1E-20)
