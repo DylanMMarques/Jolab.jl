@@ -8,14 +8,14 @@ end
 Fourier(frames; kwargs...) = Fourier(Float64, frames; kwargs...)
 
 @inline function t(::Type{<:MeshedBeam}, fourier::Fourier, coord_in::NSR_NSθ_λ, coord_out::R_θ_λ, area)
-    (nsr, nsθ, λ) = coord_in.coords
-    (r, θ, tmp) = coord_out.coords
+    (nsr, nsθ, λ) = coord_in
+    (r, θ, tmp) = coord_out
     im * 2π * (2π / λ)^2 * besselj0(2π / λ * nsr * r) * area
 end
 
 @inline function t(::Type{<:MeshedBeam}, fourier::Fourier, coord_in::R_θ_λ, coord_out::R_θ_λ, area)
-    (nsr, nsθ, λ) = coord_out.coords
-    (r, θ, tmp) = coord_in.coords
+    (nsr, nsθ, λ) = coord_out
+    (r, θ, tmp) = coord_in
     - im / 2π * besselj0(2π / λ * nsr * r) * area
 end
 
