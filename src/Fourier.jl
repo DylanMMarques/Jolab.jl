@@ -13,10 +13,22 @@ Fourier(frames; kwargs...) = Fourier(Float64, frames; kwargs...)
     im * 2π * (2π / λ)^2 * besselj0(2π / λ * nsr * r) * area
 end
 
-@inline function t(::Type{<:MeshedBeam}, fourier::Fourier, coord_in::R_θ_λ, coord_out::R_θ_λ, area)
-    (nsr, nsθ, λ) = coord_out
-    (r, θ, tmp) = coord_in
-    - im / 2π * besselj0(2π / λ * nsr * r) * area
+# @inline function t(::Type{<:MeshedBeam}, fourier::Fourier, coord_in::R_θ_λ, coord_out::R_θ_λ, area)
+#     (r, θ, tmp) = coord_in
+#     (nsr, nsθ, λ) = coord_out
+#     - im / 2π * besselj0(2π / λ * nsr * r) * area
+# end
+
+@inline function t(::Type{<:MeshedBeam{T}}, fourier::Fourier, coord_in::NSX_NSY_λ, coord_out::X_Y_λ, area) where T
+    (nsx, nsy, λ) = coord_in
+    (x, y, λ) = coord_out
+    exp(im * T(2π) / λ * (nsx * x + nsy * y)) * area
+end
+
+@inline function t(::Type{<:MeshedBeam{T}}, fourier::Fourier, coord_in::X_Y_λ, coord_out::NSX_NSY_λ, area) where T
+    (x, y, λ) = coord_in
+    (nsx, nsy, λ) = coord_out
+    exp(im * T(2π) / λ * (nsx * x + nsy * y)) / T(4π^2) * area
 end
 
 check_input_field(f::Fourier, field_i::MeshedBeam) = zero(UInt64)

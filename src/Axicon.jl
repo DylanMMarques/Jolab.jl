@@ -43,15 +43,38 @@ function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) wh
         end
         mapreduce(t_in, +, eachindex_nonzeros(field_i.e))
     end
+
     values_nonzeros(field_t.e) .= out_value.(eachindex_nonzeros(field_t.e))
     (field_b, field_f)
 end
 
-# Radial symmetric version
+# Radial version
+function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) where F<:MeshedBeam{T,D,C} where {T,D,C<:Union{X_Y_λ, NSX_NSY_λ}}
+    (symbol, C_T) = F <: MeshedAngularSpectrum ? ((:x, :y), X_Y_λ) : ((:nsx, :nsy), NSX_NSY_λ)
+    
+    (haskey(axicon.solver, symbol[1]) && haskey(axicon.solver, symbol[2])) || error("Solver must have cartesian coordinate (field x and y or nsx and nsy)")
+    x = getfield(axicon.solver, symbol[1])
+    y = getfield(axicon.solver, symbol[2])
+    e_t = similar(field_i.e, Complex{T}, (length(x), length(y), size(field_i.e)[3]))
+    e_r = Zeros(T, size(field_i.e))
+
+    lengths = (length(x), length(y), size(field_i.mesh)[3]) 
+    spacing = (step(x), step(y), field_i.mesh.spacing[3])
+    origin = C_T(first(x), first(y), field_i.mesh.origin[3])
+    
+    mesh = CartesianGrid(lengths, origin, spacing)
+    
+    (dir_r, dir_t) = reverse_if_backward(D, (Backward, Forward))
+    field_r = MeshedBeam{T, dir_r, C}(deepcopy(field_i.mesh), e_r, field_i.medium, field_i.frame)
+    field_t = MeshedBeam{T, dir_t, C_T}(mesh, e_t, field_i.medium, field_i.frame)
+    reverse_if_backward(D, (field_r, field_t))
+end
+
+# Radial version
 function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) where F<:MeshedBeam{T,D,C} where {T,D,C<:Union{R_θ_λ, NSR_NSθ_λ}}
     (symbol, C_T) = F <: MeshedAngularSpectrum ? (:r, R_θ_λ) : (:nsr, NSR_NSθ_λ)
     
-    haskey(axicon.solver, symbol) || error("Solver must have radial coordinate (field r)")
+    haskey(axicon.solver, symbol) || error("Solver must have radial coordinate (field r or nsr)")
     r = getfield(axicon.solver, symbol)
     e_t = similar(field_i.e, Complex{T}, (length(r), size(field_i.e)[2], size(field_i.e)[3]))
     e_r = Zeros(T, size(field_i.e))
@@ -59,6 +82,7 @@ function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) wher
     lengths = (length(r), size(field_i.mesh)[2], size(field_i.mesh)[3]) 
     spacing = (step(r), field_i.mesh.spacing[2], field_i.mesh.spacing[3])
     origin = C_T(first(r), field_i.mesh.origin[2], field_i.mesh.origin[3])
+    
     mesh = CylindricalGrid(lengths, origin, spacing)
     
     (dir_r, dir_t) = reverse_if_backward(D, (Backward, Forward))
