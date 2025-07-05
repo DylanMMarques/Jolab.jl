@@ -142,6 +142,7 @@ function nsz_nocomplex(n, nsx, nsy)
     return √tmp
 end
 
+
 # function rotate_referenceframe(pw::PlaneWaveScalar{T,D}, new_angles::Point) where {T,D}
 #     is_complex_medium(pw.medium) && throw(ArgumentError("Thereference frame of a angular spectrum defined in a medium with a complex refractive index is not defined."))
     
@@ -169,3 +170,13 @@ function light_interaction(comp, beam)
     (field_b, field_f) = forward_backward_field(comp, beam)
     _light_interaction!(field_b, field_f, comp, beam)
 end
+
+
+function Base.view(beam::MeshedBeam{T,D,C}, x, y, z) where {T,D,C}
+    mesh = @view beam.mesh[_int_to_unitrange(x), _int_to_unitrange(y), _int_to_unitrange(z)]
+    e = @view beam.e[_int_to_unitrange(x), _int_to_unitrange(y), _int_to_unitrange(z)]
+    return MeshedBeam{T,D,C}(mesh, e, beam.medium, beam.frame)
+end
+
+_int_to_unitrange(i::Int) = UnitRange(i, i)
+_int_to_unitrange(i) = i

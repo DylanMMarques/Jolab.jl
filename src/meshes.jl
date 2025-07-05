@@ -52,6 +52,7 @@ struct CartesianGrid{C, Dim, T} <: Domain{C, Dim,T}
     end
 end
 
+
 area(grid::CartesianGrid{C, 2}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2]
 volume(grid::CartesianGrid{C, 3}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2] * grid.spacing[3]
 centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim} = C(grid.origin .+ grid.spacing .* (ind.I .- 1 ./ 2))
@@ -79,10 +80,18 @@ function centroid(grid::CylindricalGrid{C,3}, ind::CartesianIndex{3}) where C
     C(vec3)
 end
 
+
+integration_space(grid::CylindricalGrid{C, 2}, ind) where C = area(grid, ind)
+integration_space(grid::CylindricalGrid{C, 3}, ind) where C = volume(grid, ind)
+integration_space(grid::CartesianGrid{C, 2}, ind) where C = area(grid, ind)
+integration_space(grid::CartesianGrid{C, 3}, ind) where C = volume(grid, ind)
+
 centroid(grid::Domain, ind::Integer)= centroid(grid, CartesianIndices(grid.lengths)[ind])
 nelements(grid::Domain) = prod(grid.lengths)
 
 Base.eachindex(grid::Domain) = Base.OneTo(nelements(grid))
+Base.axes(grid::Domain, ind) = Base.OneTo(size(grid, ind))
+
 Base.size(grid::Domain) = grid.lengths
 Base.size(grid::Domain, ind::Integer) = grid.lengths[ind]
 
@@ -134,4 +143,19 @@ end
 
 function (scale::Scale{N})(mesh::CartesianGrid{C, N}) where {C,N} 
     CartesianGrid(mesh.lengths, C(mesh.origin .* scale.factors), mesh.spacing .* scale.factors)
+end
+
+for domain in (:CartesianGrid, :CylindricalGrid)
+    eval(quote
+        function Base.view(grid::$domain{C,3,T}, ::Colon, ::Colon, ind::UnitRange) where {C,T}
+            # @boundscheck 1 <= ind <= grid.lengths[3] 
+            # Needs to do bound check
+            $domain((grid.lengths[1:2]..., length(ind)), 
+                    C(grid.origin[1:2]..., grid.origin[3] + grid.spacing[3] * (first(ind) - 1)),
+                    (grid.spacing[1:2]..., grid.spacing[3]))
+        end
+        function Base.getindex(grid::$domain{C,3,T}, x, y, z) where {C,T}
+            @view grid[grid, x, y, z]
+        end
+    end)
 end

@@ -3,7 +3,7 @@ abstract type AbstractWaveguideMode{T,D} <: AbstractMode{T} end
 
 function intensity(mode::AbstractFieldMode, ::Type{C}, mesh) where C
     f(i) = begin
-        abs2(mode_field(mode, C(centroid(mesh, i)))) * area(mesh, i)
+        abs2(mode_field(mode, C(centroid(mesh, i)))) * volume(mesh, i)
     end
     mapreduce(f, +, eachindex(mesh))
 end
@@ -193,6 +193,7 @@ end
 function mode_field(mode::CircularStepIndexMode, coord::R_θ_λ)
     α_1 = α1(mode.profile.na, mode.profile.ncore.n, mode.wavelength, mode.β)
     α_2 = α2(mode.profile.na, mode.profile.ncore.n, mode.wavelength, mode.β)
+    @show coord
 
     if coord[1] < mode.profile.radius
         mode.C * besselj(mode.m, α_1 * coord[1]) * exp(im * mode.m * coord[2])
@@ -203,14 +204,14 @@ end
 mode_field(mode::CircularStepIndexMode, coord::X_Y_λ) = mode_field(mode, R_θ_λ(coord))
 
 function mode_coupling(mode, field::MeshedSpatialBeam{T,D,C}) where {T,D,C}
-   overlap_integral(field.e, (coord) -> mode_field(mode, C(coord)), field.mesh)
+   overlap_integral(field.e, (coord) -> mode_field(mode, coord), field.mesh)
 end
 
 function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, <:CircularStepIndexMode}, field::MeshedBeam{T,D,C}) where {T,D,C}
     isone(size(field.mesh)[3]) || error("not done yet")
-    λ = centroid(field.mesh, 1).coords[3]
+    λ = centroid(field.mesh, 1)[3]
 
-    number_modes = length(fibre.modes[λ])
+    number_modes = length(fibre.modes[round_to_attometre(λ)])
     modes_e = similar(field.e, Complex{T}, number_modes)
     modes_wavelength = Fill(λ, number_modes)
     modes_m = similar(field.e, Int, number_modes)
@@ -218,7 +219,7 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
     modes_C = similar(field.e, T, number_modes)
     modes_D = similar(field.e, T, number_modes)
     i = 1
-    modes = fibre.modes[λ]
+    modes = fibre.modes[round_to_attometre(λ)]
     number_modes_λ = length(modes)
     modes_e .= modes.e
     modes_m .= modes.m
@@ -232,9 +233,17 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
 end
 
 function _light_interaction!(back_beam, forw_beam::Beam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Forward,C}) where {T,C}
-    f(modei) = mode_coupling(modei, ifield)
-    for i in eachindex(forw_beam.modes)
-        forw_beam.modes.e[i] = f(forw_beam.modes[i])
+    wavelengths = unique(forw_beam.modes.wavelength)
+    for wav in wavelengths
+        ind_wav_forw = findall(i -> i ≈ wav, forw_beam.modes.wavelength)
+        ind_wav_incident = findfirst(i -> centroid(ifield.mesh, i)[3] ≈ wav, axes(ifield.mesh, 3)):findlast(i -> centroid(ifield.mesh, i)[3] ≈ wav, axes(ifield.mesh, 3))
+        ifield_wav = @view ifield[:, :, ind_wav_incident]
+        
+        dλ = sqrt(ifield_wav.mesh.spacing[3]) # To correct for the integration over the wavelength dimension
+
+        for i_mode in ind_wav_forw
+            forw_beam.modes.e[i_mode] = mode_coupling(forw_beam.modes[i_mode], ifield_wav) / dλ
+        end
     end
     (back_beam, forw_beam)
 end

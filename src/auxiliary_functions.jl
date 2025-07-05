@@ -50,23 +50,23 @@ end
 
 function overlap_integral(array1::AbstractArray, array2::AbstractArray, mesh::Domain)
     @argcheck size(array1) == size(mesh) == size(array2) DimensionMismatch
-    mapreduce((i) -> array1[i] * conj(array2[i]) * area(mesh, i), +, eachindex(mesh))
+    mapreduce((i) -> array1[i] * conj(array2[i]) * integration_space(mesh, i), +, eachindex(mesh))
 end
 
 function overlap_integral(array::AbstractArray, f2::Function, mesh::Domain)
     @argcheck size(array) == size(mesh) DimensionMismatch
-    mapreduce((i) -> array[i] * conj(f2(centroid(mesh, i).coords)) * area(mesh, i), +, eachindex(mesh))
+    mapreduce((i) -> array[i] * conj(f2(centroid(mesh, i))) * integration_space(mesh, i), +, eachindex(mesh))
 end
 
 function overlap_integral(f2::Function, array::AbstractArray, mesh::Domain)
     @argcheck size(array) == size(mesh) DimensionMismatch
-    mapreduce((i) -> conj(array[i]) * f2(centroid(mesh, index).coords) * area(mesh, i), +, eachindex(mesh))
+    mapreduce((i) -> conj(array[i]) * f2(centroid(mesh, index)) * integration_space(mesh, i), +, eachindex(mesh))
 end
 
 function overlap_integral(f1::Function, f2::Function, mesh::Domain)
     function f(index)
-        coord = centroid(mesh, index).coords
-        f1(coord) * conj(f2(coord)) * area(mesh, index)
+        coord = centroid(mesh, index)
+        f1(coord) * conj(f2(coord)) * integration_space(mesh, index)
     end
     mapreduce(f, +, eachindex(mesh))
 end

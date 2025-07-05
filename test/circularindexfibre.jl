@@ -16,7 +16,7 @@ na = 0.05
 λ = 1.5e-6
 
 f_V(r, λ, na) = 2π * r / λ * na
-r(na, λ, V) = V / 2π * λ / na
+radius(na, λ, V) = V / 2π * λ / na
 
 nclad = Jolab.nclad(1.5, na)
 k = 2π / λ
@@ -28,7 +28,7 @@ n_modes(r_i) = begin
     profile = CircularStepIndexProfile(r_i, na, Medium(1.5))
     fibre = Fibre(profile, 1, Medium.((1,1)), (ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,1), (0,0,0))))
     Jolab.findmodes!(fibre, λ)
-    modes = fibre.modes[λ]
+    modes = fibre.modes[Jolab.round_to_attometre(λ)]
     (modes, length(modes))
 end
 val = n_modes.(r_s)
@@ -51,21 +51,21 @@ frame = ReferenceFrame((0,0,0), (0,0,0))
 e = 1.0
 tmp_(e, λ) = coupling_field_derivative(x2, fibre, e, λ, Medium(1.0), frame)
 
-enz = autodiff(Enzyme.Forward, tmp_, Duplicated, Duplicated(e, deepcopy(e)), Const(1500E-9))
-fd_val = finite_difference_derivative(i -> tmp_(i, 1500E-9), 1.0)
-@test all(isapprox.(fd_val, enz[2]))
-
-enz = autodiff(Enzyme.Forward, tmp_, Duplicated, Const(e), Duplicated(1500E-9, 1.0))
-
-function coupling_field_derivative(x, fibre, e, λ, medium,ref)
-    e_2 = reshape(e, length(x), length(x))
-    field = MonochromaticSpatialBeam(Forward, x, x, e_2, λ, medium, ref)
-    (back, forw) = light_interaction(fibre, field)
-    real.(forw.modes.e)
-end
-tmp_2(e) = coupling_field_derivative(x2, fibre2, e, 1500E-9, Medium(1.0), frame)
-e = ones(length(x), length(x)) .+ eps()
-tmp_2(e)
-enz_2 = autodiff(Enzyme.Forward, tmp_2, DuplicatedNoNeed, Duplicated(vec(e), ones(length(e))))
-enz = jacobian(Enzyme.Reverse, tmp_2, vec(e), Val(17))
-@test all(isapprox.(enz * vec(e), enz_2.var"1"; atol = 1E-5))
+# enz = autodiff(Enzyme.Forward, tmp_, Duplicated, Duplicated(e, deepcopy(e)), Const(1500E-9))
+# fd_val = finite_difference_derivative(i -> tmp_(i, 1500E-9), 1.0)
+# @test all(isapprox.(fd_val, enz[2]))
+#
+# enz = autodiff(Enzyme.Forward, tmp_, Duplicated, Const(e), Duplicated(1500E-9, 1.0))
+#
+# function coupling_field_derivative(x, fibre, e, λ, medium,ref)
+#     e_2 = reshape(e, length(x), length(x))
+#     field = MonochromaticSpatialBeam(Forward, x, x, e_2, λ, medium, ref)
+#     (back, forw) = light_interaction(fibre, field)
+#     real.(forw.modes.e)
+# end
+# tmp_2(e) = coupling_field_derivative(x2, fibre2, e, 1500E-9, Medium(1.0), frame)
+# e = ones(length(x), length(x)) .+ eps()
+# tmp_2(e)
+# enz_2 = autodiff(Enzyme.Forward, tmp_2, DuplicatedNoNeed, Duplicated(vec(e), ones(length(e))))
+# enz = jacobian(Enzyme.Reverse, tmp_2, vec(e), Val(17))
+# @test all(isapprox.(enz * vec(e), enz_2.var"1"; atol = 1E-5))

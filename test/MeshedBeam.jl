@@ -35,3 +35,8 @@ y = range(0, stop = eps(), length = 2)
 beam = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 beam_cart = MonochromaticSpatialBeam_gaussian(Forward, r, y, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 @test beam_cart.e[:,1] ≈ beam.e
+
+view_beam = @view beam_cart[:,:,1:1]
+@test view_beam.e ≈ beam_cart.e
+@test view_beam.e ≈ beam_cart.e
+@test view_beam.mesh ≈ beam_cart.mesh
