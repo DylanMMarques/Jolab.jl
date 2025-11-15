@@ -125,7 +125,7 @@ end
 function findmodes!(fibre::Fibre, λ)
     _λ = round_to_attometre(λ) 
     if _λ ∉ keys(fibre.modes)
-        push!(fibre.modes, _λ => findmodes(fibre.refractive_index_profile, _λ))
+        push!(fibre.modes, _λ => findmodes(fibre.refractive_index_profile, λ))
     end
 end
 
@@ -193,7 +193,6 @@ end
 function mode_field(mode::CircularStepIndexMode, coord::R_θ_λ)
     α_1 = α1(mode.profile.na, mode.profile.ncore.n, mode.wavelength, mode.β)
     α_2 = α2(mode.profile.na, mode.profile.ncore.n, mode.wavelength, mode.β)
-    @show coord
 
     if coord[1] < mode.profile.radius
         mode.C * besselj(mode.m, α_1 * coord[1]) * exp(im * mode.m * coord[2])
