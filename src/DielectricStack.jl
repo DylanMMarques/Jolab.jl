@@ -79,15 +79,15 @@ function rtss(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsr::T, λ) wh
 	ri = reflectioncoefficient_interfaces(stack.mat[sizeA-1].n, sz1, stack.mat[sizeA].n, sz2)
 	ti = transmissioncoefficient_interfaces(stack.mat[sizeA-1].n, sz1, stack.mat[sizeA].n, sz2)
  	imk = im * T(2π) / λ
-	@inbounds for iA in (sizeA-2):-1:1
-		sz2 = sz1
-		sz1 = √(complex(1 - (nsr / stack.mat[iA].n)^2))
-		propagationTerm = exp(imk * stack.mat[iA+1].n * sz2 * stack.h[iA])
-		rinterface = reflectioncoefficient_interfaces(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
-		tinterface = transmissioncoefficient_interfaces(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
-		ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
-		ri = (rinterface + ri * propagationTerm^2) / (1 + rinterface * ri * propagationTerm^2)
-	end
+	# @inbounds for iA in (sizeA-2):-1:1
+	# 	sz2 = sz1
+	# 	sz1 = √(complex(1 - (nsr / stack.mat[iA].n)^2))
+	# 	propagationTerm = exp(imk * stack.mat[iA+1].n * sz2 * stack.h[iA])
+	# 	rinterface = reflectioncoefficient_interfaces(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
+	# 	tinterface = transmissioncoefficient_interfaces(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
+	# 	ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
+	# 	ri = (rinterface + ri * propagationTerm^2) / (1 + rinterface * ri * propagationTerm^2)
+	# end
 	return (ri, ti)
 end
 

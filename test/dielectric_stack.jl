@@ -145,9 +145,8 @@ enz_jac = Enzyme.jacobian(Enzyme.Forward, jac, [2, 1, 100E-9, .1, .1, 1550E-9])
 fin_jac_r = FiniteDiff.finite_difference_jacobian(x -> jac(x)[1], [2, 1, 100E-9, .1, .1, 1550E-9], Val{:central}, ComplexF64, relstep = 1E-9)
 fin_jac_t = FiniteDiff.finite_difference_jacobian(x -> jac(x)[2], [2, 1, 100E-9, .1, .1, 1550E-9], Val{:central}, ComplexF64, relstep = 1E-9)
 
-# Enzyme is returning the conjugate of the finite difference jacobian for some reason
-@test all(isapprox.(first.(enz_jac[1]), fin_jac_r', rtol = 1E-4)) broken = true
-@test all(isapprox.(last.(enz_jac[1]), fin_jac_t, rtol = 1E-4)) broken = true
+@test all(isapprox.(first.(enz_jac[1]), vec(fin_jac_r), rtol = 1E-4))
+@test all(isapprox.(last.(enz_jac[1]), vec(fin_jac_t), rtol = 1E-4))
 
 ## Plane Wave tests
 # Wavelength dependency
@@ -165,13 +164,13 @@ num_diff = (finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, i,
 @test all((num_diff) .≈ ad_diff)
 
 # Refractive index dependency
-function refractive_index_dependency(n)
+function rtss_f(n)
     mls = DielectricStack(Medium.((@SVector [1+0im, n, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
     Jolab.rtss(mls, Forward, 0.1, 1550E-9)
 end
-ad_diff = autodiff(Enzyme.Forward, refractive_index_dependency, Duplicated, Duplicated(2.0, 1.0))[1]
-num_diff = (finite_difference_derivative(i -> refractive_index_dependency(i)[1], 2.0; absstep = 1E-18),
-    finite_difference_derivative(i -> refractive_index_dependency(i)[2], 2.0; absstep = 1E-18))
+ad_diff = autodiff(Enzyme.Forward, rtss_f, Duplicated, Duplicated(2.0, 1.0))[1]
+num_diff = (finite_difference_derivative(i -> rtss_f(i)[1], 2.0; absstep = 1E-18),
+    finite_difference_derivative(i -> rtss_f(i)[2], 2.0; absstep = 1E-18))
 @test all(ad_diff .≈ num_diff)
 
 # Thickness dependency
@@ -185,38 +184,38 @@ num_diff = (finite_difference_derivative(i -> thickness_dependency(i)[1], 10E-9;
 @test all(ad_diff .≈ num_diff)
 
 
-function f_rbeam(mls, nsx, nsy, e, medium, frame, λ)
-    beam2 = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsy, e, λ, medium, frame)
-    (rbeam, tbeam) = light_interaction(mls, beam2)
+function f_rbeam(mls, nsx, nsy, waist, λ, medium, frame)
+    beam = MonochromaticAngularSpectrum_gaussian(Float64, Forward, nsx, nsy, waist, λ, medium, frame)
+    (rbeam, tbeam) = light_interaction(mls, beam)
     intensity(rbeam)
 end
 
-function f_tbeam(mls, nsx, nsy, e, medium, frame, λ)
-    beam2 = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsy, e, λ, medium, frame)
-    (rbeam, tbeam) = light_interaction(mls, beam2)
+function f_tbeam(mls, nsx, nsy, waist, λ, medium, frame)
+    beam = MonochromaticAngularSpectrum_gaussian(Float64, Forward, nsx, nsy, waist, λ, medium, frame)
+    (rbeam, tbeam) = light_interaction(mls, beam)
     intensity(tbeam)
 end
 
 medium = Medium(1.0)
 frame = ReferenceFrame((0,0,0), (0,0,1))
-nsx = range(0, 0.5, length = 100)
+nsx = range(-0.5, 0.5, length = 100)
 nsy = nsx
-e = deepcopy(nsx * nsx')
+waist = 10E-6
 T = Float64
 mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
 
-ar(λ) = f_rbeam(mls, nsx, nsy, e, medium, frame, λ)
-at(λ) = f_tbeam(mls, nsx, nsy, e, medium, frame, λ)
+ar(λ) = f_rbeam(mls, nsx, nsy, waist, λ * 1E-9, medium, frame)
+at(λ) = f_tbeam(mls, nsx, nsy, waist, λ * 1E-9, medium, frame)
 
-num_diff = finite_difference_derivative(i -> f_rbeam(mls, nsx, nsy, e, medium, frame, i), 1550E-9; absstep = 1E-20)
-val = f_rbeam(mls, nsx, nsy, e, medium, frame, 1550E-9)
-ad_diff = Tuple(autodiff(set_runtime_activity(Enzyme.Forward), ar, Duplicated, Duplicated(1550E-9, 1.0)))
-@test all((ad_diff) .≈ (val, num_diff)) broken = true
+num_diff = finite_difference_derivative(ar, 1550.0; absstep = 1E-50)
+val = ar(1550.0)
+ad_diff = Tuple(autodiff(set_runtime_activity(Enzyme.ForwardWithPrimal), ar, Duplicated, Duplicated(1550.0, 1.0)))
+@test all((ad_diff) .≈ (num_diff, val))
 
-num_diff = finite_difference_derivative(i -> f_tbeam(mls, nsx, nsy, e, medium, frame, i), 1550E-9; absstep = 1E-20)
-val = f_tbeam(mls, nsx, nsy, e, medium, frame, 1550E-9)
-ad_diff = Tuple(autodiff(set_runtime_activity(Enzyme.Forward), at, Duplicated, Duplicated(1550E-9, 1.0)))
-@test all((ad_diff) .≈ (val, num_diff)) broken = true
+num_diff = finite_difference_derivative(at, 1550.0; absstep = 1E-20)
+val = at(1550.0)
+ad_diff = Tuple(autodiff(set_runtime_activity(Enzyme.ForwardWithPrimal), at, Duplicated, Duplicated(1550.0, 1.0)))
+@test all((ad_diff) .≈ (num_diff, val))
 
 # Broken tests
 # mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)); reflectivity = 0.99)
