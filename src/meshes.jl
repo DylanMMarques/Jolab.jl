@@ -70,7 +70,7 @@ function area(grid::CylindricalGrid{C,2}, ind::Integer) where C
     grid.spacing[1] * grid.spacing[2] * pos[1]
 end
 
-function volume(grid::CylindricalGrid{C,3}, ind::Integer) where C
+function volume(grid::CylindricalGrid{C,3}, ind::Union{Integer, CartesianIndex}) where C
     pos = centroid(grid, ind)
     grid.spacing[1] * grid.spacing[2] * pos[1] * grid.spacing[3]
 end
@@ -78,6 +78,13 @@ end
 function centroid(grid::CylindricalGrid{C,3}, ind::CartesianIndex{3}) where C
     vec3 = grid.origin .+ grid.spacing .* (ind.I .- 1 ./ 2)
     C(vec3)
+end
+
+function change_coordinate_type(::Type{C_New}, grid::CartesianGrid) where C_New
+    CartesianGrid(grid.lengths, C_New(grid.origin), grid.spacing) 
+end,
+function change_coordinate_type(::Type{C_New}, grid::CylindricalGrid) where C_New
+    CylindricalGrid(grid.lengths, C_New(grid.origin), grid.spacing) 
 end
 
 

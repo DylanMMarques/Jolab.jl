@@ -145,7 +145,7 @@ enz_jac = Enzyme.jacobian(Enzyme.Forward, jac, [2, 1, 100E-9, .1, .1, 1550E-9])
 fin_jac_r = FiniteDiff.finite_difference_jacobian(x -> jac(x)[1], [2, 1, 100E-9, .1, .1, 1550E-9], Val{:central}, ComplexF64, relstep = 1E-9)
 fin_jac_t = FiniteDiff.finite_difference_jacobian(x -> jac(x)[2], [2, 1, 100E-9, .1, .1, 1550E-9], Val{:central}, ComplexF64, relstep = 1E-9)
 
-# Enzyme is returning the conjugate of the finite difference jacobian
+# Enzyme is returning the conjugate of the finite difference jacobian for some reason
 @test all(isapprox.(first.(enz_jac[1]), fin_jac_r', rtol = 1E-4)) broken = true
 @test all(isapprox.(last.(enz_jac[1]), fin_jac_t, rtol = 1E-4)) broken = true
 
@@ -165,23 +165,23 @@ num_diff = (finite_difference_derivative(i -> Jolab.rtss(stack_test, Forward, i,
 @test all((num_diff) .≈ ad_diff)
 
 # Refractive index dependency
-function f(n)
+function refractive_index_dependency(n)
     mls = DielectricStack(Medium.((@SVector [1+0im, n, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,1)))
     Jolab.rtss(mls, Forward, 0.1, 1550E-9)
 end
-ad_diff = autodiff(Enzyme.Forward, f, Duplicated, Duplicated(2.0, 1.0))[1]
-num_diff = (finite_difference_derivative(i -> f(i)[1], 2.0; absstep = 1E-18),
-    finite_difference_derivative(i -> f(i)[2], 2.0; absstep = 1E-18))
+ad_diff = autodiff(Enzyme.Forward, refractive_index_dependency, Duplicated, Duplicated(2.0, 1.0))[1]
+num_diff = (finite_difference_derivative(i -> refractive_index_dependency(i)[1], 2.0; absstep = 1E-18),
+    finite_difference_derivative(i -> refractive_index_dependency(i)[2], 2.0; absstep = 1E-18))
 @test all(ad_diff .≈ num_diff)
 
 # Thickness dependency
-function f(h)
+function thickness_dependency(h)
     mls = DielectricStack(Medium.((@SVector [1+0im, 2, 1])), (@SVector [h]), ReferenceFrame((0,0,0), (0,0,1)))
     Jolab.rtss(mls, Forward, 0.1, 1550E-9)
 end
-ad_diff = autodiff(Enzyme.Forward, f, Duplicated, Duplicated(10E-9, 1.0))[1]
-num_diff = (finite_difference_derivative(i -> f(i)[1], 10E-9; absstep = 1E-20),
-    finite_difference_derivative(i -> f(i)[2], 10E-9; absstep = 1E-20))
+ad_diff = autodiff(Enzyme.Forward, thickness_dependency, Duplicated, Duplicated(10E-9, 1.0))[1]
+num_diff = (finite_difference_derivative(i -> thickness_dependency(i)[1], 10E-9; absstep = 1E-20),
+    finite_difference_derivative(i -> thickness_dependency(i)[2], 10E-9; absstep = 1E-20))
 @test all(ad_diff .≈ num_diff)
 
 

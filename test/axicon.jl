@@ -71,7 +71,7 @@ function field_focal_plane(λ)
 end
 z_vec = range(0, 5E-2, length = 2)
 fieldi = field_focal_plane(1550E-9)
-axial = tmap(z -> reflectance_axi_mirror(fieldi, z), z_vec)
+axial = map(z -> reflectance_axi_mirror(fieldi, z), z_vec)
 z_max = z_vec[findmax(axial)[2]]
 λ_b = 1546.9568023494082nm
 tmp_r(ustrip(m, λ_b), z_max)

@@ -1,3 +1,4 @@
+using Jolab, Test
 mirror = Mirror((Medium(1), Medium(1)), ReferenceFrame((0,0,0), (0,0,0)); reflectivity = 0.99)
 mirror2 = Mirror((Medium(1), Medium(1)), ReferenceFrame((0,0,0E-9), (0,0,0)); reflectivity = 0.99)
 

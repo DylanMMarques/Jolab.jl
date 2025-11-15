@@ -18,7 +18,7 @@ Lens(focal_length, numerical_aperture, media, frame) = Lens(Float64, focal_lengt
 
 function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, lens::Lens, field_i::MeshedBeam{T,D,C}) where {T,D,C}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
-    field_r.e .= 0
+    fill!(field_r.e, 0)
     function t_aux(ind)
         t(lens, C(centroid(field_i.mesh, ind))) * field_i.e[ind]
     end
@@ -33,10 +33,9 @@ function t(lens::Lens{T}, coord::NSR_NSθ_λ) where T<:AbstractFloat
     	zero(Complex{T})
     else # Plane waves
     	if (1 - cosθ² > lens.numerical_aperture^2) # above the lens NA
-    		zero(Complex{T})
+    	    zero(Complex{T})
     	else
-            cte = 1 / √(16π^4 / λ^2 * real(lens.mat[1].n))
-    		cte / (T(lens.focal_length * cosθ²^(1/4) / (2π / λ * 2π)) / im) # might be wrong
+            1 / (T(lens.focal_length * cosθ²^(1/4) / (2π / λ * 2π)) / im) # might be wrong
         end
     end
 end,
@@ -50,10 +49,9 @@ function t(lens::Lens{T}, coord::R_θ_λ) where T<:AbstractFloat
 		return zero(Complex{T})
 	else # Plane waves
 		if (1 - cosθ² > lens.numerical_aperture^2) # above the lens NA
-			return zero(Complex{T})
+		    return zero(Complex{T})
 		else
-            cte = √(16π^4 / λ^2 * real(lens.mat[1].n))
-			cte * (T(lens.focal_length * cosθ²^(1/4) / (2π / λ * 2π)) / im) # Needs checking
+		    (T(lens.focal_length * cosθ²^(1/4) / (2π / λ * 2π)) / im) # Needs checking
 		end
 	end
 end,
@@ -82,15 +80,15 @@ function forward_backward_field(lens::Lens, field_i::MeshedBeam{T,D,C}) where {T
     
     mesh = if C <: AngularSpectrumCoords
         if C <: NSR_NSθ_λ
-            Scale((T(f / n), T(1), T(1)))(field_i.mesh)
+            Scale((T(f / n), T(1), T(1)))(change_coordinate_type(R_θ_λ, field_i.mesh))
         else
-            Scale((T(f / n), T(f / n), T(1)))(field_i.mesh)
+            Scale((T(f / n), T(f / n), T(1)))(change_coordinate_type(X_Y_λ, field_i.mesh))
         end
     else
         if C <: R_θ_λ
-            Scale((T(n / f), T(1), T(1)))(field_i.mesh)
+            Scale((T(n / f), T(1), T(1)))(change_coordinate_type(NSR_NSθ_λ, field_i.mesh))
         else
-            Scale((-T(n / f), -T(n / f), T(1)))(field_i.mesh)
+            Scale((-T(n / f), -T(n / f), T(1)))(change_coordinate_type(NSX_NSY_λ, field_i.mesh))
         end
     end
 
