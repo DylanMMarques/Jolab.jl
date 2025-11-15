@@ -78,11 +78,11 @@ function field_after_lens(focal_len, nsx, nsy, ω, λ, medium)
 end
  
 at(ω) = field_after_lens(focal_len, nsx, nsx, ω, 1500E-9, Medium(1))
-@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[2] ≈
-    finite_difference_derivative(x -> at(x), [10E-6], Val{:central}, Float64, relstep = 1E-9)[1]
+@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[1] ≈
+    finite_difference_derivative(at, [10E-6], Val{:central}, Float64, relstep = 1E-9)[1]
 
 at(f) = field_after_lens(f, nsx, nsx, 10E-6, 1500E-9, Medium(1))
-@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[2] ≈
+@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[1] ≈
     finite_difference_derivative(x -> at(x), [10E-6], Val{:central}, Float64, relstep = 1E-9)[1]
 
 function field_after_lens(focal_len, x, y, ω, λ, medium)
@@ -93,9 +93,9 @@ function field_after_lens(focal_len, x, y, ω, λ, medium)
 end
  
 at(ω) = field_after_lens(focal_len, x, x, ω, 1500E-9, Medium(1))
-@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[2] ≈
+@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[1] ≈
     finite_difference_derivative(x -> at(x), [10E-6], Val{:central}, Float64, relstep = 1E-9)[1]
 
 at(f) = field_after_lens(f, x, x, 10E-6, 1500E-9, Medium(1))
-@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[2] ≈
+@test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[1] ≈
     finite_difference_derivative(x -> at(x), [10E-6], Val{:central}, Float64, relstep = 1E-9)[1]
