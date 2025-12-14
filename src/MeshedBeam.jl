@@ -46,7 +46,7 @@ function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::
 end
 
 function MonochromaticAngularSpectrumRadialSymmetric_gaussian(::Type{T}, ::Type{D}, nsr::AbstractRange, ω, λ, medium, frame) where {T,D}
-    e = gaussianbeam_electricfield_angspe.(T, nsr.^2, ω, λ, medium.n)
+    e = complex.(gaussianbeam_electricfield_angspe.(T, nsr.^2, ω, λ, medium.n))
     MonochromaticAngularSpectrumRadialSymmetric(T, D, nsr, reshape(e, size(e)..., 1), λ, medium, frame)
 end,
 function MonochromaticAngularSpectrumRadialSymmetric_gaussian(D, nsr, ω, λ, medium, frame) 
@@ -73,7 +73,7 @@ function gaussianbeam_electricfield_space(::Type{T}, x, y, ω, λ, n) where T
 end
 
 function MonochromaticSpatialBeam_gaussian(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, ω, λ, medium, frame) where {T,D}
-    e = gaussianbeam_electricfield_space.(T, x, y', ω, λ, medium.n)
+    e = complex.(gaussianbeam_electricfield_space.(T, x, y', ω, λ, medium.n))
     MonochromaticSpatialBeam(T, D, x, y, e, λ, medium, frame)
 end,
 function MonochromaticSpatialBeam_gaussian(D, x, y, ω, λ, medium, frame) 
@@ -92,7 +92,7 @@ function MonochromaticSpatialBeamRadialSymmetric(::Type{D}, r, e, λ, medium, fr
 end
 
 function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{T}, ::Type{D}, r::AbstractRange, ω, λ, medium, frame) where {T,D}
-    e = gaussianbeam_electricfield_space.(T, r.^2, ω, λ, medium.n)
+    e = complex.(gaussianbeam_electricfield_space.(T, r.^2, ω, λ, medium.n))
     MonochromaticSpatialBeamRadialSymmetric(T, D, r, reshape(e, size(e)..., 1), λ, medium, frame)
 end,
 function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{D}, r, ω, λ, medium, frame) where D

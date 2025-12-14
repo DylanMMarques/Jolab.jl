@@ -10,7 +10,34 @@ Fourier(frames; kwargs...) = Fourier(Float64, frames; kwargs...)
 
 struct FourierFFT end
 
-function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFT, field_i::MeshedBeam{T,D,NSX_NSY_λ}) where {T,D}
+struct FourierFFTSolver{F1,F2,F3,P<:FFTW.AbstractFFTs.Plan, P2<:FFTW.AbstractFFTs.Plan, A}
+    field_i::F1
+    field_b::F2
+    field_f::F3
+    p::P
+    p_inv::P2
+    tmp_array::A
+    function FourierFFTSolver(field_b::F2, field_f::F3, p::P, p_inv::P2, tmp_array::A, field_i::F1) where {P, P2, A, F1, F2, F3}
+        new{F1,F2,F3,P,P2,A}(field_i, field_b, field_f, p, p_inv, tmp_array)
+    end
+end
+function FourierFFTSolver(field_i::MeshedBeam{T}) where {T}
+    sz = size(field_i.e)
+    tmp_array = similar(field_i.e, complex(T), sz)
+    p = plan_fft(tmp_array)
+    p_inv = plan_bfft(tmp_array)
+    field_b, field_f = forward_backward_field(FourierFFT(), field_i)
+    FourierFFTSolver(field_b, field_f, p, p_inv, tmp_array, field_i)
+end
+
+function light_interaction(f::FourierFFT, field_i)
+    msg_code = check_input_field(f, field_i)
+    msg_code == 0 || throw_error_msg(msg_code)
+    fourier = FourierFFTSolver(field_i)
+    _light_interaction!(fourier.field_b, fourier.field_f, fourier, field_i)
+end
+
+function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFTSolver, field_i::MeshedBeam{T,D,NSX_NSY_λ}) where {T,D}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     fill!(field_r.e, 0)
 
@@ -18,23 +45,23 @@ function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::Meshe
     (x, y, _) = get_ranges(field_t.mesh)
     λ = only(_λ)
 
-    tmp = field_i.e .* exp.((im * 2π / λ) .* (nsx .* first(x) .+ (nsy)' .* first(y)))
+    field_t.e .= field_i.e .* exp.((im * 2π / λ) .* (nsx .* first(x) .+ (nsy)' .* first(y)))
         
-    ifftshift!(field_t.e, tmp, (1,2))
+    ifftshift!(fourier.tmp_array, field_t.e, (1,2))
 
-    bfft!(field_t.e, (1,2))
+    mul!(field_t.e, fourier.p_inv, fourier.tmp_array)
 
     field_t.e .*= (step(nsx) * step(nsy) * (2π / λ)^2)
 
     (field_b, field_f)
 end
 
-function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFT, field_i::MeshedBeam{T,D,X_Y_λ}) where {T,D}
+function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFTSolver, field_i::MeshedBeam{T,D,X_Y_λ}) where {T,D}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     fill!(field_r.e, 0)
 
-    tmp = fft(field_i.e, (1,2))
-    fftshift!(field_t.e, tmp, (1,2))
+    mul!(fourier.tmp_array, fourier.p, field_i.e)
+    fftshift!(field_t.e, fourier.tmp_array, (1,2))
 
     (x, y, _λ) = get_ranges(field_i.mesh)
     (nsx, nsy, _) = get_ranges(field_t.mesh)

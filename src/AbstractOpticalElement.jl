@@ -52,9 +52,9 @@ function recursive_light_interaction_inverse(mat_1::Tuple{ScatteringMatrix{T1}, 
     r_13 = r12 + t21 * aux_1 * r23 * t12
     t_31 = t21 * aux_1 * t32
     
-	aux_2 = inv(I - r21 * r23)
-	r_31 = r32 + t23 * aux_2 * r21 * t32
-	t_13 = t23 * aux_2 * t12
+    aux_2 = inv(I - r21 * r23)
+    r_31 = r32 + t23 * aux_2 * r21 * t32
+    t_13 = t23 * aux_2 * t12
 
     T = promote_type(T1, T2, T3, T4)
     scat_13 = ScatteringMatrix(T, mat_1_12.field_b, mat_2_12.field_f, r_13, t_13, mat_1_12.field_i)
