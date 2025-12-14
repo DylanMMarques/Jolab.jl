@@ -52,6 +52,14 @@ struct CartesianGrid{C, Dim, T} <: Domain{C, Dim,T}
     end
 end
 
+# function CartesianGrid(::Type{C}, x::AbstractRange, y::AbstractRange, z::AbstractRange) where C
+#     xyz = (x, y, z)
+#     lengths = length.(xyz)
+#     spacing = step.(xyz)
+#     start = first.(xyz)
+#     CartesianGrid(lengths, C(start), spacing)
+# end
+
 
 area(grid::CartesianGrid{C, 2}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2]
 volume(grid::CartesianGrid{C, 3}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2] * grid.spacing[3]

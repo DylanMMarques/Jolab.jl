@@ -30,7 +30,7 @@ function gaussianbeam_electricfield_angspe(::Type{T}, nsx, nsy, ω, λ, n) where
 end
 
 function MonochromaticAngularSpectrum_gaussian(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, ω, λ, medium, frame) where {T,D}
-    e = gaussianbeam_electricfield_angspe.(T, nsx, nsy', ω, λ, medium.n)
+    e = complex.(gaussianbeam_electricfield_angspe.(T, nsx, nsy', ω, λ, medium.n))
     MonochromaticAngularSpectrum(T, D, nsx, nsy, e, λ, medium, frame)
 end,
 function MonochromaticAngularSpectrum_gaussian(D, nsx, nsy, ω, λ, medium, frame) 
