@@ -72,27 +72,36 @@ transmissioncoefficient_interfaces(n1, sz1, n2, sz2) = (2 * n1 * sz1) / (n1 * sz
 
 transmissioncoefficient_interfacep(n1, sz1, n2, sz2) = (2 * n1 * sz1) / (n2 * sz1 + n1 * sz2);
 
-function rtss(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsr::T, λ) where {T, N<:AbstractVector{<:DefinedMedium}}
+function recursive_stack(f_r, f_t, stack::DielectricStack{<:Real, N}, nsr::T, λ) where {T, N<:AbstractVector{<:DefinedMedium}}
     sizeA = length(stack.mat)
-	sz2 = √(complex(1 - (nsr / stack.mat[sizeA].n)^2))
-	sz1 = √(complex(1 - (nsr / stack.mat[sizeA-1].n)^2))
-	ri = reflectioncoefficient_interfaces(stack.mat[sizeA-1].n, sz1, stack.mat[sizeA].n, sz2)
-	ti = transmissioncoefficient_interfaces(stack.mat[sizeA-1].n, sz1, stack.mat[sizeA].n, sz2)
- 	imk = im * T(2π) / λ
-	@inbounds for iA in (sizeA-2):-1:1
-		sz2 = sz1
-		sz1 = √(complex(1 - (nsr / stack.mat[iA].n)^2))
-		propagationTerm = exp(imk * stack.mat[iA+1].n * sz2 * stack.h[iA])
-		rinterface = reflectioncoefficient_interfaces(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
-		tinterface = transmissioncoefficient_interfaces(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
-		ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
-		ri = (rinterface + ri * propagationTerm^2) / (1 + rinterface * ri * propagationTerm^2)
-	end
-	return (ri, ti)
+    sz2 = √(complex(1 - (nsr / stack.mat[sizeA].n)^2))
+    sz1 = √(complex(1 - (nsr / stack.mat[sizeA-1].n)^2))
+    ri = f_r(stack.mat[sizeA-1].n, sz1, stack.mat[sizeA].n, sz2)
+    ti = f_t(stack.mat[sizeA-1].n, sz1, stack.mat[sizeA].n, sz2)
+    imk = im * T(2π) / λ
+    @inbounds for iA in (sizeA-2):-1:1
+    	sz2 = sz1
+    	sz1 = √(complex(1 - (nsr / stack.mat[iA].n)^2))
+    	propagationTerm = exp(imk * stack.mat[iA+1].n * sz2 * stack.h[iA])
+    	rinterface = f_r(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
+    	tinterface = f_t(stack.mat[iA].n, sz1, stack.mat[iA+1].n, sz2)
+    	ti = tinterface * ti * propagationTerm / (1 + rinterface * ri * propagationTerm^2)
+    	ri = (rinterface + ri * propagationTerm^2) / (1 + rinterface * ri * propagationTerm^2)
+    end
+    return (ri, ti)
 end
 
-rtss(stack::DielectricStack, ::Type{Forward}, coords::NSX_NSY_λ) = rtss(stack, Forward, √(coords[1]^2 + coords[2]^2), coords[3])
-rtss(stack::DielectricStack, ::Type{Forward}, coords::NSR_NSθ_λ) = rtss(stack, Forward, coords[1], coords[3])
+for i in (:s, :p)
+    f = Symbol(:rt, i, i)
+    @eval begin
+        function $f(stack::DielectricStack{<:Real, N}, ::Type{Forward}, nsr::T, λ) where {T, N<:AbstractVector{<:DefinedMedium}}
+            recursive_stack($(Symbol(:reflectioncoefficient_interface, i)), $(Symbol(:transmissioncoefficient_interface, i)), stack, nsr, λ)
+        end
+        
+        $f(stack::DielectricStack, ::Type{Forward}, coords::NSX_NSY_λ) = $f(stack, Forward, √(coords[1]^2 + coords[2]^2), coords[3])
+        $f(stack::DielectricStack, ::Type{Forward}, coords::NSR_NSθ_λ) = $f(stack, Forward, coords[1], coords[3])
+    end
+end
 
 @inline function rtss(stack::Union{DielectricStack, Mirror}, ::Type{Backward}, coords)
     rtss(reverse(stack), Forward, coords)
