@@ -25,7 +25,7 @@ Calculates the cartesians distance between the origin of a reference frame and a
 """
 function delta_pos_referenceframe(frame::ReferenceFrame{T}, new_origin::X_Y_Z) where T
     Δpos = new_origin - frame.origin
-    rot = RotXYZ(frame.direction)
+    rot = _RotXYZ(frame.direction)
     X_Y_Z(inv(rot) * Δpos)
 end
 

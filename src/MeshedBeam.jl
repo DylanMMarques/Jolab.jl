@@ -168,7 +168,7 @@ end
 #     rot_matrix = RotXYZ(pw.frame.direction.x, pw.frame.direction.y, pw.frame.direction.z)
 
 #     nsz_val = nsz_nocomplex(pw.medium.n, pw.nsx, pw.nsy) 
-#     (new_nsx, new_nsy, new_nsz) = inv(RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point{T}(pw.nsx, pw.nsy, nsz_val))
+#     (new_nsx, new_nsy, new_nsz) = inv(_RotXYZ(new_angles.x, new_angles.y, new_angles.z)) * (rot_matrix * Point{T}(pw.nsx, pw.nsy, nsz_val))
     
 #     PlaneWaveScalar(T, D, new_nsx, new_nsy, pw.e, pw.wavelength, pw.medium, ReferenceFrame(pw.frame.origin, new_angles))
 # end,

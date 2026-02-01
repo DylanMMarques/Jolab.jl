@@ -7,8 +7,8 @@ struct Lens{T, F, N, M1<:Medium{T}, M2<:Medium{T}} <: AbstractOpticalElement{T}
 
         any(is_complex_medium, media) && throw(ArgumentError("A lens cannot be in a medium with absortion. Use media with real refractive index."))
 
-        frame_1 = frame.origin + RotXYZ(frame.direction) * X_Y_Z(zero(T), zero(T), -focal_length)
-        frame_2 = frame.origin + RotXYZ(frame.direction) * X_Y_Z(zero(T), zero(T), focal_length)
+        frame_1 = frame.origin + _RotXYZ(frame.direction) * X_Y_Z(zero(T), zero(T), -focal_length)
+        frame_2 = frame.origin + _RotXYZ(frame.direction) * X_Y_Z(zero(T), zero(T), focal_length)
         new{T,F,N,M1,M2}(focal_length, numerical_aperture, media, map(o -> ReferenceFrame(o, frame.direction), (frame_1, frame_2)))
     end
 end

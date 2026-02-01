@@ -19,5 +19,5 @@ function Base.isapprox(frame1::ReferenceFrame, frame2::ReferenceFrame; kwargs...
     isapprox(frame1.origin, frame2.origin; kwargs...) && isapprox(frame1.direction, frame2.direction; kwargs...)
 end
 
-RotXYZ(direction::FieldVector{3}) = Rotations.RotXYZ(direction.x, direction.y, direction.z)
-RotXYZ(x, y, z) = Rotations.RotXYZ(x, y, z)
+_RotXYZ(direction::FieldVector{3}) = Rotations.RotXYZ(direction.x, direction.y, direction.z)
+_RotXYZ(x, y, z) = Rotations.RotXYZ(x, y, z)
