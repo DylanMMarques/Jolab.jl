@@ -114,15 +114,29 @@ function Base.reverse(stack::DielectricStack{T}) where T
 end
 
 ## Beam calculations
-function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirror}, beam::MeshedAngularSpectrum{T,D,C}) where {T,D, C<:AngularSpectrumCoords}
+function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirror}, beam::MeshedAngularSpectrum{T,D,C,P}) where {T,D, C<:AngularSpectrumCoords, P}
     (field_r, field_t) = reverse_if_backward(D, (field_b.e, field_f.e))
+    
+    polarization_components = number_components(P)
+    for iP in 1:polarization_components
+        field_i_e = view(beam.e, :, :, iP)
+        field_r_e = view(field_r, :, :, iP)
+        field_t_e = view(field_t, :, :, iP)
 
-    function f(index, e)
-        (r, t) = rtss(comp, D, C(centroid(beam.mesh, index)))
-        (r * e, t * e)
+        f = if isone(iP)
+            (index, e) -> begin
+                (r, t) = rtss(comp, D, C(centroid(beam.mesh, index)))
+                (r * e, t * e)
+            end
+        else
+            (index, e) -> begin
+                (r, t) = rtpp(comp, D, C(centroid(beam.mesh, index)))
+                (r * e, t * e)
+            end
+        end
+        tmp = StructArray{Tuple{Complex{T}, Complex{T}}}((vec(field_r_e), vec(field_t_e)))
+        tmp .= f.(eachindex(field_i_e), vec(field_i_e))
     end
-    tmp = StructArray{Tuple{Complex{T}, Complex{T}}}((vec(field_r), vec(field_t)))
-    tmp .= f.(eachindex(beam.e), vec(beam.e))
     (field_b, field_f)
 end
 
@@ -146,7 +160,7 @@ function check_input_field(comp::Union{DielectricStack, Mirror}, field_i::Meshed
     msg_code
 end
 
-function forward_backward_field(comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any,<:Any,M2}}, field_i::MeshedAngularSpectrum{T,D, C}) where {T,D, M2, C}
+function forward_backward_field(comp::Union{DielectricStack{<:Any, <:AbstractVector{M2}}, Mirror{<:Any,<:Any,<:Any,M2}}, field_i::MeshedAngularSpectrum{T,D,C,P}) where {T,D, M2, C,P}
     frame_b = first(comp.frames)
     frame_f = last(comp.frames)
     medium_b = first(comp.mat)
@@ -154,7 +168,7 @@ function forward_backward_field(comp::Union{DielectricStack{<:Any, <:AbstractVec
     e_b = similar(field_i.e, Complex{T})
     e_f = similar(field_i.e, Complex{T})
 
-    field_b = MeshedBeam{T, Backward, C}(field_i.mesh, e_b, medium_b, frame_b)
-    field_t = MeshedBeam{T, Forward, C}(field_i.mesh, e_f, medium_f, frame_f)
+    field_b = MeshedBeam{T, Backward, C, P}(field_i.mesh, e_b, medium_b, frame_b)
+    field_t = MeshedBeam{T, Forward, C, P}(field_i.mesh, e_f, medium_f, frame_f)
     (field_b, field_t)
 end

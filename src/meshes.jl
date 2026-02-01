@@ -1,4 +1,13 @@
 abstract type Domain{C, Dim, T} end
+abstract type AbstractPolarization end
+
+struct PolarizationSP <: AbstractPolarization end 
+struct PolarizationXYZ <: AbstractPolarization end
+struct PolarizationScalar <: AbstractPolarization end
+
+number_components(::Type{PolarizationSP}) = 2
+number_components(::Type{PolarizationXYZ}) = 3
+number_components(::Type{PolarizationScalar}) = 1
 
 struct X_Y_Z{T} <: FieldVector{3, T}
     x::T
@@ -10,6 +19,18 @@ struct X_Y_λ{T} <: FieldVector{3, T}
     x::T
     y::T
     λ::T
+end
+
+struct R_θ_Z{T} <: FieldVector{3, T}
+    r::T
+    θ::T
+    z::T
+end
+
+struct R_θ_ϕ{T} <: FieldVector{3, T}
+    r::T
+    θ::T
+    ϕ::T
 end
 
 struct R_θ_λ{T} <: FieldVector{3, T}
@@ -30,6 +51,34 @@ struct NSR_NSθ_λ{T} <: FieldVector{3, T}
     λ::T
 end
 
+function unit_vector(coord::X_Y_Z{T}, ::Val{:x}) where T
+    X_Y_Z(one(T), zero(T), zero(T))
+end,
+function unit_vector(coord::X_Y_Z{T}, ::Val{:y}) where T
+    X_Y_Z(zero(T), one(T), zero(T))
+end,
+function unit_vector(coord::X_Y_Z{T}, ::Val{:Z}) where T
+    X_Y_Z(zero(T), zero(T), one(T))
+end,
+function unit_vector(coord::R_θ_Z{T}, ::Val{:R}) where T
+    X_Y_Z(cos(coord.θ), sin(coord.θ), zero(T))
+end,
+function unit_vector(coord::R_θ_Z{T}, ::Val{:θ}) where T
+    X_Y_Z(-sin(coord.θ), cos(coord.θ), zero(T))
+end,
+function unit_vector(coord::R_θ_Z{T}, ::Val{:Z}) where T
+    X_Y_Z(zero(T), zero(T), one(T))
+end,
+function unit_vector(coord::R_θ_ϕ{T}, ::Val{:R}) where T
+    X_Y_Z(sin(coord.θ)*cos(coord.ϕ), sin(coord.θ)*sin(coord.ϕ), cos(coord.θ))
+end,
+function unit_vector(coord::R_θ_ϕ{T}, ::Val{:θ}) where T
+    X_Y_Z(cos(coord.θ)*cos(coord.ϕ), cos(coord.θ)*sin(coord.ϕ), -sin(coord.θ))
+end,
+function unit_vector(coord::R_θ_ϕ{T}, ::Val{:ϕ}) where T
+    X_Y_Z(-sin(coord.ϕ), cos(coord.ϕ), zero(T))
+end
+
 for (cart, polar) in zip((:NSX_NSY_λ, :X_Y_λ, :X_Y_t), (:NSR_NSθ_λ, :R_θ_λ))
     eval(quote
         function $cart(coords::$polar{T}) where T
@@ -37,7 +86,7 @@ for (cart, polar) in zip((:NSX_NSY_λ, :X_Y_λ, :X_Y_t), (:NSR_NSθ_λ, :R_θ_λ
             $cart(car.x, car.y, coords[3])
         end
         function $polar(coords::$cart{T}) where T
-            car = PolarFromCartesian()(coords[1:2])
+            car = PolarFromCartesian()(@view coords[1:2])
             $polar(car.r, car.θ, coords[3])
         end
     end)

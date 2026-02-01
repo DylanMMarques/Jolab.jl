@@ -50,6 +50,4 @@ include("SingleModeFibre.jl")
 
 include("auxiliary_functions.jl")
 
-function __init__()
-end
 end

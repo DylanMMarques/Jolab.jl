@@ -2,11 +2,11 @@ using Jolab, Test
 
 ns = range(-.1, 0.1, length = 100)
 angspe = MonochromaticAngularSpectrum_gaussian(Float64, Forward, ns, ns, 50E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(angspe) == 1
+@test intensity(angspe) ≈ 1
 
 x = range(-100E-6, 100E-6, length = 100)
 beam = MonochromaticSpatialBeam_gaussian(Float64, Forward, x, x, 10E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(beam) == 1
+@test intensity(beam) ≈ 1
 
 x = range(-100E-6, 100E-6, length = 100)
 beam = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
@@ -40,3 +40,10 @@ view_beam = @view beam_cart[:,:,1:1]
 @test view_beam.e ≈ beam_cart.e
 @test view_beam.e ≈ beam_cart.e
 @test view_beam.mesh ≈ beam_cart.mesh
+
+
+x = range(-100E-6, 100E-6, length = 100)
+e = zeros(ComplexF64, length(x), length(x), 3)
+e[:,:,1] .= 1
+beam = Jolab.MonochromaticSpatialBeamVectorial(Forward, x, x, e, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test size(beam.e) == (100, 100, 3)

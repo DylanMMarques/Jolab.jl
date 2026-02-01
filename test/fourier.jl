@@ -32,3 +32,7 @@ space_t = MonochromaticSpatialBeam_gaussian(Float64, Forward, x .+ x[512 + 124],
 (_, beam_space_trans) = light_interaction(fft_op, ang_spe)
 
 @test findmax(abs, beam_space_trans.e)[2] == (findmax(abs, space_t.e)[2] + CartesianIndex(123, 123, 0))
+
+e = rand(ComplexF64, length(x), length(x), 3)
+beam = Jolab.MonochromaticSpatialBeamVectorial(Forward, x, x, e, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+(field_b, ang_spe) = light_interaction(fft_op, beam)
