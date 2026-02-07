@@ -64,10 +64,10 @@ function check_input_field(prop::Propagation, field::MeshedBeam{<:Any, D}) where
     code
 end
 
-function forward_backward_field(prop::Propagation, field_i::MeshedAngularSpectrum{T,D,C}) where {T,D,C}
+function forward_backward_field(prop::Propagation, field_i::MeshedAngularSpectrum{T,D,C,P}) where {T,D,C,P}
     frame = D == Forward ? prop.frames[2] : prop.frames[1]
-    field_r = MeshedAngularSpectrum{T, !D, C}(field_i.mesh, Zeros(T, size(field_i.e)), field_i.medium, field_i.frame)
-    field_t = MeshedAngularSpectrum{T, D, C}(field_i.mesh, similar(field_i.e, Complex{T}), field_i.medium, frame)
+    field_r = MeshedAngularSpectrum{T, !D, C,P}(field_i.mesh, Zeros(T, size(field_i.e)), field_i.medium, field_i.frame)
+    field_t = MeshedAngularSpectrum{T, D, C,P}(field_i.mesh, similar(field_i.e, Complex{T}), field_i.medium, frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 
