@@ -31,12 +31,12 @@ function check_input_field(fibre::Fibre, beam::Beam{<:Any,D}) where {D}
     all(beam.modes.fream .≈ fib_frame) || (code |= 1 << INVALID_FRAME)
     code
 end,
-function check_input_field(fibre::Fibre, beam::MeshedBeam{<:Any,D,<:SpatialCoords,P}) where {D,P}
+function check_input_field(fibre::Fibre, beam::MeshedBeam{<:Any,D,<:SpatialCoords,P}) where {D,P<:AbstractPolarization}
     ind = D == Forward ? 1 : 2
     n_fibre = fibre.media[ind]
     frame_fibre = fibre.frames[ind]
     code = zero(UInt64)
-    (P == PolarizationScalar) || (code |= 1 << INVALID_MEDIUM)
+    (P == PolarizationScalar) || (code |= 1 << INVALID_BEAM_TYPE)
     (beam.medium ≈ n_fibre) || (code |= 1 << INVALID_MEDIUM)
     (frame_fibre ≈ beam.frame) || (code |= 1 << INVALID_FRAME)
     code
