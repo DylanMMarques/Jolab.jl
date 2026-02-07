@@ -1,4 +1,5 @@
 export Axicon 
+using KernelAbstractions, Atomix
 
 struct Axicon{T, M1<:Medium{T}, M2<:Medium{T}, S} <: AbstractOpticalElement{T}
     α::T
@@ -32,21 +33,35 @@ function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) wh
     if O <: Axicon
         β = (axicon.axicon_medium.n − axicon.medium.n) * axicon.α
     end
-    
-    @inbounds @simd for ind_out in eachindex_nonzeros(field_t.e)
-        out_c = centroid(field_t.mesh, ind_out)
-        for ind_in in eachindex_nonzeros(field_t.e)
-            field_t.e[ind_out] += if O <: Axicon
-                t(F, axicon, β, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
-            else
-                t(F, axicon, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
-            end
 
+    if true
+        @inbounds @simd for ind_out in eachindex_nonzeros(field_t.e)
+            out_c = centroid(field_t.mesh, ind_out)
+            for ind_in in eachindex_nonzeros(field_t.e)
+                field_t.e[ind_out] += if O <: Axicon
+                    t(F, axicon, β, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
+                else
+                    t(F, axicon, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
+                end
+
+            end
         end
+    else
+        kernel! = my_kernel_3!(CPU())
+        kernel!(field_t, field_i, axicon, β, ndrange = (length(field_t.e),))
+        synchronize(CPU())
     end
     (field_b, field_f)
 end
 
+@kernel function my_kernel_3!(field_out, field_i::F, axicon, β) where F
+    ind_out = @index(Global)
+    out_c = centroid(field_out.mesh, ind_out)
+    @inbounds field_out.e[ind_out] = 0.0
+    @inbounds for ind_in in eachindex(field_i.e)
+        field_out.e[ind_out] += t(F, axicon, β, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
+    end
+end
 # Radial version
 function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) where F<:MeshedBeam{T,D,C} where {T,D,C<:Union{X_Y_λ, NSX_NSY_λ}}
     (symbol, C_T) = F <: MeshedAngularSpectrum ? ((:x, :y), X_Y_λ) : ((:nsx, :nsy), NSX_NSY_λ)
