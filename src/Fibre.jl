@@ -31,11 +31,12 @@ function check_input_field(fibre::Fibre, beam::Beam{<:Any,D}) where {D}
     all(beam.modes.fream .≈ fib_frame) || (code |= 1 << INVALID_FRAME)
     code
 end,
-function check_input_field(fibre::Fibre, beam::MeshedSpatialBeam{<:Any,D}) where {D}
+function check_input_field(fibre::Fibre, beam::MeshedBeam{<:Any,D,<:SpatialCoords,P}) where {D,P}
     ind = D == Forward ? 1 : 2
     n_fibre = fibre.media[ind]
     frame_fibre = fibre.frames[ind]
     code = zero(UInt64)
+    (P == PolarizationScalar) || (code |= 1 << INVALID_MEDIUM)
     (beam.medium ≈ n_fibre) || (code |= 1 << INVALID_MEDIUM)
     (frame_fibre ≈ beam.frame) || (code |= 1 << INVALID_FRAME)
     code
@@ -206,7 +207,7 @@ function mode_coupling(mode, field::MeshedSpatialBeam{T,D,C}) where {T,D,C}
    overlap_integral(field.e, (coord) -> mode_field(mode, coord), field.mesh)
 end
 
-function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, <:CircularStepIndexMode}, field::MeshedBeam{T,D,C}) where {T,D,C}
+function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, <:CircularStepIndexMode}, field::MeshedBeam{T,D,C,P}) where {T,D,C,P}
     isone(size(field.mesh)[3]) || error("not done yet")
     λ = centroid(field.mesh, 1)[3]
 
@@ -227,7 +228,7 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
     modes_D .= modes.D
     frame = Fill((D == Forward ? first : last)(fibre.frames), number_modes)
     field_t = Beam(StructVector{CircularStepIndexMode{T,D,Complex{T}, Medium{T,T}}}((modes_e, modes_wavelength, modes_m, modes_β, modes_C, modes_D, Fill(fibre.refractive_index_profile, number_modes), frame)))
-    field_r = MeshedBeam{T,!D,C}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
+    field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 

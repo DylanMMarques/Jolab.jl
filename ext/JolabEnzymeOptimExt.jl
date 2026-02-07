@@ -19,7 +19,7 @@ function Jolab.wavefunction_solutions(profile, λ, β, m_i)
         end
     end
     inner_optimizer = ConjugateGradient()
-    res = optimize(Optim.only_fg!(fg!), (@MArray [β]), inner_optimizer)
+    res = optimize(Optim.NLSolversBase.only_fg!(fg!), (@MArray [β]), inner_optimizer)
     Optim.minimizer(res)[1]
 end
 end

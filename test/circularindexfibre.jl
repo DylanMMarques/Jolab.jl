@@ -1,4 +1,5 @@
 using Optim, Enzyme, Jolab
+using Jolab: Forward
 
 profile = CircularStepIndexProfile(100E-6, 0.2, Medium(1.55))
 

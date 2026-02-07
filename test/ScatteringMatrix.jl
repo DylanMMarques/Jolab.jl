@@ -39,7 +39,8 @@ function tmp(λ)
     intensity(res[1]) 
 end
 
-tmp(1500E-9 + 1E-9) - tmp(1500E-9)
-sens(λ) = autodiff_deferred(Enzyme.ForwardWithPrimal, Const(tmp), Duplicated(λ, 1.0E-9))
-a = sens(1550E-9)
-dsens_dλ = autodiff_deferred(Enzyme.Forward, sens, Duplicated, Duplicated(1550E-9, 1.0))
+# (tmp(1550E-9 + 1E-15) - tmp(1550E-9))
+# sens(λ) = autodiff(Enzyme.ForwardWithPrimal, Const(tmp), Duplicated(λ, 1.0E-15))[1]
+# tmp(1550E-9)
+# a = sens(1550E-9)
+# dsens_dλ = autodiff(Enzyme.Forward, sens, Duplicated, Duplicated(1550E-9, 1.0))

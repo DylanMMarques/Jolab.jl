@@ -20,8 +20,8 @@ function ScatteringMatrix(comps::NTuple{N,AbstractOpticalElement{T}}, field_forw
     return res[D == Forward ? 2 : 1]
 end
 
-function reverse_direction(field::MeshedBeam{T,D,C}) where {T,D<:Union{Forward, Backward},C}
-    return MeshedBeam{T,!D,C}(field.mesh, field.e, field.medium, field.frame)
+function reverse_direction(field::MeshedBeam{T,D,C,P}) where {T,D<:Union{Forward, Backward},C,P}
+    return MeshedBeam{T,!D,C,P}(field.mesh, field.e, field.medium, field.frame)
 end
 
 function check_mergable_scattering_matrices(mat_1, mat_2)

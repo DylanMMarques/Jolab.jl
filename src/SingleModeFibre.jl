@@ -45,7 +45,7 @@ function check_input_field(fib::Fibre{<:Any, <:SingleModeProfile}, field::Meshed
     code
 end
 
-function forward_backward_field(fibre::SingleModeFibre, field::MeshedBeam{T, D, C}) where {D,T,C}
+function forward_backward_field(fibre::SingleModeFibre, field::MeshedBeam{T, D, C, P}) where {D,T,C,P}
     wavelength = get_ranges(field.mesh)[3]
     _modes = map(i -> modes(fibre, i), wavelength)
     number_wavelengths = size(field.mesh, 3)
@@ -56,7 +56,7 @@ function forward_backward_field(fibre::SingleModeFibre, field::MeshedBeam{T, D, 
     frames = Fill(field.frame, number_wavelengths)
 
     field_t = Beam(StructVector{GaussianMode{T, D, Complex{T}}}((modes_e, modes_sigma, modes_wavelength, frames)))
-    field_r = MeshedBeam{T,!D,C}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
+    field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 
