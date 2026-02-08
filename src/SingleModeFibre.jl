@@ -37,9 +37,10 @@ function findmodes(profile::SingleModeProfile{T}, _λ) where T
     return @SVector [GaussianMode(T, Bothway, 1, profile.mode_field_diameter, _λ, ReferenceFrame((0,0,0), (0,0,0)))]
 end
 
-function check_input_field(fib::Fibre{<:SingleModeProfile}, field::MeshedBeam{<:Any, D, <:Any, P}) where {D, P<:AbstractPolarization}
+function check_input_field(fib::Fibre{<:Any, <:SingleModeProfile}, field::MeshedBeam{<:Any, D, <:Any, P}) where {D, P<:AbstractPolarization}
     (frame, medium) = D == Forward ? (fib.frames[1], fib.media[1]) : (fib.frames[2], fib.media[2])
     code = zero(UInt64)
+    (P == PolarizationScalar) || (code |= 1 << INVALID_BEAM_TYPE)
     frame ≈ field.frame || (code |= 1 << INVALID_FRAME)
     medium ≈ field.medium || (code |= 1 << INVALID_MEDIUM)
     code

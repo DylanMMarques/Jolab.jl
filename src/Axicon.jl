@@ -54,7 +54,7 @@ function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) wh
     (field_b, field_f)
 end
 
-@kernel function my_kernel_3!(field_out, field_i::F, axicon, β) where F
+@kernel function my_kernel_3!(field_out, @Const(field_i::F), @Const(axicon), @Const(β)) where F
     ind_out = @index(Global)
     out_c = centroid(field_out.mesh, ind_out)
     @inbounds field_out.e[ind_out] = 0.0
