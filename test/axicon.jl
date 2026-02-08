@@ -1,14 +1,25 @@
 using Jolab, Test
 
-nsr = range(0, 0.5, length = 100)
-axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,0), (0,0,0)); solver = (nsr = nsr,))
+nsr = range(0, 0.25, length = 1000)
+axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,0), (0,0,0)); solver = (nsr = nsr, r = r))
 
-r = range(0, 2E-3, length = 100)
+r = range(0, 2E-3, length = 1000)
 field = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 1E-3, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 (rfield, tfield) = light_interaction(axicon, field)
 @test tfield isa Jolab.MeshedBeam{<:Any, <:Any, Jolab.NSR_NSθ_λ}
-intensity(tfield) 
-intensity(field)
+@test isapprox(intensity(tfield), intensity(field), rtol = 1E-4)
+@test iszero(intensity(rfield))
+@test isapprox(nsr[findmax(abs, tfield.e)[2]], (axicon.axicon_medium.n - axicon.medium.n) * axicon.α, rtol = 1E-2)
+
+(field_r_2, ori_field) = light_interaction(axicon, tfield)
+@test iszero(intensity(field_r_2))
+@test isapprox(intensity(ori_field), intensity(tfield), rtol = 1E-4)
+
+# The amplitude of the field should be approximately the same as only a phase screen 
+# was applied
+@test abs(sum(abs.(field.e) .- abs.(ori_field.e))) <= sum(abs.(field.e)) * 1E-3
+
+@test isapprox(nsr[findmax(abs, tfield.e)[2]], (axicon.axicon_medium.n - axicon.medium.n) * axicon.α, rtol = 1E-2)
 
 focal = 10E-3
 mirror = Mirror(Medium.((1, 1.44)), ReferenceFrame((0,0,2focal), (0,0,0)); reflectivity = 1)
@@ -85,7 +96,7 @@ function test_autodiff(λ)
     r = range(0, 2E-3, length = 100)
     field = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 1E-3, λ, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
     (rfield, tfield) = light_interaction(axicon, field)
-    intensity.((rfield, tfield))
+    intensity(tfield)
 end
 @time test_autodiff(1500E-9)
 

@@ -1,6 +1,34 @@
 abstract type AbstractWaveguideProfile{T} end
 abstract type AbstractWaveguideMode{T,D} <: AbstractMode{T} end
 
+## CicurlarStepIndexMode
+struct CircularStepIndexProfile{T, M<:Medium{T}} <: AbstractWaveguideProfile{T}
+    radius::T
+    na::T
+    ncore::M
+    CircularStepIndexProfile(::Type{T}, r, na, ncore::M) where {T,M} = new{T,M}(r, na, ncore)
+end
+CircularStepIndexProfile(r, na, ncore) = CircularStepIndexProfile(Float64, r, na, ncore)
+
+struct CircularStepIndexMode{T,Dir<:AbstractDirection,T2<:RealOrComplex{T},M} <: AbstractFieldMode{T,Dir}
+    e::T2
+    wavelength::T
+    m::Int
+    β::T
+    C::T
+    D::T
+    profile::CircularStepIndexProfile{T,M}
+    frame::ReferenceFrame{T}
+    function CircularStepIndexMode(e::T2, wavelength::T, m::Int, β::T, C::T, D::T, profile::CircularStepIndexProfile{T,M}, frame::ReferenceFrame{T}) where {T,T2<:RealOrComplex{T}, M} # Missing Dir. Not sure how to deal with that
+        new{T,Forward,T2,M}(e, wavelength, m, β, C, D, profile, frame)
+    end
+end
+function CircularStepIndexMode(::Type{T}, ::Type{Dir}, e::E, wavelength, m, β, C, D, profile::CircularStepIndexProfile{<:Any, M}, frame) where {T,Dir,E,M}
+    T2 = E <: Complex ? Complex{T} : T
+    CircularStepIndexMode{T,Dir,T2,M}(e, wavelength, m, β, C, D, profile, frame)
+end
+CircularStepIndexMode(::Type{Dir}, e, wavelength, m, β, C, D, profile, frame) where Dir = CircularStepIndexMode(Float64, Dir, e, wavelength, m, β, C, D, profile, frame)
+
 function intensity(mode::AbstractFieldMode, ::Type{C}, mesh) where C
     f(i) = begin
         abs2(mode_field(mode, C(centroid(mesh, i)))) * volume(mesh, i)
@@ -31,7 +59,7 @@ function check_input_field(fibre::Fibre, beam::Beam{<:Any,D}) where {D}
     all(beam.modes.fream .≈ fib_frame) || (code |= 1 << INVALID_FRAME)
     code
 end,
-function check_input_field(fibre::Fibre, beam::MeshedBeam{<:Any,D,<:SpatialCoords,P}) where {D,P<:AbstractPolarization}
+function check_input_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile}, beam::MeshedBeam{<:Any,D,<:SpatialCoords,P}) where {D,P<:AbstractPolarization}
     ind = D == Forward ? 1 : 2
     n_fibre = fibre.media[ind]
     frame_fibre = fibre.frames[ind]
@@ -137,33 +165,6 @@ function modes(fibre, λ)
     fibre.modes[_λ]
 end
 
-## CicurlarStepIndexMode
-struct CircularStepIndexProfile{T, M<:Medium{T}} <: AbstractWaveguideProfile{T}
-    radius::T
-    na::T
-    ncore::M
-    CircularStepIndexProfile(::Type{T}, r, na, ncore::M) where {T,M} = new{T,M}(r, na, ncore)
-end
-CircularStepIndexProfile(r, na, ncore) = CircularStepIndexProfile(Float64, r, na, ncore)
-
-struct CircularStepIndexMode{T,Dir<:AbstractDirection,T2<:RealOrComplex{T},M} <: AbstractFieldMode{T,Dir}
-    e::T2
-    wavelength::T
-    m::Int
-    β::T
-    C::T
-    D::T
-    profile::CircularStepIndexProfile{T,M}
-    frame::ReferenceFrame{T}
-    function CircularStepIndexMode(e::T2, wavelength::T, m::Int, β::T, C::T, D::T, profile::CircularStepIndexProfile{T,M}, frame::ReferenceFrame{T}) where {T,T2<:RealOrComplex{T}, M} # Missing Dir. Not sure how to deal with that
-        new{T,Forward,T2,M}(e, wavelength, m, β, C, D, profile, frame)
-    end
-end
-function CircularStepIndexMode(::Type{T}, ::Type{Dir}, e::E, wavelength, m, β, C, D, profile::CircularStepIndexProfile{<:Any, M}, frame) where {T,Dir,E,M}
-    T2 = E <: Complex ? Complex{T} : T
-    CircularStepIndexMode{T,Dir,T2,M}(e, wavelength, m, β, C, D, profile, frame)
-end
-CircularStepIndexMode(::Type{Dir}, e, wavelength, m, β, C, D, profile, frame) where Dir = CircularStepIndexMode(Float64, Dir, e, wavelength, m, β, C, D, profile, frame)
 
 mode_type(::Type{<:CircularStepIndexProfile{T}}) where T = CircularStepIndexMode{T, Bothway, T, Medium{T,T}}
 struct_type(::Type{<:CircularStepIndexProfile{T}}) where T =  StructVector{CircularStepIndexMode{T, Bothway, T, Medium{T, T}}, @NamedTuple{e::Ones{T, 1, Tuple{Base.OneTo{Int}}}, wavelength::Fill{T, 1, Tuple{Base.OneTo{Int}}}, m::Vector{Int}, β::Vector{T}, C::Vector{T}, D::Vector{T}, profile::Fill{CircularStepIndexProfile{T, Medium{T, T}}, 1, Tuple{Base.OneTo{Int}}}, frame::Fill{ReferenceFrame{T}, 1, Tuple{Base.OneTo{Int}}}}, Int}

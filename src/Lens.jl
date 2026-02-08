@@ -65,7 +65,7 @@ function t(lens::Lens{T}, coord::NSR_NSθ_λ) where T<:AbstractFloat
     	if (1 - cosθ² > lens.numerical_aperture^2) # above the lens NA
     	    zero(Complex{T})
     	else
-            1 / (T(lens.focal_length * cosθ²^(1/4) / (2π / λ * 2π)) / im) # might be wrong
+            1 / (T(lens.focal_length * cosθ²^(1/4) / (2π / λ * 2π)) / im) # Needs checking
         end
     end
 end,

@@ -17,13 +17,13 @@ Axicon(α, axicon_medium, medium, frame; kwargs...) = Axicon(Float64, α, axicon
 @inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::NSR_NSθ_λ, coord_out::R_θ_λ, area)
     (nsr, nsθ, λ) = coord_in
     (r, θ, tmp) = coord_out
-    return im / 2π * (2π / λ) * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
+    return im * (2π / λ)^2 * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
 end
 
 @inline function t(::Type{<:MeshedBeam}, axicon::Axicon, β, coord_in::R_θ_λ, coord_out::NSR_NSθ_λ, area)
     (nsr, nsθ, λ) = coord_out
     (r, θ, tmp) = coord_in
-    return - im / 2π * (2π / λ) * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
+    return - im / 4π^2 * exp(-im * 2π / λ * β * r) * besselj0(2π / λ * nsr * r) * area
 end
 
 function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) where {FB<:MeshedBeam{TB, Backward, CB}, FF<:MeshedBeam{TF,Forward,CF}, F<:MeshedBeam{T,D,C}, O<:Union{Fourier, Axicon}} where {T,D,C, TF, CF, TB, CB}
@@ -34,23 +34,10 @@ function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) wh
         β = (axicon.axicon_medium.n − axicon.medium.n) * axicon.α
     end
 
-    if true
-        @inbounds @simd for ind_out in eachindex_nonzeros(field_t.e)
-            out_c = centroid(field_t.mesh, ind_out)
-            for ind_in in eachindex_nonzeros(field_t.e)
-                field_t.e[ind_out] += if O <: Axicon
-                    t(F, axicon, β, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
-                else
-                    t(F, axicon, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
-                end
+    kernel! = my_kernel_3!(CPU())
+    kernel!(field_t, field_i, axicon, β, ndrange = (length(field_t.e),))
+    synchronize(CPU())
 
-            end
-        end
-    else
-        kernel! = my_kernel_3!(CPU())
-        kernel!(field_t, field_i, axicon, β, ndrange = (length(field_t.e),))
-        synchronize(CPU())
-    end
     (field_b, field_f)
 end
 
