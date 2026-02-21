@@ -22,6 +22,7 @@ abstract type AbstractPlaneWave{T,D} <: AbstractFieldMode{T,D} end
 abstract type AbstractPointSource{T,D} <: AbstractFieldMode{T,D} end
 abstract type AbstractMedium{T} end
 abstract type AbstractOpticalElement{T} end
+abstract type AbstractSolver end
 
 abstract type AbstractDirection end
 struct Forward <: AbstractDirection end
@@ -47,6 +48,8 @@ include("Fourier.jl")
 include("Axicon.jl")
 include("Fibre.jl")
 include("SingleModeFibre.jl")
+include("NonPlanarInterface.jl")
+include("lightinteraction_recursive.jl")
 
 include("auxiliary_functions.jl")
 

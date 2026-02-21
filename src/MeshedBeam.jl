@@ -229,3 +229,14 @@ function change_polarization_basis(field::MeshedBeam{T,D,C,PolarizationSP}, ::Ty
 
     return MeshedBeam{T,D,C,PolarizationXYZ}(field.mesh, field_new, field.medium, field.frame)
 end
+
+function _unchecked_add!(field1::MeshedBeam{T,D,C,P}, field2::MeshedBeam{T,D,C,P}) where {T,D,C,P}
+    field1.e .+= field2.e
+    field1
+end
+
+function fill_zeros!(field::MeshedBeam{T,D,C,P}) where {T,D,C,P}
+    fill!(field.e, zero(eltype(field.e)))
+    field
+end
+

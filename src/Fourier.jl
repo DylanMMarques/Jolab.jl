@@ -10,7 +10,7 @@ Fourier(frames; kwargs...) = Fourier(Float64, frames; kwargs...)
 
 struct FourierFFT end
 
-struct FourierFFTSolver{F1,F2,F3,P<:FFTW.AbstractFFTs.Plan, P2<:FFTW.AbstractFFTs.Plan, A}
+struct FourierFFTSolver{F1,F2,F3,P<:FFTW.AbstractFFTs.Plan, P2<:FFTW.AbstractFFTs.Plan, A} <: AbstractSolver
     field_i::F1
     field_b::F2
     field_f::F3
