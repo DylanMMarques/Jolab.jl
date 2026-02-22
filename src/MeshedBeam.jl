@@ -142,10 +142,10 @@ MeshedPlaneWaveScalar(::Type{D}, nsx, nsy, e, λ, medium, frame) where D = Meshe
 
 
 function Base.isapprox(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}; kwargs...) where {T1, T2, D, C}
-    isapprox(beam1.mesh, beam2.mesh; kwargs...) || return false
-    isapprox(beam1.frame, beam2.frame; kwargs...) || return false
-    isapprox(beam1.medium, beam2.medium; kwargs...) || return false
-    return true
+    isapprox(beam1.mesh, beam2.mesh; kwargs...) &&
+    isapprox(beam1.frame, beam2.frame; kwargs...) &&
+    isapprox(beam1.medium, beam2.medium; kwargs...) &&
+    isapprox(beam1.e, beam2.e; kwargs...)
 end
 
 function translate_referenceframe(beam::MeshedAngularSpectrum{T,D,C}, new_origin::X_Y_Z) where {T,D,C}

@@ -35,8 +35,8 @@ end
 
 function rr_1(n1, nsz1, n2, nsz2, λ)
     k0 = 2π / λ
-    ru = reflectioncoefficient_interfaces(n1, nsz1, n2, nsz2)
-    tu = transmissioncoefficient_interfaces(n1, nsz1, n2, nsz2)
+    ru = reflectioncoefficient_interfaces(n1, nsz1 / n1, n2, nsz2 / n2)
+    tu = transmissioncoefficient_interfaces(n1, nsz1 / n1, n2, nsz2 / n2)
     r_i = -im * k0 / 2 * (n2^2 - n1^2) * (1 + ru)
     r_s = (1 + ru) / nsz1
     t_i = -im * k0 / 2 * (n2^2 - n1^2) * (1 + ru)
@@ -44,8 +44,8 @@ function rr_1(n1, nsz1, n2, nsz2, λ)
     return (ru, tu, r_i, r_s, t_i, t_s)
 end
 
-function rr_coeffiecients(n1, nsx1, nsy1, n2, λ)
-    nsr_sq = nsx1^2 + nsy1^2
+function rr_coeffiecients(n1, nsx, nsy, n2, λ)
+    nsr_sq = nsx^2 + nsy^2
     nsz1 = √(complex(n1^2 - nsr_sq))
     nsz2 = √(complex(n2^2 - nsr_sq))
     return rr_1(n1, nsz1, n2, nsz2, λ)
@@ -53,7 +53,6 @@ end
 
 function RoughInterfaceRRSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{T,D,P}) where {T,D,P}
     field_b, field_f = forward_backward_field(comp, field_i)
-    
     (nsx, nsy, _λ) = get_ranges(field_i.mesh)
     λ = only(_λ)
     dkx = step(nsx) / λ
@@ -70,19 +69,29 @@ function RoughInterfaceRRSolver(comp::RoughInterface, field_i::MeshedAngularSpec
     r12, t12, ir12, sr12, it12, st12 = ntuple(i -> similar(field_i.e, Complex{T}), 6)
     r21, t21, ir21, sr21, it21, st21 = ntuple(i -> similar(field_i.e, Complex{T}), 6)
 
-    struc_array = StructArray{NTuple{6, Complex{T}}}((r12, t12, ir12, sr12, it12, st12))
-    struc_array .= rr_coeffiecients.(first(comp.mat).n, nsx, nsy', last(comp.mat).n, λ)
+    struc_array_f = StructArray{NTuple{6, Complex{T}}}((r12, t12, ir12, sr12, it12, st12))
+    struc_array_f .= rr_coeffiecients.(first(comp.mat).n, nsx, nsy', last(comp.mat).n, λ)
+
+    struc_array_b = StructArray{NTuple{6, Complex{T}}}((r21, t21, ir21, sr21, it21, st21))
+    struc_array_b .= rr_coeffiecients.(last(comp.mat).n, nsx, nsy', first(comp.mat).n, λ)
+    ir21 .*= -1 # Because the pertubation looks inverted
+    it21 .*= -1 # Because the pertubation looks inverted
 
     RoughInterfaceRRSolver(field_b, field_f, field_i, r12, t12, ir12, it12, sr12, st12, r21, t21, ir21, it21, sr21, st21, z_numeric, p_fft, tmp_array, tmp_array_2)
 end
 
 function light_interaction(comp::RoughInterface, field_i)
+    solver = RoughInterfaceRRSolver(comp, field_i)
     msg_code = check_input_field(comp, field_i)
     msg_code == 0 || throw_error_msg(msg_code)
-    fourier = RoughInterfaceRRSolver(comp, field_i)
-    _light_interaction!(fourier.field_b, fourier.field_f, fourier, field_i)
+    _light_interaction!(solver.field_b, solver.field_f, solver, field_i)
 end
 
+function solver(comp::RoughInterface, field_i)
+    msg_code = check_input_field(comp, field_i)
+    msg_code == 0 || throw_error_msg(msg_code)
+    RoughInterfaceRRSolver(comp, field_i)
+end
 
 function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, solver::RoughInterfaceRRSolver, field_i::MeshedBeam{T,D,NSX_NSY_λ,P}) where {T,D,P<:PolarizationScalar}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
@@ -142,5 +151,8 @@ function forward_backward_field(comp::RoughInterface, field_i::MeshedAngularSpec
     (field_b, field_t)
 end
 
+function forward_backward_field(comp::RoughInterfaceRRSolver, field_i::MeshedAngularSpectrum)
+    comp.field_b, comp.field_f
+end
 
 

@@ -10,8 +10,10 @@ Propagation(frames, medium) = Propagation(Float64, frames, medium)
 
 function _light_interaction!(field_b, field_f, prop::Propagation, field_i::MeshedAngularSpectrum{T,D,C}) where {T,D,C}
     frame = D == Forward ? prop.frames[2] : prop.frames[1]
-    
-    field_t = D == Forward ? field_f : field_b
+
+    field_r, field_t = reverse_if_backward(D, (field_b, field_f))
+    fill_zeros!(field_r)
+
     rpos = delta_pos_referenceframe(field_i.frame, frame.origin)
 
     f(ind) = t(prop, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))
@@ -40,7 +42,6 @@ t(prop::Propagation, ::Type{D}, medium, rΔpos::X_Y_Z, coord::NSR_NSθ_λ) where
 function _ScatteringMatrix(field_b, field_f, prop::Propagation, field_i::MeshedAngularSpectrum{T,D,C}) where {T,D,C<:AngularSpectrumCoords}
     t_vec = similar(field_i.e, Complex{T}, length(field_i.e))
     r = Zeros(T, (length(field_i.e), length(field_i.e)))
-
     frame = D == Forward ? prop.frames[2] : prop.frames[1]
     rpos = delta_pos_referenceframe(field_i.frame, frame.origin)
     f(ind) = t(prop, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))

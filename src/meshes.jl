@@ -112,7 +112,7 @@ end
 
 area(grid::CartesianGrid{C, 2}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2]
 volume(grid::CartesianGrid{C, 3}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2] * grid.spacing[3]
-centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim} = C(grid.origin .+ grid.spacing .* (ind.I .- 1 ./ 2))
+centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim} = C(grid.origin .+ grid.spacing .* (ind.I .- 1))
 
 struct CylindricalGrid{C, Dim,T} <: Domain{C, Dim, T}
     spacing::NTuple{Dim, T}
@@ -166,8 +166,8 @@ function Base.isapprox(grid::CylindricalGrid{C, 3}, grid2::CylindricalGrid{C, 3}
 end
 
 function Base.isapprox(grid::CartesianGrid{C, 3}, grid2::CartesianGrid{C, 3}; kwargs...) where C
-    all(isapprox.(grid.spacing, grid2.spacing, kwargs...)) &&
-    isapprox(grid.origin, grid2.origin, kwargs...) &&
+    all(isapprox.(grid.spacing, grid2.spacing; kwargs...)) &&
+    isapprox(grid.origin, grid2.origin; kwargs...) &&
     grid.lengths == grid2.lengths
 end
 
@@ -223,3 +223,4 @@ for domain in (:CartesianGrid, :CylindricalGrid)
         end
     end)
 end
+

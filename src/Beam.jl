@@ -18,3 +18,11 @@ end
 function intensity(beam::Beam)
     sum(abs2, beam.modes.e)
 end
+
+function fill_zeros!(beam::Beam)
+    fill!(beam.modes.e, 0)
+end
+
+function _unchecked_add!(beam::Beam, other::Beam)
+    beam.modes.e .+= other.modes.e
+end

@@ -62,4 +62,7 @@ function recursive_light_interaction_inverse(mat_1::Tuple{ScatteringMatrix{T1}, 
     return (scat_31, scat_13)
 end
 
+function solver(comp::AbstractOpticalElement, field_i)
+    comp
+end
 

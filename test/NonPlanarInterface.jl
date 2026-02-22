@@ -4,26 +4,33 @@ z(x,y) = 0.0
 int = Jolab.RoughInterface(Medium.((1, 2)), z, ReferenceFrame((0,0,0.0), (0,0,0.0)))
 p_int = Jolab.DielectricStack(Medium.([1, 2]), zeros(0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
 
-nsx = range(-0.1, 0.1, length=64)
-nsy = range(-0.1, 0.1, length=64)
+nsx = range(-0.5, 0.5, length=64)
+nsy = range(-0.5, 0.5, length=64)
 λ = 1550E-9
 beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(1.0), int.frame);
 
-(r, t) = light_interaction(int, beam)
-(r_p, t_p) = light_interaction(p_int, beam)
-@test r ≈ r_p
-@test t ≈ t_p
+(r, t) = light_interaction(int, deepcopy(beam))
+(r_p, t_p) = light_interaction(p_int, deepcopy(beam))
+@test isapprox(r, r_p, rtol = 1E-10)
+@test isapprox(t, t_p, rtol = 1E-10)
 
-z_dist = 100E-9
+beam = MonochromaticAngularSpectrum(Float64, Backward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(2.0), int.frame);
+(r, t) = light_interaction(int, deepcopy(beam))
+(r_p, t_p) = light_interaction(p_int, deepcopy(beam))
+@test isapprox(r, r_p, rtol = 1E-10)
+@test isapprox(t, t_p, rtol = 1E-10)
+
+beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(1.0), int.frame);
+z_dist = 1E-9
 z(x,y) = z_dist
 int = Jolab.RoughInterface(Medium.((1, 2)), z, ReferenceFrame((0,0,0.0), (0,0,0.0)))
-p_int = Jolab.DielectricStack(Medium.([1, 2]), zeros(0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
-nsz2 = sqrt.(complex.(2^2 .- nsx.^2 .- nsy'.^2));
-nsz1 = sqrt.(complex.(1^2 .- nsx.^2 .- nsy'.^2));
+p_int = Jolab.DielectricStack(Medium.([1, 1, 2]), [z_dist], ReferenceFrame((0,0,0.0), (0,0,0.0)))
 (r, t) = light_interaction(int, beam)
-intensity.((r, t))
 (r_p, t_p) = light_interaction(p_int, beam)
-
+(r_p, _) = translate_referenceframe(r_p, (0,0,0.0))
+(_, t_p) = translate_referenceframe(t_p, (0,0,0.0))
+@test isapprox(r, r_p, rtol = 1E-4)
+@test isapprox(t, t_p, rtol = 1E-4)
 
 ## Compairison agaisnt arctan perturbation on a filter
 data = [0.00408221220653889,
@@ -44,22 +51,21 @@ sx = sx[2:end]
 zp(x,y) = 5E-9 * (atan(-1E7 * x) / π + .5)
 zm(x,y) = -5E-9 * (atan(-1E7 * x) / π + .5)
 
-RoughInterface(n1,n2,z, ref) = RoughMultilayerStructure([n1, n2], zeros(0), [z], ref)
 
-rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), zp, ref1), Jolab.RoughInterface(Medium.((1.5, 1)), zm, ref2), Jolab.RoughInterface(Medium.((1,1.5)),zp,ref3), Jolab.RoughInterface(Medium.((1.5,1)),zm,ref4)]
+rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), zp, ref1), 
+    Propagation((ref1, ref2), Medium(1.5)),
+    Jolab.RoughInterface(Medium.((1.5, 1)), zm, ref2),
+    Propagation((ref2, ref3), Medium(1.0)),
+    Jolab.RoughInterface(Medium.((1,1.5)), zp, ref3),
+    Propagation((ref3, ref4), Medium(1.5)),
+    Jolab.RoughInterface(Medium.((1.5,1)), zm, ref4)]
 int = zeros(length(λ))
 
 for i in 1:length(λ)
-    local field
-    local fieldr
-    local fieldt
-    field = MonochromaticAngularSpectrum_gaussian(Forward, nsx, nsy, 10E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-    (fieldr, fieldt) = lightinteraction_recursivegridded(rmls, field, rtol = 1E-9)
-    int[i] = intensity(fieldr)
-    (fieldr, fieldt) = lightinteraction(rmls_r, field)
-    int2[i] = intensity(fieldr)
+    field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, λ[i], Medium(1), ReferenceFrame((0,0,0.0), (0,0,0)))
+    (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = true, maximum_iterations = 44)
+    int[i] = intensity(fieldr) / intensity(field)
 end
 
 @test all(isapprox.(int, data, rtol = 1E-8))
 @test all(isapprox.(int2, data, rtol = 5E-2))
-return true

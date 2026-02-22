@@ -77,7 +77,7 @@ function get_ranges(grid::Union{<:CylindricalGrid{<:Any, N}, <:CartesianGrid{<:A
         length_i = size(grid, i)
         if isone(length_i)
             val = centroid(grid, 1)[i]
-            LinRange(val, val, length_i)
+            LinRange(float(val), float(val), length_i)
         else
             LinRange(grid.origin[i], grid.origin[i] + (length_i-1) * grid.spacing[i], length_i)
         end
