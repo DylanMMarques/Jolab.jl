@@ -14,4 +14,6 @@ include(joinpath(@__DIR__, "auxialiary_functions.jl"))
     @testset "Step index waveguides" begin include("circularindexfibre.jl") end
     @testset "Single mode fibre" begin include("single_mode_fibre.jl") end
     @testset "Fourier Transform" begin include("fourier.jl") end
+    @testset "Non planar interface" begin include("non_planar_interface.jl") end
+    @testset "Recursive gridded" begin include("recursive_gridded.jl") end
 end
