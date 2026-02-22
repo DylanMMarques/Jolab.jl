@@ -63,7 +63,7 @@ int = zeros(length(λ))
 
 for i in 1:length(λ)
     field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, λ[i], Medium(1), ReferenceFrame((0,0,0.0), (0,0,0)))
-    (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = true, maximum_iterations = 44)
+    (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = true)
     int[i] = intensity(fieldr) / intensity(field)
 end
 

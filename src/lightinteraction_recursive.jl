@@ -2,7 +2,7 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
     sizeL = length(coefs) + 1;
     length(fields_l) == length(fields_r) == sizeL || error()
     
-    int_l, int_r = zeros(T, sizeL), zeros(T, sizeL)
+    # int_l, int_r = zeros(T, sizeL), zeros(T, sizeL)
     
     fill_zeros!.(fields_r)
     fill_zeros!.(fields_l)
@@ -10,6 +10,7 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
     fields_aux_l = deepcopy.(fields_l)
     fields2_l = (fields_l[1], deepcopy.(fields_l[2:sizeL])...)
     fields2_r = (deepcopy.(fields_r[1:sizeL-1])..., fields_r[sizeL])
+
     
     rtol = intensity(fieldi) * rtol^2
     
@@ -19,7 +20,8 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
         copy!(fields_l[sizeL].e, fieldi.e)
     end
     initial_int = intensity(fieldi)
-    D == Forward ? int_r[1] = initial_int : int_l[sizeL] = initial_int
+    int_l = SVector(intensity.(fields_r))
+    int_r = SVector(intensity.(fields_l))
     
     i = 1
     toSave_l, toSave_r = fields_l, fields_r
@@ -40,7 +42,7 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
         for mls in 1:sizeL-1
     	    if int_r[mls] > 1E-15
     	    	# iE_r[mls].frame == coefs[mls].fieldl.frame || tobedone()
-    	    	_light_interaction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], iE_r[mls])
+                _light_interaction!(fields_aux_l[mls], fields_aux_r[mls+1], coefs[mls], iE_r[mls])
     	    	_unchecked_add!(toSave_l[mls], fields_aux_l[mls])
     	    	_unchecked_add!(toSave_r[mls+1], fields_aux_r[mls+1])
     	    end
@@ -55,8 +57,8 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
     	    end
     	    fill_zeros!(iE_l[mls])
         end
-    	int_l .= intensity.(toSave_l)
-    	int_r .= intensity.(toSave_r)
+        int_l = SVector(intensity.(toSave_l))
+        int_r = SVector(intensity.(toSave_r))
     	now_int = sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1))
     
     	if now_int < rtol 

@@ -59,7 +59,8 @@ function RoughInterfaceRRSolver(comp::RoughInterface, field_i::MeshedAngularSpec
     dky = step(nsy) / λ
     x = fftshift(fftfreq(length(nsx), 1 / dkx))
     y = fftshift(fftfreq(length(nsy), 1 / dky))
-    
+    k = 2π / λ
+
     tmp_array = similar(field_i.e, Complex{T})
     tmp_array_2 = similar(field_i.e, Complex{T})
 

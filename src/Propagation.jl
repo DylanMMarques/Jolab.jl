@@ -35,7 +35,7 @@ function t(prop::Propagation{T}, ::Type{D}, n, rΔpos::X_Y_Z, coord::NSX_NSY_λ)
     (nsx, nsy, λ) = coord
     positive_nsz = √(complex(n^2 - nsx^2 - nsy^2))
     nsz = D == Forward ? positive_nsz : -positive_nsz
-    exp(im * 2T(π) / λ * dot(rΔpos, (nsx, nsy, nsz)))
+    exp(im * 2T(π) / λ * (rΔpos[1] * nsx + rΔpos[2] * nsy + rΔpos[3] * nsz))
 end
 t(prop::Propagation, ::Type{D}, medium, rΔpos::X_Y_Z, coord::NSR_NSθ_λ) where D = t(prop, D, medium, rΔpos, NSX_NSY_λ(coord))
 
