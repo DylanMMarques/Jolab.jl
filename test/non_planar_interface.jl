@@ -1,9 +1,8 @@
-using Jolab, Test
+using Jolab, Test, Unitful
 
-z(x,y) = 0.0
-int = Jolab.RoughInterface(Medium.((1, 2)), z, ReferenceFrame((0,0,0.0), (0,0,0.0)))
+zero_offset(x,y) = 0.0
+int = Jolab.RoughInterface(Medium.((1, 2)), zero_offset, ReferenceFrame((0,0,0.0), (0,0,0.0)))
 p_int = Jolab.DielectricStack(Medium.([1, 2]), zeros(0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
-
 
 @test dimension.(Jolab.rr_1(1.0, 1.0, 1.0, 1.0, 1550 * u"nm")) ==
     (NoDims, NoDims, dimension(u"nm^-1"), NoDims, dimension(u"nm^-1"), NoDims)
@@ -26,8 +25,8 @@ beam = MonochromaticAngularSpectrum(Float64, Backward, nsx, nsx, ones(ComplexF64
 
 beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(1.0), int.frame);
 z_dist = 1E-9
-z(x,y) = z_dist
-int = Jolab.RoughInterface(Medium.((1, 2)), z, ReferenceFrame((0,0,0.0), (0,0,0.0)))
+topography_dist(x,y) = z_dist
+int = Jolab.RoughInterface(Medium.((1, 2)), topography_dist, ReferenceFrame((0,0,0.0), (0,0,0.0)))
 p_int = Jolab.DielectricStack(Medium.([1, 1, 2]), [z_dist], ReferenceFrame((0,0,0.0), (0,0,0.0)))
 (r, t) = light_interaction(int, beam)
 (r_p, t_p) = light_interaction(p_int, beam)
@@ -51,17 +50,17 @@ ref3 = ReferenceFrame((0,0,ref2.origin[3] + b),(0,0.,0))
 ref4 = ReferenceFrame((0,0,ref3.origin[3] + b/1.5),(0,0.,0))
 sx = range(-.7, .7, length = 64+1)[2:65]
 λ = range(1450E-9, 1550E-9, length = 6)
-zp(x,y) = 5E-9 * (atan(-1E7 * x) / π + .5)
-zm(x,y) = -5E-9 * (atan(-1E7 * x) / π + .5)
+topography_tan(x,y) = 5E-9 * (atan(-1E7 * x) / π + .5)
+topography_tan_minus(x,y) = -topography_tan(x,y)
 
 
-rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), zp, ref1), 
+rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), topography_tan, ref1), 
     Propagation((ref1, ref2), Medium(1.5)),
-    Jolab.RoughInterface(Medium.((1.5, 1)), zm, ref2),
+    Jolab.RoughInterface(Medium.((1.5, 1)), topography_tan_minus, ref2),
     Propagation((ref2, ref3), Medium(1.0)),
-    Jolab.RoughInterface(Medium.((1,1.5)), zp, ref3),
+    Jolab.RoughInterface(Medium.((1,1.5)), topography_tan, ref3),
     Propagation((ref3, ref4), Medium(1.5)),
-    Jolab.RoughInterface(Medium.((1.5,1)), zm, ref4)]
+    Jolab.RoughInterface(Medium.((1.5,1)), topography_tan_minus, ref4)]
 int = zeros(length(λ))
 
 for i in 1:length(λ)

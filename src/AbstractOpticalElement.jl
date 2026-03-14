@@ -26,8 +26,10 @@ end
 
 function check_mergable_scattering_matrices(mat_1, mat_2)
     code = zero(UInt64)
-    isapprox(mat_1[2].field_f, mat_2[2].field_i) || (error(); code |= 1 << INVALID_BEAM_SHAPE)
-    isapprox(mat_2[1].field_b, mat_1[1].field_i) || (error(); code |= 1 << INVALID_BEAM_SHAPE)
+    mat_12, mat_21 = mat_1[2], mat_1[1]
+    mat_23, mat_32 = mat_2[2], mat_2[1]
+    check_same_definition(mat_12.field_f, mat_23.field_i) || (code |= 1 << INVALID_BEAM_SHAPE)
+    check_same_definition(mat_21.field_i, mat_32.field_b) || (code |= 1 << INVALID_BEAM_SHAPE)
     code
 end
 
