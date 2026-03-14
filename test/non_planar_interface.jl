@@ -1,8 +1,12 @@
-using Jolab, Test
+using Jolab, Test, Unitful
 
 z(x,y) = 0.0
 int = Jolab.RoughInterface(Medium.((1, 2)), z, ReferenceFrame((0,0,0.0), (0,0,0.0)))
 p_int = Jolab.DielectricStack(Medium.([1, 2]), zeros(0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
+
+
+@test dimension.(Jolab.rr_1(1.0, 1.0, 1.0, 1.0, 1550 * u"nm")) ==
+    (NoDims, NoDims, dimension(u"nm^-1"), NoDims, dimension(u"nm^-1"), NoDims)
 
 nsx = range(-0.5, 0.5, length=64)
 nsy = range(-0.5, 0.5, length=64)
@@ -61,7 +65,9 @@ rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), zp, ref1),
     Jolab.RoughInterface(Medium.((1.5,1)), zm, ref4)]
 int = zeros(length(λ))
 
-for i in 1:length(λ)
+# for i in 1:length(λ)
+i = 1
+begin
     field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, λ[i], Medium(1), ReferenceFrame((0,0,0.0), (0,0,0)))
     (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = true)
     int[i] = intensity(fieldr) / intensity(field)

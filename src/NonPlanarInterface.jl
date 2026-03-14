@@ -65,7 +65,11 @@ function RoughInterfaceRRSolver(comp::RoughInterface, field_i::MeshedAngularSpec
     tmp_array_2 = similar(field_i.e, Complex{T})
 
     p_fft = plan_fft(field_i.e, (1,2))
-    z_numeric = comp.Δz.(x, y')
+    inv(p_fft)
+
+    fftconst = step(x) * step(y) / 4π^2 * length(nsx) * length(nsy) * step(nsx) * step(nsy) * k^2
+
+    z_numeric = comp.Δz.(x, y') * fftconst
 
     r12, t12, ir12, sr12, it12, st12 = ntuple(i -> similar(field_i.e, Complex{T}), 6)
     r21, t21, ir21, sr21, it21, st21 = ntuple(i -> similar(field_i.e, Complex{T}), 6)

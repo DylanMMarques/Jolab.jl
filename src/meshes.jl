@@ -112,7 +112,17 @@ end
 
 area(grid::CartesianGrid{C, 2}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2]
 volume(grid::CartesianGrid{C, 3}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2] * grid.spacing[3]
-centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim} = C(grid.origin .+ grid.spacing .* (ind.I .- 1))
+function centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim}
+    @boundscheck checkbounds(grid, ind)
+    C(grid.origin .+ grid.spacing .* (ind.I .- 1))
+end
+
+function Base.checkbounds(grid::Domain{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim}
+    all(i -> 1 <= i[1] <= i[2], Iterators.zip(ind.I, grid.lengths)) || throw(BoundsError(grid, ind))
+end,
+function Base.checkbounds(grid::Domain{C, Dim}, ind::Integer) where {C, Dim}
+    1 <= ind <= nelements(grid) || throw(BoundsError(grid, ind))
+end
 
 struct CylindricalGrid{C, Dim,T} <: Domain{C, Dim, T}
     spacing::NTuple{Dim, T}
@@ -133,7 +143,8 @@ function volume(grid::CylindricalGrid{C,3}, ind::Union{Integer, CartesianIndex})
 end
 
 function centroid(grid::CylindricalGrid{C,3}, ind::CartesianIndex{3}) where C
-    vec3 = grid.origin .+ grid.spacing .* (ind.I .- 1 ./ 2)
+    @boundscheck checkbounds(grid, ind)
+    vec3 = grid.origin .+ grid.spacing .* (ind.I .- 1)
     C(vec3)
 end
 

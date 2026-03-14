@@ -20,25 +20,22 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
         copy!(fields_l[sizeL].e, fieldi.e)
     end
     initial_int = intensity(fieldi)
-    int_l = SVector(intensity.(fields_r))
-    int_r = SVector(intensity.(fields_l))
+    int_r = MVector(intensity.(fields_r))
+    int_l = MVector(intensity.(fields_l))
     
     i = 1
-    toSave_l, toSave_r = fields_l, fields_r
     min_int = initial_int
     converge = false
     
     while true
         if isodd(i)
-    		(toSave_l, toSave_r) = (fields_l, fields_r)
-    		(iE_l, iE_r) = (fields2_l, fields2_r)
-    	else
     		(toSave_l, toSave_r) = (fields2_l, fields2_r)
     		(iE_l, iE_r) = (fields_l, fields_r)
+    	else
+    		(toSave_l, toSave_r) = (fields_l, fields_r)
+    		(iE_l, iE_r) = (fields2_l, fields2_r)
     	end
     
-    	# fill_zeros!.(toSave_l[2:sizeL-1])
-    	# fill_zeros!.(toSave_r[2:sizeL-1])
         for mls in 1:sizeL-1
     	    if int_r[mls] > 1E-15
     	    	# iE_r[mls].frame == coefs[mls].fieldl.frame || tobedone()
@@ -57,8 +54,8 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
     	    end
     	    fill_zeros!(iE_l[mls])
         end
-        int_l = SVector(intensity.(toSave_l))
-        int_r = SVector(intensity.(toSave_r))
+        int_l .= intensity.(toSave_l)
+        int_r .= intensity.(toSave_r)
     	now_int = sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1))
     
     	if now_int < rtol 
@@ -83,8 +80,8 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
     
     	i > maximum_iterations && (println("Max number of iterations achieved. Current light intensity:", (sum(int_l) + sum(int_r)) / initial_int); converge = false; break)
     	i += 1
-    	if (i % 100 == 99) && printBool
-    		println("")
+    	if printBool
+                println("Iteration number: ", i)
     		println("Light intensity propagating forward:", int_r)
     		println("Light intensity propagating backward:", int_l)
     		println("convergence condition: ", sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1)), " < ", rtol)

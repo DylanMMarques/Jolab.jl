@@ -21,7 +21,7 @@ end
 
 function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     mesh = CartesianGrid((length(nsx), length(nsy), 1),
-        NSX_NSY_λ(first(nsx), first(nsy), λ - eps_factor * eps(T) / 2), 
+        NSX_NSY_λ(first(nsx), first(nsy), λ), 
         (step(nsx), step(nsy), eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, NSX_NSY_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
@@ -46,7 +46,7 @@ end
 
 function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
     mesh = CylindricalGrid((length(nsr), 1, 1),
-        NSR_NSθ_λ(first(nsr), T(0), λ - eps_factor * eps(T) / 2), 
+        NSR_NSθ_λ(first(nsr), T(0), λ), 
         (step(nsr), 2π, eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, NSR_NSθ_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
@@ -62,7 +62,7 @@ end
 
 function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     mesh = CartesianGrid((length(x), length(y), 1),
-        X_Y_λ(first(x), first(y), λ - eps_factor * eps(T) / 2),  # The -0.5 is to center the point on the face
+        X_Y_λ(first(x), first(y), λ),  # The -0.5 is to center the point on the face
         (step(x), step(y), eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, X_Y_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
@@ -71,7 +71,7 @@ MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::Abstr
 
 function MonochromaticSpatialBeamVectorial(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
     mesh = CartesianGrid((length(x), length(y), 1),
-        X_Y_λ(first(x), first(y), λ - eps_factor * eps(T) / 2),  # The -0.5 is to center the point on the face
+        X_Y_λ(first(x), first(y), λ),  # The -0.5 is to center the point on the face
         (step(x), step(y), eps_factor * eps(T)))
     e .= e ./ sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, X_Y_λ,PolarizationXYZ}(mesh, e, medium, frame)
@@ -101,7 +101,7 @@ end
 const eps_factor = 1000
 function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, r::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
     mesh = CylindricalGrid((length(r), 1, 1),
-        R_θ_λ(first(r), T(0), λ - eps_factor * eps(T) / 2), 
+        R_θ_λ(first(r), T(0), λ), 
         (step(r), 2π, eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
     MeshedBeam{T, D, R_θ_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
@@ -132,7 +132,7 @@ const MeshedSpatialBeam{T,D,C<:SpatialCoords} = MeshedBeam{T,D,C}
 
 function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium, frame) where {T,D,T2}
     mesh = CartesianGrid((1, 1, 1),
-        NSX_NSY_λ(nsx - eps_factor * eps(T) / 2, nsy - eps_factor * eps(T) / 2, λ - eps_factor * eps(T) / 2), 
+        NSX_NSY_λ(nsx, nsy, λ), 
         eps_factor .* (eps(T), eps(T), eps(T))
         )
     TE = T2 <: Complex ? Complex{T} : T
@@ -236,7 +236,7 @@ function _unchecked_add!(field1::MeshedBeam{T,D,C,P}, field2::MeshedBeam{T,D,C,P
 end
 
 function fill_zeros!(field::MeshedBeam{T,D,C,P}) where {T,D,C,P}
-    fill!(field.e, zero(eltype(field.e)))
+    fill!(field.e, 0)
     field
 end
 

@@ -117,3 +117,52 @@ at(ω) = field_after_lens(focal_len, x, x, ω, 1500E-9, Medium(1))
 at(focal_len) = field_after_lens(focal_len, x, x, 10E-6, 1500E-9, Medium(1))
 @test autodiff(Enzyme.Forward, at, Duplicated, Duplicated(10E-6, 1.0))[1] ≈
     finite_difference_derivative(x -> at(x), [10E-6], Val{:central}, Float64, relstep = 1E-9)[1]
+
+@test_throws ArgumentError light_interaction(lens, field)
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = ones(1024, 1024) .* 
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
