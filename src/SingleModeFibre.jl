@@ -1,13 +1,12 @@
-
 struct GaussianMode{T,D,T2<:RealOrComplex{T}} <: AbstractFieldMode{T,D}
     e::T2
     sigma::T
     wavelength::T
     frame::ReferenceFrame{T}
-    function GaussianMode(::Type{T}, ::Type{D}, e::T2, sigma, λ, frame) where {T,D,T2}
-        T3 = T2 <: Complex ? Complex{T} : T
-        new{T,D,T3}(e, sigma, λ, frame) 
-    end
+end
+function GaussianMode(::Type{T}, ::Type{D}, e::T2, sigma, λ, frame) where {T,D,T2}
+    T3 = T2 <: Complex ? Complex{T} : T
+    GaussianMode{T,D,T3}(e, sigma, λ, frame) 
 end
 
 struct SingleModeProfile{T} <: AbstractWaveguideProfile{T}
@@ -18,8 +17,8 @@ end
 const SingleModeFibre{T,M,VM} = Fibre{T, SingleModeProfile{T},M,VM}
 export SingleModeFibre, SingleModeProfile
 
-mode_type(::Type{SingleModeProfile{T}}) where T = GaussianMode{T, Bothway, T}
-struct_type(::Type{SingleModeProfile{T}}) where T =  SVector{1, GaussianMode{T, Bothway, T}}
+mode_type(::Type{SingleModeProfile{T}}) where T = GaussianMode{T, Bothway, Complex{T}}
+struct_type(::Type{SingleModeProfile{T}}) where T =  SVector{1, GaussianMode{T, Bothway, Complex{T}}}
 
 function SingleModeFibre(::Type{T}, mfd, length, media, frames) where T
     profile = SingleModeProfile(T, mfd)
@@ -34,7 +33,7 @@ SingleModeFibre(mfd, length, media, frames) = SingleModeFibre(Float64, mfd, leng
 @inline mode_field(mode::GaussianMode, coord::NSX_NSY_λ) = mode_field(mode, NSR_NSθ_λ(coord))
 
 function findmodes(profile::SingleModeProfile{T}, _λ) where T
-    return @SVector [GaussianMode(T, Bothway, 1, profile.mode_field_diameter, _λ, ReferenceFrame((0,0,0), (0,0,0)))]
+    return @SVector [GaussianMode(T, Bothway, complex(1), profile.mode_field_diameter, _λ, ReferenceFrame((0,0,0), (0,0,0)))]
 end
 
 function check_input_field(fib::Fibre{<:Any, <:SingleModeProfile}, field::MeshedBeam{<:Any, D, <:Any, P}) where {D, P<:AbstractPolarization}
@@ -47,37 +46,44 @@ function check_input_field(fib::Fibre{<:Any, <:SingleModeProfile}, field::Meshed
 end
 
 function forward_backward_field(fibre::SingleModeFibre, field::MeshedBeam{T, D, C, P}) where {D,T,C,P}
-    wavelength = get_ranges(field.mesh)[3]
-    _modes = map(i -> modes(fibre, i), wavelength)
-    number_wavelengths = size(field.mesh, 3)
-    modes_e = @MVector zeros(Complex{T}, number_wavelengths)
-    modes_wavelength = get_ranges(field.mesh)[3]
-    modes_sigma = map(i -> i[1].sigma, _modes)# _modes.mode_field_diameter
+    wavelength = only(get_ranges(field.mesh)[3])
+    _modes = modes(fibre, wavelength)
+    modes_e = @MVector zeros(Complex{T}, 1)
+    modes_wavelength = @SVector [wavelength]
+    modes_sigma = @SVector [_modes[1].sigma]
 
-    frames = Fill(field.frame, number_wavelengths)
-
-    field_t = Beam(StructVector{GaussianMode{T, D, Complex{T}}}((modes_e, modes_sigma, modes_wavelength, frames)))
+    frames = @SVector [field.frame]
+    mode_vec = StructVector{GaussianMode{T, D, Complex{T}}}((modes_e, modes_sigma, modes_wavelength, frames))
+    field_t = Beam(mode_vec)
     field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 
 
 function get_frame_medium(fibre::SingleModeFibre, ::Type{D}) where D
-    map(i -> D == Forward ? first(i) : last(i), (fibre.media, fibre.frames))
+    if D == Forward
+        first.((fibre.frames, fibre.media))
+    else
+        last.((fibre.frames, fibre.media))
+    end
 end
 function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, fibre::SingleModeFibre, nsx, nsy, λ) where {T,D}
     mode = modes(fibre, λ)[1]
-    MonochromaticAngularSpectrum_gaussian(T, D, nsx, nsy, mode.sigma, λ, get_frame_medium(fibre, D)...)
+    frame, medium = get_frame_medium(fibre, D)
+    MonochromaticAngularSpectrum_gaussian(T, D, nsx, nsy, mode.sigma, λ, medium, frame)
 end
 function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, fibre::SingleModeFibre, nsr, λ) where {T,D}
     mode = modes(fibre, λ)[1]
-    MonochromaticAngularSpectrumRadialSymmetric_gaussian(T, D, nsr, mode.sigma, λ, get_frame_medium(fibre, D)...)
+    frame, medium = get_frame_medium(fibre, D)
+    MonochromaticAngularSpectrumRadialSymmetric_gaussian(T, D, nsr, mode.sigma, λ, medium, frame)
 end
 function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, fibre::SingleModeFibre, x, y, λ) where {T,D}
     mode = modes(fibre, λ)[1]
-    MonochromaticSpatialBeam_gaussian(T, D, x, y, mode.sigma, λ, get_frame_medium(fibre, D)...)
+    frame, medium = get_frame_medium(fibre, D)
+    MonochromaticSpatialBeam_gaussian(T, D, x, y, mode.sigma, λ, medium, frame)
 end
 function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, fibre::SingleModeFibre, r, λ) where {T,D}
     mode = modes(fibre, λ)[1]
-    MonochromaticSpatialBeamRadialSymmetric_gaussian(T, D, r, mode.sigma, λ, get_frame_medium(fibre, D)...)
+    frame, medium = get_frame_medium(fibre, D)
+    MonochromaticSpatialBeamRadialSymmetric_gaussian(T, D, r, mode.sigma, λ, medium, frame)
 end

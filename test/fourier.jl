@@ -1,5 +1,7 @@
 using Jolab, Test
 
+# test_opt fails because of FFT use
+
 fft_op = Jolab.FourierFFT()
 
 ## Test Fourier Transform against analytical Gaussian beam transform

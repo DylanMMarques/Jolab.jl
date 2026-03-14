@@ -41,6 +41,7 @@ end
 @test test_type_complex(Float64)
 @test test_type_complex(Float32)
 @test test_type_complex(Float16)
+@test_opt test_type_complex(Float64)
 
 ## Test values
 function test_reflection_coeffiecient(nsx, nsy, λ, mls)
@@ -102,7 +103,7 @@ function f_beam(λ)
     beam = MonochromaticAngularSpectrum(Forward, nsx, nsx, (nsx .* nsx'), λ, Medium(1.0), ReferenceFrame((0,0,0), (0,0,1)));
     (rbeam, tbeam) = light_interaction(mls, beam)
 end
-f_beam(1550E-9);
+@test_opt f_beam(1550E-9)
 
 function test_scatmat_f(mls)
     nsx = range(0, 0.95, length = 100)
@@ -115,6 +116,7 @@ end
 mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
 mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)), reflectivity = 0.9)
 @test test_scatmat_f(mls)
+@test_opt test_scatmat_f(mls)
 @test test_scatmat_f(mirror)
 
 function test_scatmat_b(mls)

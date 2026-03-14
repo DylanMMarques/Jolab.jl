@@ -15,6 +15,7 @@ nsx = range(0, 0.5, length = 100)
 beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, (nsx .* nsx'), 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 i_i = intensity(beam)
 (r_beam, t_beam) = light_interaction(mirror, beam)
+@test_opt light_interaction(mirror, beam)
 @test intensity(r_beam) ≈ i_i * R
 @test intensity(t_beam) ≈ i_i * (1-R)
 
@@ -56,6 +57,7 @@ function test_scatmat_f(mls)
 end
 mls = DielectricStack(Medium.((@SVector [1, 1.5, 1])), (@SVector [100E-9]), ReferenceFrame((0,0,0), (0,0,0)))
 mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)), reflectivity = 0.9)
+@test_opt test_scatmat_f(mls)
 @test test_scatmat_f(mls)
 @test test_scatmat_f(mirror)
 

@@ -3,6 +3,7 @@
 using Jolab, Test, Enzyme, StaticArrays, FiniteDiff
 import FiniteDiff: finite_difference_derivative
 import Jolab: Forward, Backward
+using JET
 
 include(joinpath(@__DIR__, "auxialiary_functions.jl"))
 @testset "All" begin

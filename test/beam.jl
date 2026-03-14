@@ -1,4 +1,5 @@
 using Jolab, Test
+import Test: @inferred
 nsx = range(-.5, 0.5, length = 100)
 beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, (nsx .* nsx'), 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 
@@ -26,12 +27,12 @@ beam2 = MonochromaticAngularSpectrum(Float64, Forward, 2nsx, 2nsx, (nsx .* nsx')
 
 ns = range(-.1, 0.1, length = 100)
 
-angspe = MonochromaticAngularSpectrum(Float64, Forward, ns, ns, rand(length(ns), length(ns)), 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-intensity(angspe)
+@test_opt angspe = MonochromaticAngularSpectrum(Float64, Forward, ns, ns, rand(length(ns), length(ns)), 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test_opt intensity(angspe)
 
 x = range(-100E-6, 100E-6, length = 100)
-beam = MonochromaticSpatialBeam(Float64, Forward, x, x, rand(length(x), length(x)), 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-@time intensity(beam)
+@test_opt beam = MonochromaticSpatialBeam(Float64, Forward, x, x, rand(length(x), length(x)), 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test_opt intensity(beam)
 
 x = range(-100E-6, 100E-6, length = 100)
 beam = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))

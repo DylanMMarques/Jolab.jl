@@ -45,6 +45,7 @@ Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Meshes = "eacbb407-ea5a-433e-ab97-5258b1ca43fa"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
 
 [targets]
-test = ["Test", "Enzyme", "FiniteDiff", "Optim", "Meshes", "Unitful"]
+test = ["Test", "Enzyme", "FiniteDiff", "Optim", "Meshes", "Unitful", "JET"]

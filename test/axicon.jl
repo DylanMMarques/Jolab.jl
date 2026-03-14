@@ -1,5 +1,6 @@
 using Jolab, Test
 
+# test_opt fails due to kernel abstractions
 nsr = range(0, 0.25, length = 1000)
 r = range(0, 2E-3, length = 1000)
 axicon = Axicon(5*π/180, Medium(1.44), Medium(1), ReferenceFrame((0,0,0), (0,0,0)); solver = (nsr = nsr, r = r))

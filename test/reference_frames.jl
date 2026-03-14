@@ -24,7 +24,14 @@ ref2 = ReferenceFrame((100E-9,50E-9,10E-9), (0,0,0))
 
 Jolab.translate_referenceframe(beam, ref2.origin)
 Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(1,1,1))
+@test_opt Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(1,1,1))
 
+# Check if translation in z axis is the same as DielectricStack of a single medium
+beam = MonochromaticAngularSpectrum(Forward, nsx, nsx, (nsx .* nsx') .+ 0im, λ, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
+mls = DielectricStack(Medium.([1, 1, 1]), [10E-6], ReferenceFrame((0,0,0), (0,0,0)))
+(_, tfield) = Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(0,0,10E-6))
+(_, tfield2) = Jolab.light_interaction(mls, beam)
+@test tfield ≈ tfield2
 
 ## Enzyme test
 #

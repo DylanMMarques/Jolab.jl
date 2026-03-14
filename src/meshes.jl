@@ -110,8 +110,8 @@ end
 # end
 
 
-area(grid::CartesianGrid{C, 2}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2]
-volume(grid::CartesianGrid{C, 3}, ind::Integer) where C = grid.spacing[1] * grid.spacing[2] * grid.spacing[3]
+area(grid::CartesianGrid{C, 2}, ind::Union{Integer, CartesianIndex{2}}) where C = prod(grid.spacing)
+volume(grid::CartesianGrid{C, 3}, ind::Union{Integer, CartesianIndex{3}}) where C = prod(grid.spacing)
 function centroid(grid::CartesianGrid{C, Dim}, ind::CartesianIndex{Dim}) where {C, Dim}
     @boundscheck checkbounds(grid, ind)
     C(grid.origin .+ grid.spacing .* (ind.I .- 1))
@@ -154,7 +154,6 @@ end,
 function change_coordinate_type(::Type{C_New}, grid::CylindricalGrid) where C_New
     CylindricalGrid(grid.lengths, C_New(grid.origin), grid.spacing) 
 end
-
 
 integration_space(grid::CylindricalGrid{C, 2}, ind) where C = area(grid, ind)
 integration_space(grid::CylindricalGrid{C, 3}, ind) where C = volume(grid, ind)

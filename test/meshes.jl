@@ -11,6 +11,10 @@ mesh = Jolab.CartesianGrid(length.(xyz), first.(xyz), step.(xyz))
 @test_throws BoundsError Jolab.centroid(mesh, 100 + 100*100 + 100 * 100 *100)
 @test_throws BoundsError Jolab.centroid(mesh, 0)
 @test Jolab.centroid(mesh, 1) == first.(Jolab.get_ranges(mesh))
+@test_opt Jolab.centroid(mesh, CartesianIndex(2,2,2))
+@test_opt Jolab.volume(mesh, CartesianIndex(2,2,2))
+@test_opt Jolab.centroid(mesh, 1)
+@test_opt Jolab.volume(mesh, 1)
 
 wav = 1550E-9
 field = Jolab.MonochromaticSpatialBeam_gaussian(Forward, x, y, 10E-6, wav, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
@@ -48,5 +52,7 @@ grid = Jolab.CylindricalGrid((10, 10, 10), Jolab.R_θ_λ(0.0,0,0), (0.1, 2π / 1
 
 grid = Jolab.CylindricalGrid((10, 10, 10), Jolab.R_θ_λ(0.05,0,0), (0.1, 2π / 10, 0.1))
 @test sum(i -> Jolab.volume(grid, i), eachindex(grid))u"m^3" ≈ measure(Cylinder(1))
-
-
+@test_opt Jolab.centroid(grid, CartesianIndex(2,2,2))
+@test_opt Jolab.volume(grid, CartesianIndex(2,2,2))
+@test_opt Jolab.centroid(grid, 1)
+@test_opt Jolab.volume(grid, 1)

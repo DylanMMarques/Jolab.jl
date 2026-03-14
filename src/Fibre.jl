@@ -40,7 +40,7 @@ struct Fibre{T,R, M, VM <: AbstractVector{M}}
     refractive_index_profile::R
     length::T
     frames::Tuple{ReferenceFrame{T}, ReferenceFrame{T}}
-    media::Tuple{Medium{T}, Medium{T}}
+    media::Tuple{Medium{T,T}, Medium{T,T}}
     modes::Dict{T, VM}
     function Fibre(::Type{T}, profile::R, length, media, frames) where {T,R}
         M = mode_type(R)
@@ -234,17 +234,13 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
 end
 
 function _light_interaction!(back_beam, forw_beam::Beam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Forward,C}) where {T,C}
-    wavelengths = unique(forw_beam.modes.wavelength)
-    for wav in wavelengths
-        ind_wav_forw = findall(i -> i ≈ wav, forw_beam.modes.wavelength)
-        ind_wav_incident = findfirst(i -> centroid(ifield.mesh, i)[3] ≈ wav, axes(ifield.mesh, 3)):findlast(i -> centroid(ifield.mesh, i)[3] ≈ wav, axes(ifield.mesh, 3))
-        ifield_wav = @view ifield[:, :, ind_wav_incident]
+    wavelengths = forw_beam.modes.wavelength[1]
+    size(ifield.mesh)[3] == 1 || error("not done yet")
         
-        dλ = sqrt(ifield_wav.mesh.spacing[3]) # To correct for the integration over the wavelength dimension
+    dλ = sqrt(ifield.mesh.spacing[3]) # To correct for the integration over the wavelength dimension
 
-        for i_mode in ind_wav_forw
-            forw_beam.modes.e[i_mode] = mode_coupling(forw_beam.modes[i_mode], ifield_wav) / dλ
-        end
+    map!(forw_beam.modes.e, forw_beam.modes) do mode_i
+        mode_coupling(mode_i, ifield) / dλ
     end
     (back_beam, forw_beam)
 end

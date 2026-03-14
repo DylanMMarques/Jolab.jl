@@ -13,6 +13,7 @@ nsy = range(-0.5, 0.5, length=64)
 beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(1.0), int.frame);
 
 (r, t) = light_interaction(int, deepcopy(beam))
+@test (@allocated light_interaction(int, deepcopy(beam))) < 1E7
 (r_p, t_p) = light_interaction(p_int, deepcopy(beam))
 @test isapprox(r, r_p, rtol = 1E-10)
 @test isapprox(t, t_p, rtol = 1E-10)
@@ -62,6 +63,9 @@ rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), topography_tan, ref1),
     Propagation((ref3, ref4), Medium(1.5)),
     Jolab.RoughInterface(Medium.((1.5,1)), topography_tan_minus, ref4)]
 int = zeros(length(λ))
+
+field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, 1500E-9, Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
+@time (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, printBool = false);
 
 for i in 1:length(λ)
     field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, λ[i], Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))

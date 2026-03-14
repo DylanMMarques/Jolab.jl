@@ -3,10 +3,12 @@ using Jolab, Test
 ns = range(-.1, 0.1, length = 100)
 angspe = MonochromaticAngularSpectrum_gaussian(Float64, Forward, ns, ns, 50E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 @test intensity(angspe) ≈ 1
+@test_opt intensity(angspe)
 
 x = range(-100E-6, 100E-6, length = 100)
 beam = MonochromaticSpatialBeam_gaussian(Float64, Forward, x, x, 10E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 @test intensity(beam) ≈ 1
+@test_opt intensity(beam)
 
 x = range(-100E-6, 100E-6, length = 100)
 beam = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))

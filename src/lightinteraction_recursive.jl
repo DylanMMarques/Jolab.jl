@@ -1,4 +1,4 @@
-function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::AbstractField{T,D}; rtol = 1E-3::Real, printBool = true, maximum_iterations = 10000) where {T,D}
+function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::AbstractField{T,D}; rtol = 1E-3::Real, printBool = false, maximum_iterations = 10000) where {T,D}
     sizeL = length(coefs) + 1;
     length(fields_l) == length(fields_r) == sizeL || error()
     

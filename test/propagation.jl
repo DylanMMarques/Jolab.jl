@@ -11,6 +11,7 @@ mls = DielectricStack([Medium(2), Medium(2), Medium(2)], [100E-9], ReferenceFram
 field_mls = light_interaction(mls, field)
 prop = Propagation((ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0.0,0.0,100E-9), (0,0,0))), Medium(2))
 fields_prop = light_interaction(prop, field)
+@test_opt light_interaction(mls, field)
 @test all((field_mls) .≈ (fields_prop))
 
 field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Backward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,100E-9), (0,0,0E-9)))
@@ -33,6 +34,7 @@ fields_prop = light_interaction(prop, field)
 @test all((field_mls) .≈ (fields_prop))
 
 scat_prop = ScatteringMatrix(prop, field)
+@test_opt ScatteringMatrix(prop, field)
 scat_mls = ScatteringMatrix(mls, field)
 @test scat_mls.mat_itof ≈ scat_prop.mat_itof
 @test scat_mls.mat_itob ≈ scat_prop.mat_itob

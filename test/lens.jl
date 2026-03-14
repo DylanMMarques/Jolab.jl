@@ -14,6 +14,7 @@ field = MonochromaticAngularSpectrum(Forward, nsx, nsx, rand(ComplexF64, 10, 10)
 
 field = MonochromaticAngularSpectrum(Forward, nsx, nsx, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 (rfield, tfield) = light_interaction(lens, field)
+@test_opt light_interaction(lens, field)
 @test tfield isa Jolab.MeshedSpatialBeam
 @test rfield isa Jolab.MeshedAngularSpectrum
 
@@ -37,6 +38,7 @@ field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-
 
 x = LinRange(-50E-6, 50E-6, 100)
 field = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test_opt light_interaction(lens, field)
 (bfield, ffield) = light_interaction(lens, field)
 @test bfield isa Jolab.MeshedSpatialBeam
 @test ffield isa Jolab.MeshedAngularSpectrum
@@ -46,7 +48,6 @@ field = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1500E-9, Medium(
 x = LinRange(-100E-6, 100E-6, 100)
 field = MonochromaticSpatialBeam_gaussian(Backward, x, x, 10E-6, 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
 (bfield, ffield) = light_interaction(lens, field)
-intensity(bfield)
 @test bfield isa Jolab.MeshedAngularSpectrum
 @test ffield isa Jolab.MeshedSpatialBeam
 @test iszero(intensity(ffield))
@@ -63,6 +64,7 @@ field = MonochromaticAngularSpectrum_gaussian(Backward, x, x, 10E-6, 1500E-9, Me
 @test iszero(intensity(ffield))
 @test isapprox(intensity(bfield), intensity(field); rtol = 1E-2) # Not sure if correct
 
+@test_opt ScatteringMatrix(lens, field)
 sca = ScatteringMatrix(lens, field)
 @test all(light_interaction(sca, field) .≈ light_interaction(lens, field))
 
@@ -73,10 +75,15 @@ e[:,:,1] .= 1
 begin
     lens = Lens(focal_len, 1.0, (Medium(1), Medium(1.0)), ReferenceFrame((0,0, focal_len), (0,0,0)))
     beam = Jolab.MonochromaticSpatialBeamVectorial(Forward, x, x, e, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-    @time (beam_r, beam_f) = light_interaction(lens, beam)
     
-    @time (_, beam_end) = light_interaction(stack, beam_f)
-    beam_xyz= Jolab.change_polarization_basis(beam_end, Jolab.PolarizationXYZ)
+    @test_opt light_interaction(lens, beam)
+    (beam_r, beam_f) = light_interaction(lens, beam)
+    
+    @test_opt light_interaction(stack, beam_f)
+    (_, beam_end) = light_interaction(stack, beam_f)
+
+    @test_opt Jolab.change_polarization_basis(beam_end, Jolab.PolarizationXYZ)
+    beam_xyz = Jolab.change_polarization_basis(beam_end, Jolab.PolarizationXYZ)
     space_xyz = light_interaction(Jolab.FourierFFT(), beam_xyz)[2]
     sum(beam_xyz.e, dims = (1,2))
 end
