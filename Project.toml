@@ -43,6 +43,8 @@ Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 FiniteDiff = "6a86dc24-6348-571c-b903-95158fe2bd41"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Meshes = "eacbb407-ea5a-433e-ab97-5258b1ca43fa"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [targets]
-test = ["Test", "Enzyme", "FiniteDiff", "Optim"]
+test = ["Test", "Enzyme", "FiniteDiff", "Optim", "Meshes", "Unitful"]

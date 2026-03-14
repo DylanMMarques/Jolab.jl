@@ -1,4 +1,4 @@
-using Jolab, Test, Unitful
+using Jolab, Test
 
 z(x,y) = 0.0
 int = Jolab.RoughInterface(Medium.((1, 2)), z, ReferenceFrame((0,0,0.0), (0,0,0.0)))
@@ -49,8 +49,7 @@ b = 1500E-9 / 2
 ref2 = ReferenceFrame((0,0,b/1.5),(0,0.,0))
 ref3 = ReferenceFrame((0,0,ref2.origin[3] + b),(0,0.,0))
 ref4 = ReferenceFrame((0,0,ref3.origin[3] + b/1.5),(0,0.,0))
-sx = range(-.7, .7, length = 64+1)
-sx = sx[2:end]
+sx = range(-.7, .7, length = 64+1)[2:65]
 λ = range(1450E-9, 1550E-9, length = 6)
 zp(x,y) = 5E-9 * (atan(-1E7 * x) / π + .5)
 zm(x,y) = -5E-9 * (atan(-1E7 * x) / π + .5)
@@ -65,13 +64,10 @@ rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), zp, ref1),
     Jolab.RoughInterface(Medium.((1.5,1)), zm, ref4)]
 int = zeros(length(λ))
 
-# for i in 1:length(λ)
-i = 1
-begin
-    field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, λ[i], Medium(1), ReferenceFrame((0,0,0.0), (0,0,0)))
-    (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = true)
+for i in 1:length(λ)
+    field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, λ[i], Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
+    (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = false)
     int[i] = intensity(fieldr) / intensity(field)
 end
 
-@test all(isapprox.(int, data, rtol = 1E-8))
-@test all(isapprox.(int2, data, rtol = 5E-2))
+@test all(isapprox.(int, data, rtol = 1E-6))

@@ -6,6 +6,7 @@ import Jolab: Forward, Backward
 
 include(joinpath(@__DIR__, "auxialiary_functions.jl"))
 @testset "All" begin
+    @testset "Meshes" begin include("meshes.jl") end
     @testset "General beam" begin include("beam.jl") end
     @testset "Reference frames" begin include("reference_frames.jl") end
     @testset "Lens" begin include("lens.jl") end
@@ -16,4 +17,8 @@ include(joinpath(@__DIR__, "auxialiary_functions.jl"))
     @testset "Fourier Transform" begin include("fourier.jl") end
     @testset "Non planar interface" begin include("non_planar_interface.jl") end
     @testset "Recursive gridded" begin include("recursive_gridded.jl") end
+    @testset "Axicon" begin include("axicon.jl") end
+    @testset "Propagation" begin include("propagation.jl") end
+    @testset "Single mode fibre" begin include("single_mode_fibre.jl") end
+    @testset "ScatteringMatrix" begin include("ScatteringMatrix.jl") end
 end
