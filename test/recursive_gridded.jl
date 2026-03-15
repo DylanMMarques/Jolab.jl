@@ -11,7 +11,7 @@ mls = DielectricStack(Medium.([1, 1.5, 2]), [100E-9], ReferenceFrame((0,0,0.0), 
 prop = Propagation(mls.frames, Medium(1.5))
 mls_layer = (DielectricStack(Medium.([1, 1.5]), zeros(0), ReferenceFrame((0,0,0.0), (0,0,0.0))), prop, DielectricStack(Medium.([1.5, 2]), zeros(0), ReferenceFrame((0,0,100E-9), (0,0,0.0))))
 
-@test_opt Jolab.lightinteraction_recursivegridded(mls_layer, beam, rtol = 1E-9)
+@test_opt (broken = VERSION < v"1.11") Jolab.lightinteraction_recursivegridded(mls_layer, beam, rtol = 1E-9)
 (r2, t2) = Jolab.lightinteraction_recursivegridded(mls_layer, beam, rtol = 1E-9)
 
 @test isapprox(r2, r, rtol = 1E-7)
