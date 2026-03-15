@@ -45,7 +45,7 @@ end
 @kernel function axicon_kernel!(field_out, @Const(field_i::F), @Const(axicon), @Const(β)) where F
     ind_out = @index(Global)
     out_c = centroid(field_out.mesh, ind_out)
-    tmp_val = zero(eltype(field_out_e))
+    tmp_val = zero(eltype(field_out.e))
     @inbounds for ind_in in eachindex(field_i.e)
         tmp_val += t(F, axicon, β, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
     end
