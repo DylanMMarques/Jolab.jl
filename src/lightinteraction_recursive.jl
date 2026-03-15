@@ -1,4 +1,4 @@
-function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::AbstractField{T,D}; rtol = 1E-3::Real, printBool = false, maximum_iterations = 10000) where {T,D}
+function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::AbstractField{T,D}; rtol = 1E-3::Real, printBool = False, maximum_iterations = 10000) where {T,D}
     sizeL = length(coefs) + 1;
     length(fields_l) == length(fields_r) == sizeL || error()
     
@@ -59,7 +59,7 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
     	now_int = sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1))
     
     	if now_int < rtol 
-            if printBool
+            if printBool == true
                 println(""); 
                 println("Interactions until convergence: ", i)
             end
@@ -70,22 +70,27 @@ function _lightinteraction_recursivegridded!(fields_l, fields_r, coefs, fieldi::
     	(now_int < min_int) && (min_int = now_int)
     
     	if sum(int_l) + sum(int_r) > 10 * initial_int || now_int > 10 * min_int
+            if printBool == true
     		println("")
     		println("Light intensity propagating forward:", int_r)
     		println("Light intensity propagating backward:", int_l)
     		println("lightinteraction_recursivegridded is not converging. Current number of iterations:", i)
-    		converge = false
-    		# break
+            end
+    	    converge = false
+    	    break
     	end
-    
-    	i > maximum_iterations && (println("Max number of iterations achieved. Current light intensity:", (sum(int_l) + sum(int_r)) / initial_int); converge = false; break)
-    	i += 1
-    	if printBool
+    	if i > maximum_iterations && printBool == true
+            println("Max number of iterations achieved. Current light intensity:", (sum(int_l) + sum(int_r)) / initial_int)
+            converge = false
+            break
+        end 
+    	if printBool == true
                 println("Iteration number: ", i)
     		println("Light intensity propagating forward:", int_r)
     		println("Light intensity propagating backward:", int_l)
     		println("convergence condition: ", sum(view(int_l,2:sizeL)) + sum(view(int_r, 1:sizeL-1)), " < ", rtol)
     	end
+    	i += 1
     end
 
     return fields_l[1], fields_r[end]

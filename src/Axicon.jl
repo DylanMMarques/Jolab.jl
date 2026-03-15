@@ -34,20 +34,22 @@ function _light_interaction!(field_b::FB, field_f::FF, axicon::O, field_i::F) wh
         β = (axicon.axicon_medium.n − axicon.medium.n) * axicon.α
     end
 
-    kernel! = my_kernel_3!(CPU())
+    backend = CPU()
+    kernel! = axicon_kernel!(backend)
     kernel!(field_t, field_i, axicon, β, ndrange = (length(field_t.e),))
-    synchronize(CPU())
+    synchronize(backend)
 
     (field_b, field_f)
 end
 
-@kernel function my_kernel_3!(field_out, @Const(field_i::F), @Const(axicon), @Const(β)) where F
+@kernel function axicon_kernel!(field_out, @Const(field_i::F), @Const(axicon), @Const(β)) where F
     ind_out = @index(Global)
     out_c = centroid(field_out.mesh, ind_out)
-    @inbounds field_out.e[ind_out] = 0.0
+    tmp_val = zero(eltype(field_out_e))
     @inbounds for ind_in in eachindex(field_i.e)
-        field_out.e[ind_out] += t(F, axicon, β, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
+        tmp_val += t(F, axicon, β, centroid(field_i.mesh, ind_in), out_c, volume(field_i.mesh, ind_in) / field_i.mesh.spacing[3]) * field_i.e[ind_in]
     end
+    field_out.e[ind_out] = tmp_val
 end
 # Radial version
 function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) where F<:MeshedBeam{T,D,C} where {T,D,C<:Union{X_Y_λ, NSX_NSY_λ}}
