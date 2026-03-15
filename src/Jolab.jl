@@ -49,6 +49,7 @@ include("Axicon.jl")
 include("Fibre.jl")
 include("SingleModeFibre.jl")
 include("NonPlanarInterface.jl")
+include("SpatialLightModulator.jl")
 include("lightinteraction_recursive.jl")
 
 include("auxiliary_functions.jl")

@@ -21,4 +21,5 @@ include(joinpath(@__DIR__, "auxialiary_functions.jl"))
     @testset "Axicon" begin include("axicon.jl") end
     @testset "Propagation" begin include("propagation.jl") end
     @testset "ScatteringMatrix" begin include("ScatteringMatrix.jl") end
+    @testset "Spatial Light Modulator" begin include("SpatialLightModulator.jl") end
 end
