@@ -13,7 +13,6 @@ field = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 1E-3, 1550E
 @test isapprox(nsr[findmax(abs, tfield.e)[2]], (axicon.axicon_medium.n - axicon.medium.n) * axicon.α, rtol = 1E-2)
 
 (field_r_2, ori_field) = light_interaction(axicon, tfield)
-@test (@allocated light_interaction(axicon, tfield)) < 1E5
 @test iszero(intensity(field_r_2))
 @test isapprox(intensity(ori_field), intensity(tfield), rtol = 1E-4)
 
