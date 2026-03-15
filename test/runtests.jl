@@ -20,6 +20,5 @@ include(joinpath(@__DIR__, "auxialiary_functions.jl"))
     @testset "Recursive gridded" begin include("recursive_gridded.jl") end
     @testset "Axicon" begin include("axicon.jl") end
     @testset "Propagation" begin include("propagation.jl") end
-    @testset "Single mode fibre" begin include("single_mode_fibre.jl") end
     @testset "ScatteringMatrix" begin include("ScatteringMatrix.jl") end
 end

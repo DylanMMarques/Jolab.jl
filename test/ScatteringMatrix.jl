@@ -12,7 +12,7 @@ int_2 = DielectricStack(Medium.([2,3]), Float64[], ReferenceFrame((0,0,100E-6), 
 comps = (int_1, int_2)
 inv_scat = ScatteringMatrix(comps, field)
 
-@code_warntype ScatteringMatrix(comps, field);
+@time ScatteringMatrix(comps, field);
 
 @test mls_scat.mat_itob ≈ inv_scat.mat_itob
 @test mls_scat.mat_itof ≈ inv_scat.mat_itof
