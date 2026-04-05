@@ -1,19 +1,26 @@
-using Documenter, Jolab
+using Documenter, DocumenterVitepress
 
-makedocs(sitename="Jolab.jl",
-        doctest=false, clean=true,
-        authors="Dylan Marques",
-        pages = Any[
-         "Home" => "index.md",
-         "Optical components" => Any["MultilayerStructure.md",
-         "Lens.md"],
-         "Examples" => Any["exampleComponent.md",
-         "exampleAngularSpectrum.md",
-         "exampleAiry.md",
-         "exampleMultimodeFibre.md"]
-         ]
-        )
+using Jolab
 
-deploydocs(
-    repo = "github.com/DylanMMarques/Jolab.jl.git",
+makedocs(;
+    modules=[Jolab],
+    authors="Dylan M. Marques",
+    repo="https://github.com/DylanMMarques/Jolab.jl",
+    sitename="Jolab.jl",
+    format=DocumenterVitepress.MarkdownVitepress(
+        repo = "https://github.com/DylanMMarques/Jolab.jl",
+        devurl = "dev",
+        deploy_url = "DylanMMarques.github.io/Jolab.jl",
+    ),
+    pages=[
+        "Home" => "index.md",
+         "Getting Started" => "getting_started.md",
+        "Examples" => "examples/microscopy.md",
+    ],
+    warnonly = true,
+)
+
+DocumenterVitepress.deploydocs(;
+    repo="github.com/DylanMMarques/Jolab.jl",
+    push_preview=true,
 )

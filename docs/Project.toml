@@ -1,6 +1,10 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Jolab = "0583885e-d035-482f-8ce1-fd86afbe19e8"
+DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
+DocumenterVitepress = "4710194d-e776-4893-9690-8d956a29c365"
+CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 
-[compat]
-Documenter = "0.26"
+
+[sources]
+Jolab = {path = ".."}
