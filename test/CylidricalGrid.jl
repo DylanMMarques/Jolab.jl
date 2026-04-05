@@ -22,5 +22,3 @@ grid = Jolab.CylindricalGrid((10, 10, 10), Jolab.R_θ_λ(0.0,0,0), (0.1, 2π / 1
 
 grid = Jolab.CylindricalGrid((10, 10, 10), Jolab.R_θ_λ(0.05,0,0), (0.1, 2π / 10, 0.1))
 @test sum(i -> Jolab.volume(grid, i), eachindex(grid))u"m^3" ≈ measure(Cylinder(1))
-
-

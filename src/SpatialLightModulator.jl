@@ -8,6 +8,10 @@ struct SpatialLightModulator{T,C,R,F} <: AbstractOpticalElement{T}
     end
 end
 
+function SpatialLightModulator(::Type{C}, r, t, frame, media) where {C} 
+    SpatialLightModulator{Float64, C}(r, t, frame, media)
+end
+
 function SpatialLightModulator_aperture(::Type{T}, radius, media, frame) where T
     slm_r = (r, theta, lambda) -> false
     slm_t = (r, theta, lambda) -> radius >= r
@@ -59,8 +63,8 @@ function check_input_field(slm::SpatialLightModulator, field::MeshedBeam{T, D, C
 end
 
 function forward_backward_field(slm::SpatialLightModulator, field_i::MeshedBeam{T,D,C,P}) where {T,D,C<:SpatialCoords,P}
-    e_b = similar(field_i.e, Complex{T}, size(field_i.mesh))
-    e_f = similar(field_i.e, Complex{T}, size(field_i.mesh))
+    e_b = similar(field_i.e, Complex{T}, size(field_i.e))
+    e_f = similar(field_i.e, Complex{T}, size(field_i.e))
 
     field_f = MeshedBeam{T, Forward, C, P}(field_i.mesh, e_f, field_i.medium, field_i.frame)
     field_b = MeshedBeam{T, Backward, C, P}(field_i.mesh, e_b, field_i.medium, field_i.frame)

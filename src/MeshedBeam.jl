@@ -1,14 +1,13 @@
 
-struct MeshedBeam{T, D, C, P<:AbstractPolarization, V, E<:AbstractArray{<:RealOrComplex{T},3}, M<:Medium{T,<:RealOrComplex{T}}, T2<:RealOrComplex{T}} <: AbstractField{T, D}
+struct MeshedBeam{T, D, C, P<:AbstractPolarization, V, E<:AbstractArray{<:RealOrComplex{T},4}, M<:Medium{T,<:RealOrComplex{T}}, T2<:RealOrComplex{T}} <: AbstractField{T, D}
     mesh::V
     e::E
     medium::M
     frame::ReferenceFrame{T}
     function MeshedBeam{T,D,C,P}(mesh::V, e::E, medium::Medium{<:Any, M}, frame::ReferenceFrame) where {T,V,E <: AbstractArray{T2},D,C,P,M} where T2
-        @argcheck size(e)[1:2] == size(mesh)[1:2] DimensionMismatch
-        vectorial_size = number_components(P)
+        @argcheck size(e)[1:3] == size(mesh)[1:3] DimensionMismatch
+        @argcheck size(e, 4) == number_components(P) DimensionMismatch
 
-        @argcheck size(e, 3) in (1, vectorial_size) DimensionMismatch
         M1 = M <: Complex ? Complex{T} : T
         T3 = T2 <: Complex ? Complex{T} : T
         new{T,D,C,P,V,E,Medium{T, M1},T3}(mesh, e, medium, frame)
@@ -24,7 +23,7 @@ function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, 
         NSX_NSY_λ(first(nsx), first(nsy), λ), 
         (step(nsx), step(nsy), eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, NSX_NSY_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
+    MeshedBeam{T, D, NSX_NSY_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
 end
 MonochromaticAngularSpectrum(::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticAngularSpectrum(Float64, D, nsx, nsy, e, λ, medium, frame)
 
@@ -49,7 +48,7 @@ function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::
         NSR_NSθ_λ(first(nsr), T(0), λ), 
         (step(nsr), 2π, eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, NSR_NSθ_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
+    MeshedBeam{T, D, NSR_NSθ_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
 end
 
 function MonochromaticAngularSpectrumRadialSymmetric_gaussian(::Type{T}, ::Type{D}, nsr::AbstractRange, ω, λ, medium, frame) where {T,D}
@@ -65,7 +64,7 @@ function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::Ab
         X_Y_λ(first(x), first(y), λ),  # The -0.5 is to center the point on the face
         (step(x), step(y), eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, X_Y_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
+    MeshedBeam{T, D, X_Y_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
 end
 MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticSpatialBeam(Float64, D, x, y, e, λ, medium, frame)
 
@@ -104,7 +103,7 @@ function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, r::Abstra
         R_θ_λ(first(r), T(0), λ), 
         (step(r), 2π, eps_factor * eps(T)))
     e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, R_θ_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:2]..., 1), medium, frame)
+    MeshedBeam{T, D, R_θ_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
 end,
 function MonochromaticSpatialBeamRadialSymmetric(::Type{D}, r, e, λ, medium, frame) where D
     MonochromaticSpatialBeamRadialSymmetric(Float64, D, r, e, λ, medium, frame) 
@@ -136,7 +135,7 @@ function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium
         eps_factor .* (eps(T), eps(T), eps(T))
         )
     TE = T2 <: Complex ? Complex{T} : T
-    MeshedBeam{T, D, NSX_NSY_λ, PolarizationScalar}(mesh, (@SArray [TE(e);;;]), medium, frame)
+    MeshedBeam{T, D, NSX_NSY_λ, PolarizationScalar}(mesh, (@SArray [TE(e);;;;]), medium, frame)
 end
 MeshedPlaneWaveScalar(::Type{D}, nsx, nsy, e, λ, medium, frame) where D = MeshedPlaneWaveScalar(Float64, D, nsx, nsy, e, λ, medium, frame)
 
@@ -191,9 +190,9 @@ function light_interaction(comp, beam)
 end
 
 
-function Base.view(beam::MeshedBeam{T,D,C,P}, x, y, z) where {T,D,C,P}
+function Base.view(beam::MeshedBeam{T,D,C,P}, x, y, z, p) where {T,D,C,P}
     mesh = @view beam.mesh[_int_to_unitrange(x), _int_to_unitrange(y), _int_to_unitrange(z)]
-    e = @view beam.e[_int_to_unitrange(x), _int_to_unitrange(y), _int_to_unitrange(z)]
+    e = @view beam.e[_int_to_unitrange(x), _int_to_unitrange(y), _int_to_unitrange(z), _int_to_unitrange(p)]
     return MeshedBeam{T,D,C,P}(mesh, e, beam.medium, beam.frame)
 end
 
@@ -202,13 +201,13 @@ _int_to_unitrange(i) = i
 
 
 function change_polarization_basis(field::MeshedBeam{T,D,C,PolarizationSP}, ::Type{PolarizationXYZ}) where {T,D,C<:AngularSpectrumCoords}
-    field_i_s = view(field.e, :, :, 1)
-    field_i_p = view(field.e, :, :, 2)
+    field_i_s = view(field.e, :, :, :, 1)
+    field_i_p = view(field.e, :, :, :, 2)
 
-    field_new = similar(field.e, Complex{T}, (size(field.e, 1), size(field.e, 2), 3))
-    field_new_x = view(field_new, :, :, 1)
-    field_new_y = view(field_new, :, :, 2)
-    field_new_z = view(field_new, :, :, 3)
+    field_new = similar(field.e, Complex{T}, (size(field.e)[1:3]..., 3))
+    field_new_x = view(field_new, :, :, :, 1)
+    field_new_y = view(field_new, :, :, :, 2)
+    field_new_z = view(field_new, :, :, :, 3)
 
     map(eachindex(field.mesh)) do ind
         (nsr, ϕ, λ) = NSR_NSθ_λ(centroid(field.mesh, ind))

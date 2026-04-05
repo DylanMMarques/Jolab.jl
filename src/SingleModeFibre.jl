@@ -55,7 +55,7 @@ function forward_backward_field(fibre::SingleModeFibre, field::MeshedBeam{T, D, 
     frames = @SVector [field.frame]
     mode_vec = StructVector{GaussianMode{T, D, Complex{T}}}((modes_e, modes_sigma, modes_wavelength, frames))
     field_t = Beam(mode_vec)
-    field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
+    field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)..., number_components(P)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 

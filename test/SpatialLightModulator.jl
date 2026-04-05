@@ -1,4 +1,5 @@
 using Jolab, Test
+import Jolab: Forward
 
 aperture = Jolab.SpatialLightModulator_aperture(Float64, 1E-1, Medium.((1,1)), ReferenceFrame((0,0,0), (0,0,0)))
 disk = Jolab.SpatialLightModulator_diskaperture(Float64, 0.0, 1E-1, Medium.((1,1)), ReferenceFrame((0,0,0), (0,0,0)))

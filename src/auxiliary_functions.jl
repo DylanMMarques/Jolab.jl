@@ -49,12 +49,12 @@ function find_local_minima(f, x::AbstractVector{T}, initial_size) where T
 end
 
 function overlap_integral(array1::AbstractArray, array2::AbstractArray, mesh::Domain)
-    @argcheck size(array1) == size(mesh) == size(array2) DimensionMismatch
+    @argcheck size(array1)[1:3] == size(mesh) == size(array2)[1:3] DimensionMismatch
     mapreduce((i) -> array1[i] * conj(array2[i]) * integration_space(mesh, i), +, eachindex(mesh))
 end
 
 function overlap_integral(array::AbstractArray, f2::Function, mesh::Domain)
-    @argcheck size(array) == size(mesh) DimensionMismatch
+    @argcheck size(array)[1:3] == size(mesh) DimensionMismatch
     mapreduce((i) -> array[i] * conj(f2(centroid(mesh, i))) * integration_space(mesh, i), +, eachindex(mesh))
 end
 

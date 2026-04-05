@@ -119,9 +119,9 @@ function _light_interaction!(field_b, field_f, comp::Union{DielectricStack, Mirr
     
     polarization_components = number_components(P)
     for iP in 1:polarization_components
-        field_i_e = view(beam.e, :, :, iP)
-        field_r_e = view(field_r, :, :, iP)
-        field_t_e = view(field_t, :, :, iP)
+        field_i_e = view(beam.e, :, :, :, iP)
+        field_r_e = view(field_r, :, :, :, iP)
+        field_t_e = view(field_t, :, :, :, iP)
 
         f = if isone(iP)
             (index, e) -> begin

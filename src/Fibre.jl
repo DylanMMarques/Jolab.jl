@@ -229,7 +229,7 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
     modes_D .= modes.D
     frame = Fill((D == Forward ? first : last)(fibre.frames), number_modes)
     field_t = Beam(StructVector{CircularStepIndexMode{T,D,Complex{T}, Medium{T,T}}}((modes_e, modes_wavelength, modes_m, modes_β, modes_C, modes_D, Fill(fibre.refractive_index_profile, number_modes), frame)))
-    field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)), field.medium, field.frame)
+    field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)..., number_components(P)), field.medium, field.frame)
     reverse_if_backward(D, (field_r, field_t))
 end
 

@@ -33,11 +33,11 @@ end
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     fill!(field_r.e, 0)
     
-    field_i_x = view(field_i.e, :, :, 1)
-    field_i_y = view(field_i.e, :, :, 2)
-    field_i_z = view(field_i.e, :, :, 3)
-    field_t_s = view(field_t.e, :, :, 1)
-    field_t_p = view(field_t.e, :, :, 2)
+    field_i_x = view(field_i.e, :, :, :, 1)
+    field_i_y = view(field_i.e, :, :, :, 2)
+    field_i_z = view(field_i.e, :, :, :, 3)
+    field_t_s = view(field_t.e, :, :, :, 1)
+    field_t_p = view(field_t.e, :, :, :, 2)
     function t_aux(ind)
 
         r_pupil = R_θ_λ(centroid(field_i.mesh, ind))
@@ -106,7 +106,7 @@ end
 function forward_backward_field(lens::Lens, field_i::MeshedBeam{T,D,C,P}) where {T,D,C,P}
     P_out = get_polarization_type(Lens, P)
 
-    e_t = similar(field_i.e, Complex{T}, (size(field_i.mesh)[1:2]..., number_components(P_out)))
+    e_t = similar(field_i.e, Complex{T}, (size(field_i.mesh)[1:3]..., number_components(P_out)))
     e_r = Zeros(T, size(field_i.e))
 
     f = lens.focal_length

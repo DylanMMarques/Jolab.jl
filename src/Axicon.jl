@@ -58,7 +58,7 @@ function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) wher
     (haskey(axicon.solver, symbol[1]) && haskey(axicon.solver, symbol[2])) || error("Solver must have cartesian coordinate (field x and y or nsx and nsy)")
     x = getfield(axicon.solver, symbol[1])
     y = getfield(axicon.solver, symbol[2])
-    e_t = similar(field_i.e, Complex{T}, (length(x), length(y), size(field_i.e)[3]))
+    e_t = similar(field_i.e, Complex{T}, (length(x), length(y), size(field_i.e)[3], size(field_i.e)[4]))
     e_r = Zeros(T, size(field_i.e))
 
     lengths = (length(x), length(y), size(field_i.mesh)[3]) 
@@ -79,7 +79,7 @@ function forward_backward_field(axicon::Union{Axicon, Fourier}, field_i::F) wher
     
     haskey(axicon.solver, symbol) || error("Solver must have radial coordinate (field r or nsr)")
     r = getfield(axicon.solver, symbol)
-    e_t = similar(field_i.e, Complex{T}, (length(r), size(field_i.e)[2], size(field_i.e)[3]))
+    e_t = similar(field_i.e, Complex{T}, (length(r), size(field_i.e)[2], size(field_i.e)[3], size(field_i.e)[4]))
     e_r = Zeros(T, size(field_i.e))
 
     lengths = (length(r), size(field_i.mesh)[2], size(field_i.mesh)[3]) 

@@ -70,8 +70,8 @@ sca = ScatteringMatrix(lens, field)
 
 stack = DielectricStack(Medium.([1.0, 1.5, 1.0]), [500E-9], ReferenceFrame((0,0,0.002), (0,0,0)))
 x = range(-1, 1, length = 512) * lens.focal_length
-e = zeros(ComplexF64, length(x), length(x), 3)
-e[:,:,1] .= 1
+e = zeros(ComplexF64, length(x), length(x), 1, 3)
+e[:,:,:,1] .= 1
 begin
     lens = Lens(focal_len, 1.0, (Medium(1), Medium(1.0)), ReferenceFrame((0,0, focal_len), (0,0,0)))
     beam = Jolab.MonochromaticSpatialBeamVectorial(Forward, x, x, e, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
