@@ -101,13 +101,13 @@ struct CartesianGrid{C, Dim, T} <: Domain{C, Dim,T}
     end
 end
 
-# function CartesianGrid(::Type{C}, x::AbstractRange, y::AbstractRange, z::AbstractRange) where C
-#     xyz = (x, y, z)
-#     lengths = length.(xyz)
-#     spacing = step.(xyz)
-#     start = first.(xyz)
-#     CartesianGrid(lengths, C(start), spacing)
-# end
+function CartesianGrid(::Type{C}, x::AbstractRange, y::AbstractRange, z::AbstractRange) where C
+    xyz = (x, y, z)
+    lengths = length.(xyz)
+    spacing = step.(xyz)
+    start = first.(xyz)
+    CartesianGrid(lengths, C(start...), spacing)
+end
 
 
 area(grid::CartesianGrid{C, 2}, ind::Union{Integer, CartesianIndex{2}}) where C = prod(grid.spacing)
@@ -129,6 +129,10 @@ struct CylindricalGrid{C, Dim,T} <: Domain{C, Dim, T}
     origin::C
     lengths::NTuple{Dim, Int}
     function CylindricalGrid(lengths::NTuple{Dim, Int}, origin::C, spacing::NTuple{Dim, T}) where {C, Dim, T}
+        θ_start = origin[2]
+        θ_stop = θ_start + spacing[2] * (lengths[2] - 1)
+        0 <= θ_start <= 2π || throw(ArgumentError("CylindricalGrid requires the angular origin to be within [0, 2π]."))
+        0 <= θ_stop <= 2π || throw(ArgumentError("CylindricalGrid requires the angular range to stay within [0, 2π]."))
         new{C, Dim, T}(spacing, origin, lengths)
     end
 end
@@ -233,4 +237,3 @@ for domain in (:CartesianGrid, :CylindricalGrid)
         end
     end)
 end
-
