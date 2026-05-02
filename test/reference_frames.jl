@@ -1,5 +1,27 @@
 using Test, Jolab
 
+# Test ReferenceFrame + operator
+@testset "ReferenceFrame + operator" begin
+    # Test 1: Adding frames with same direction (zero direction)
+    frame1 = ReferenceFrame((1.0, 2.0, 3.0), (0, 0, 0))
+    frame2 = ReferenceFrame((0.5, 1.0, 2.0), (0, 0, 0))
+    frame_sum = frame1 + frame2
+    @test frame_sum.origin ≈ Jolab.X_Y_Z(1.5, 3.0, 5.0)
+    @test frame_sum.direction ≈ Jolab.X_Y_Z(0, 0, 0)
+    
+    # Test 2: Adding frames with same non-zero direction
+    frame3 = ReferenceFrame((1.0, 2.0, 3.0), (π/4, π/6, 0))
+    frame4 = ReferenceFrame((0.5, 1.0, 2.0), (π/4, π/6, 0))
+    frame_sum2 = frame3 + frame4
+    @test frame_sum2.origin ≈ Jolab.X_Y_Z(1.5, 3.0, 5.0)
+    @test frame_sum2.direction ≈ Jolab.X_Y_Z(π/4, π/6, 0)
+    
+    # Test 3: Error when directions differ
+    frame5 = ReferenceFrame((1.0, 2.0, 3.0), (0, 0, 0))
+    frame6 = ReferenceFrame((0.5, 1.0, 2.0), (π/4, 0, 0))
+    @test_throws ArgumentError frame5 + frame6
+end
+
 θ, ϕ = 0.015, π/4
 pw = MeshedPlaneWaveScalar(Forward, 0, 0, 1, 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0, 0, 0)))
 # pw2 = rotate_referenceframe(pw, (θ, 0, ϕ))

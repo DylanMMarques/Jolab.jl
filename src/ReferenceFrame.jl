@@ -19,5 +19,12 @@ function Base.isapprox(frame1::ReferenceFrame, frame2::ReferenceFrame; kwargs...
     isapprox(frame1.origin, frame2.origin; kwargs...) && isapprox(frame1.direction, frame2.direction; kwargs...)
 end
 
+function Base.:(+)(frame1::ReferenceFrame, frame2::ReferenceFrame)
+    if !isapprox(frame1.direction, frame2.direction)
+        throw(ArgumentError("Cannot add ReferenceFrames with different directions. frame1.direction = $(frame1.direction), frame2.direction = $(frame2.direction)"))
+    end
+    ReferenceFrame(frame1.origin + frame2.origin, frame1.direction)
+end
+
 _RotXYZ(direction::FieldVector{3}) = Rotations.RotXYZ(direction.x, direction.y, direction.z)
 _RotXYZ(x, y, z) = Rotations.RotXYZ(x, y, z)
