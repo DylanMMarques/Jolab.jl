@@ -37,7 +37,8 @@ val = n_modes.(r_s)
 function coupling_field_derivative(x, fibre, e, λ, medium,ref)
     e_m = zeros(ComplexF64, length(x), length(x))
     e_m[1] = e
-    field = MonochromaticSpatialBeam(Forward, x, x, e_m, λ, medium, ref)
+    grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+    field = Jolab.SpatialBeam(Forward, grid, e_m, medium, ref)
     (back, forw) = light_interaction(fibre, field)
     forw.modes.e
 end

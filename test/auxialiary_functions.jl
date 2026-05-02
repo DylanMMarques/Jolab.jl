@@ -2,7 +2,9 @@ function test_cartesian_with_radialsymmetric(ω, comp, medium, sampling_rad, sam
     nsr = range(0, 0.5, length = sampling_rad)
     radial_i = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, ω, 1550E-9, medium, ReferenceFrame((0,0,0), (0,0,0)))
     nsx = range(-0.5, 0.5, length = sampling_cart)
-    cart_i = MonochromaticAngularSpectrum_gaussian(Forward, nsx, nsx, ω, 1550E-9, medium, ReferenceFrame((0,0,0), (0,0,0)))
+    λ = 1550E-9
+    grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
+    cart_i = Jolab.AngularSpectrum(Forward, grid_ang, Jolab.Gaussian(ω), medium, ReferenceFrame((0,0,0), (0,0,0)))
     
 
     (b_radial, f_radial) = light_interaction(comp, radial_i)

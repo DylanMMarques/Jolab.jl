@@ -30,7 +30,10 @@ angspe = MonochromaticAngularSpectrum(Float64, Forward, ns, ns, rand(length(ns),
 @test_opt intensity(angspe)
 
 x = range(-100E-6, 100E-6, length = 100)
-@test_opt MonochromaticSpatialBeam(Float64, Forward, x, x, rand(length(x), length(x)), 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+λ = 1550E-9
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+@test_opt Jolab.SpatialBeam(Float64, Forward, grid, rand(length(x), length(x)), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+beam = Jolab.SpatialBeam(Float64, Forward, grid, rand(length(x), length(x)), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 @test_opt intensity(beam)
 
 x = range(-100E-6, 100E-6, length = 100)

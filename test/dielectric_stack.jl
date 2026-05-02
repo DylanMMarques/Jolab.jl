@@ -187,13 +187,15 @@ num_diff = (finite_difference_derivative(i -> thickness_dependency(i)[1], 10E-9;
 
 
 function f_rbeam(mls, nsx, nsy, waist, λ, medium, frame)
-    beam = MonochromaticAngularSpectrum_gaussian(Float64, Forward, nsx, nsy, waist, λ, medium, frame)
+    grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ)
+    beam = Jolab.AngularSpectrum(Float64, Forward, grid_ang, Jolab.Gaussian(waist), medium, frame)
     (rbeam, tbeam) = light_interaction(mls, beam)
     intensity(rbeam)
 end
 
 function f_tbeam(mls, nsx, nsy, waist, λ, medium, frame)
-    beam = MonochromaticAngularSpectrum_gaussian(Float64, Forward, nsx, nsy, waist, λ, medium, frame)
+    grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ)
+    beam = Jolab.AngularSpectrum(Float64, Forward, grid_ang, Jolab.Gaussian(waist), medium, frame)
     (rbeam, tbeam) = light_interaction(mls, beam)
     intensity(tbeam)
 end

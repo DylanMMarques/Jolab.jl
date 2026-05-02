@@ -3,7 +3,8 @@ using Jolab, Test
 nsx = range(-0.1, 0.1, length=64)
 nsy = range(-0.1, 0.1, length=64)
 λ = 1550E-9
-beam = MonochromaticAngularSpectrum_gaussian(Float64, Forward, nsx, nsx, 50E-6, λ, Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)));
+grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ)
+beam = Jolab.AngularSpectrum(Float64, Forward, grid_ang, Jolab.Gaussian(50E-6), Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)));
 
 mls = DielectricStack(Medium.([1, 1.5, 2]), [100E-9], ReferenceFrame((0,0,0.0), (0,0,0.0)))
 (r, t) = light_interaction(mls, beam)

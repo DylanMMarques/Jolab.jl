@@ -10,6 +10,8 @@ x = LinRange(-50E-6, 50E-6, 1000)
 spa =  MonochromaticSpatialBeam_gaussian(Forward, x, x, mfd, 1500E-9, Medium(1.0), frames[1])
 (fieldr, fieldt) = light_interaction(fibre, spa)
 @test intensity(fieldt) ≈ 1 rtol = 1E-3
+
+# TODO: Convert MonochromaticSpatialBeam(Float64, Forward, fibre, x, x, 1500e-9) to new grid-based API
 field = MonochromaticSpatialBeam(Float64, Forward, fibre, x, x, 1500e-9)
 @test intensity(field) ≈ 1 rtol = 1E-3
 

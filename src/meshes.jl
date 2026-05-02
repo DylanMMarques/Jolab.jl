@@ -1,5 +1,6 @@
 abstract type Domain{C, Dim, T} end
 abstract type AbstractPolarization end
+abstract type AbstractCoordinate{T} <: FieldVector{3,T} end
 
 struct PolarizationSP <: AbstractPolarization end 
 struct PolarizationXYZ <: AbstractPolarization end
@@ -9,43 +10,44 @@ number_components(::Type{PolarizationSP}) = 2
 number_components(::Type{PolarizationXYZ}) = 3
 number_components(::Type{PolarizationScalar}) = 1
 
-struct X_Y_Z{T} <: FieldVector{3, T}
+
+struct X_Y_Z{T} <: AbstractCoordinate{T}
     x::T
     y::T
     z::T
 end
 
-struct X_Y_λ{T} <: FieldVector{3, T}
+struct X_Y_λ{T} <: AbstractCoordinate{T}
     x::T
     y::T
     λ::T
 end
 
-struct R_θ_Z{T} <: FieldVector{3, T}
+struct R_θ_Z{T} <: AbstractCoordinate{T}
     r::T
     θ::T
     z::T
 end
 
-struct R_θ_ϕ{T} <: FieldVector{3, T}
+struct R_θ_ϕ{T} <: AbstractCoordinate{T}
     r::T
     θ::T
     ϕ::T
 end
 
-struct R_θ_λ{T} <: FieldVector{3, T}
+struct R_θ_λ{T} <: AbstractCoordinate{T}
     r::T
     θ::T
     λ::T
 end
 
-struct NSX_NSY_λ{T} <: FieldVector{3, T}
+struct NSX_NSY_λ{T} <: AbstractCoordinate{T}
     nsx::T
     nsy::T
     λ::T
 end
 
-struct NSR_NSθ_λ{T} <: FieldVector{3, T}
+struct NSR_NSθ_λ{T} <: AbstractCoordinate{T}
     nsr::T
     nsθ::T
     λ::T
@@ -79,6 +81,20 @@ function unit_vector(coord::R_θ_ϕ{T}, ::Val{:ϕ}) where T
     X_Y_Z(-sin(coord.ϕ), cos(coord.ϕ), zero(T))
 end
 
+for c_type in (:X_Y_Z, :X_Y_λ, :R_θ_Z, :R_θ_ϕ, :R_θ_λ, :NSX_NSY_λ, :NSR_NSθ_λ)
+    eval(quote
+        function same_coordinate_type(::Type{<:$c_type}, ::Type{<:$c_type})
+            true
+        end
+    end)
+end
+function same_coordinate_type(::Type{<:AbstractCoordinate}, ::Type{<:AbstractCoordinate}) where {C1, C2}
+    false
+end
+function same_coordinate_type(c1::C1, c2::C2) where {C1<:AbstractCoordinate, C2<:AbstractCoordinate}
+    same_coordinate_type(C1, C2)
+end
+
 for (cart, polar) in zip((:NSX_NSY_λ, :X_Y_λ, :X_Y_t), (:NSR_NSθ_λ, :R_θ_λ))
     eval(quote
         function $cart(coords::$polar{T}) where T
@@ -101,7 +117,13 @@ struct CartesianGrid{C, Dim, T} <: Domain{C, Dim,T}
     end
 end
 
-_grid_step(x::AbstractRange) = step(x)
+function _grid_step(x::AbstractRange{T}) where T
+    if isone(length(x))
+        oneunit(eltype(x))
+    else
+        step(x)
+    end
+end
 _grid_step(x::Real) = oneunit(x)
 
 const AbstractRangeOrNumber = Union{AbstractRange, Number}

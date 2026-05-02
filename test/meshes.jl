@@ -24,7 +24,8 @@ mesh_xyz = Jolab.CartesianGrid(Jolab.X_Y_Z, x, y, z)
 @test Jolab.get_ranges(mesh_xyz) == xyz
 
 wav = 1550E-9
-field = Jolab.MonochromaticSpatialBeam_gaussian(Forward, x, y, 10E-6, wav, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+grid_spatial = Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, wav)
+field = Jolab.SpatialBeam(Forward, grid_spatial, Jolab.Gaussian(10E-6), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 @test (x,y) == Jolab.get_ranges(field.mesh)[1:2]
 @test Jolab.centroid(field.mesh, 1)[3] == wav
 
@@ -72,3 +73,25 @@ grid = Jolab.CylindricalGrid((10, 10, 10), Jolab.R_θ_λ(0.05,0,0), (0.1, 2π / 
 # Test coordinate validation for CylindricalGrid
 @test_throws ArgumentError Jolab.CylindricalGrid(Jolab.X_Y_λ, range(0, 1), range(0, 2π), 1550E-9)
 @test_throws ArgumentError Jolab.CylindricalGrid(Jolab.NSX_NSY_λ, range(-0.5, 0.5), range(-0.5, 0.5), 1550E-9)
+
+# Test same_coordinate_type function
+@test Jolab.same_coordinate_type(Jolab.X_Y_Z, Jolab.X_Y_Z) == true
+@test Jolab.same_coordinate_type(Jolab.X_Y_Z{Float64}, Jolab.X_Y_Z{Float32}) == true
+@test Jolab.same_coordinate_type(Jolab.X_Y_λ, Jolab.X_Y_λ) == true
+@test Jolab.same_coordinate_type(Jolab.X_Y_λ{Float64}, Jolab.X_Y_λ{Int64}) == true
+@test Jolab.same_coordinate_type(Jolab.R_θ_Z, Jolab.R_θ_Z) == true
+@test Jolab.same_coordinate_type(Jolab.R_θ_ϕ, Jolab.R_θ_ϕ) == true
+@test Jolab.same_coordinate_type(Jolab.R_θ_λ, Jolab.R_θ_λ) == true
+@test Jolab.same_coordinate_type(Jolab.NSX_NSY_λ, Jolab.NSX_NSY_λ) == true
+@test Jolab.same_coordinate_type(Jolab.NSR_NSθ_λ, Jolab.NSR_NSθ_λ) == true
+
+# Test different coordinate types return false
+@test Jolab.same_coordinate_type(Jolab.X_Y_Z, Jolab.X_Y_λ) == false
+@test Jolab.same_coordinate_type(Jolab.X_Y_λ, Jolab.R_θ_λ) == false
+@test Jolab.same_coordinate_type(Jolab.NSX_NSY_λ, Jolab.NSR_NSθ_λ) == false
+@test Jolab.same_coordinate_type(Jolab.R_θ_Z, Jolab.R_θ_ϕ) == false
+
+# Test with instances (not types)
+@test Jolab.same_coordinate_type(Jolab.X_Y_Z(1.0, 2.0, 3.0), Jolab.X_Y_Z(4.0, 5.0, 6.0)) == true
+@test Jolab.same_coordinate_type(Jolab.X_Y_λ(1.0, 2.0, 1550E-9), Jolab.X_Y_λ(4.0, 5.0, 1550E-9)) == true
+@test Jolab.same_coordinate_type(Jolab.X_Y_Z(1.0, 2.0, 3.0), Jolab.X_Y_λ(1.0, 2.0, 3.0)) == false

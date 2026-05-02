@@ -36,7 +36,7 @@ function light_interaction(f::FourierFFT, field_i)
     _light_interaction!(fourier.field_b, fourier.field_f, fourier, field_i)
 end
 
-function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFTSolver, field_i::MeshedBeam{T,D,NSX_NSY_λ,P}) where {T,D,P<:Union{PolarizationScalar,PolarizationXYZ}}
+function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFTSolver, field_i::MeshedBeam{T,D,C,P}) where {T,D,C<:NSX_NSY_λ,P<:Union{PolarizationScalar,PolarizationXYZ}}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     fill!(field_r.e, 0)
 
@@ -55,7 +55,7 @@ function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::Meshe
     (field_b, field_f)
 end
 
-function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFTSolver, field_i::MeshedBeam{T,D,X_Y_λ}) where {T,D}
+function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, fourier::FourierFFTSolver, field_i::MeshedBeam{T,D,C}) where {T,D,C<:X_Y_λ}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     fill!(field_r.e, 0)
 
@@ -116,16 +116,16 @@ function forward_backward_field(fourier::FourierFFT, field_i::MeshedBeam{T,D,C,P
     reverse_if_backward(D, (field_r, field_t))
 end
 
-function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{NSX_NSY_λ}) 
+function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{<:NSX_NSY_λ}) 
     X_Y_λ
 end,
-function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{NSR_NSθ_λ}) 
+function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{<:NSR_NSθ_λ}) 
     R_θ_λ
 end,
-function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{X_Y_λ})
+function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{<:X_Y_λ})
     NSX_NSY_λ
 end,
-function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{R_θ_λ})
+function get_transmitted_coord_type(::Type{FourierFFT}, ::Type{<:R_θ_λ})
     NSR_NSθ_λ
 end
 

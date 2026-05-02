@@ -64,11 +64,14 @@ rmls = [Jolab.RoughInterface(Medium.((1, 1.5)), topography_tan, ref1),
     Jolab.RoughInterface(Medium.((1.5,1)), topography_tan_minus, ref4)]
 int = zeros(length(λ))
 
-field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, 1500E-9, Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
+λ_base = 1500E-9
+grid_ang_base = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, sx, sx, λ_base)
+field = Jolab.AngularSpectrum(Forward, grid_ang_base, Jolab.Gaussian(10E-6), Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
 @time (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, printBool = false);
 
 for i in 1:length(λ)
-    field = MonochromaticAngularSpectrum_gaussian(Forward, sx, sx, 10E-6, λ[i], Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
+    grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, sx, sx, λ[i])
+    field = Jolab.AngularSpectrum(Forward, grid_ang, Jolab.Gaussian(10E-6), Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
     (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = false)
     int[i] = intensity(fieldr) / intensity(field)
 end

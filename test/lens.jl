@@ -6,13 +6,17 @@ lens = Lens(focal_len, .5, (Medium(1), Medium(1.0)), ReferenceFrame((0,0, focal_
 @test_throws ArgumentError Lens(1E-3, .5, (Medium(1 + im), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)))
 
 nsx = range(-1, 1, length=10)
-field = MonochromaticAngularSpectrum(Forward, nsx, nsx, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+λ = 1500E-9
+grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
+field = Jolab.AngularSpectrum(Forward, grid_ang, rand(ComplexF64, 10, 10), Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 @test_throws ArgumentError light_interaction(lens, field)
 
-field = MonochromaticAngularSpectrum(Forward, nsx, nsx, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
+field = Jolab.AngularSpectrum(Forward, grid_ang, rand(ComplexF64, 10, 10), Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
 @test_throws ArgumentError light_interaction(lens, field)
 
-field = MonochromaticAngularSpectrum(Forward, nsx, nsx, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
+field = Jolab.AngularSpectrum(Forward, grid_ang, rand(ComplexF64, 10, 10), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 (rfield, tfield) = light_interaction(lens, field)
 @test_opt light_interaction(lens, field)
 @test tfield isa Jolab.MeshedSpatialBeam
@@ -20,24 +24,33 @@ field = MonochromaticAngularSpectrum(Forward, nsx, nsx, rand(ComplexF64, 10, 10)
 
 
 x = range(-1E-3, 1E-3, length = 10)
-field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+λ = 1500E-9
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Forward, grid, rand(ComplexF64, 10, 10), Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
 @test_throws ArgumentError light_interaction(lens, field)
-field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
-@test_throws ArgumentError light_interaction(lens, field)
-
-field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test_throws ArgumentError light_interaction(lens, field)
-field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Forward, grid, rand(ComplexF64, 10, 10), Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
 @test_throws ArgumentError light_interaction(lens, field)
 
-field = MonochromaticSpatialBeam(Backward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Backward, grid, rand(ComplexF64, 10, 10), Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Backward, grid, rand(ComplexF64, 10, 10), Medium(1), ReferenceFrame((0,0,1), (0,0,0)))
 @test_throws ArgumentError light_interaction(lens, field)
 
-field = MonochromaticSpatialBeam(Forward, x, x, rand(ComplexF64, 10, 10), 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Backward, grid, rand(ComplexF64, 10, 10), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test_throws ArgumentError light_interaction(lens, field)
+
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Forward, grid, rand(ComplexF64, 10, 10), Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
 @test_throws ArgumentError light_interaction(lens, field)
 
 x = LinRange(-50E-6, 50E-6, 100)
-field = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1500E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+λ = 1500E-9
+grid_gauss = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Forward, grid_gauss, Jolab.Gaussian(10E-6), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 @test_opt light_interaction(lens, field)
 (bfield, ffield) = light_interaction(lens, field)
 @test bfield isa Jolab.MeshedSpatialBeam
@@ -46,7 +59,8 @@ field = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1500E-9, Medium(
 @test isapprox(intensity(ffield), intensity(field); rtol = 1E-5)
 
 x = LinRange(-100E-6, 100E-6, 100)
-field = MonochromaticSpatialBeam_gaussian(Backward, x, x, 10E-6, 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
+grid_gauss = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Backward, grid_gauss, Jolab.Gaussian(10E-6), Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
 (bfield, ffield) = light_interaction(lens, field)
 @test bfield isa Jolab.MeshedAngularSpectrum
 @test ffield isa Jolab.MeshedSpatialBeam
@@ -57,7 +71,8 @@ sca = ScatteringMatrix(lens, field)
 @test all(light_interaction(sca, field) .≈ light_interaction(lens, field))
 
 x = LinRange(-.5, .5, 1000)
-field = MonochromaticAngularSpectrum_gaussian(Backward, x, x, 10E-6, 1500E-9, Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
+grid_ang_gauss = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, x, x, λ)
+field = Jolab.AngularSpectrum(Backward, grid_ang_gauss, Jolab.Gaussian(10E-6), Medium(1), ReferenceFrame((0,0,2focal_len), (0,0,0)))
 (bfield, ffield) = light_interaction(lens, field)
 @test bfield isa Jolab.MeshedSpatialBeam
 @test ffield isa Jolab.MeshedAngularSpectrum
@@ -94,7 +109,8 @@ import FiniteDiff: finite_difference_derivative
 
 function field_after_lens(focal_len, nsx, nsy, ω, λ, medium)
     lens = Lens(focal_len, 0.5, (Medium(1), Medium(1.0)), ReferenceFrame((0,0, focal_len), (0,0,0)))
-    field = MonochromaticAngularSpectrum_gaussian(Forward, nsx, nsy, ω, λ, medium, ReferenceFrame((0,0,0), (0,0,0)))
+    grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ)
+    field = Jolab.AngularSpectrum(Forward, grid_ang, Jolab.Gaussian(ω), medium, ReferenceFrame((0,0,0), (0,0,0)))
     (rfield, tfield) = light_interaction(lens, field)
     return maximum(abs, tfield.e)
 end
@@ -109,7 +125,8 @@ at(f) = field_after_lens(f, nsx, nsx, 10E-6, 1500E-9, Medium(1))
 
 function field_after_lens(focal_len, x, y, ω, λ, medium)
     lens = Lens(focal_len, 0.5, (Medium(1), Medium(1.0)), ReferenceFrame((0,0, focal_len), (0,0,0)))
-    field = MonochromaticSpatialBeam_gaussian(Forward, x, y, ω, λ, medium, ReferenceFrame((0,0,0), (0,0,0)))
+    grid_spatial = Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, λ)
+    field = Jolab.SpatialBeam(Forward, grid_spatial, Jolab.Gaussian(ω), medium, ReferenceFrame((0,0,0), (0,0,0)))
     (rfield, tfield) = light_interaction(lens, field)
     return maximum(abs, tfield.e)
 end
