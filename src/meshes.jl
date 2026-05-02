@@ -101,10 +101,15 @@ struct CartesianGrid{C, Dim, T} <: Domain{C, Dim,T}
     end
 end
 
-function CartesianGrid(::Type{C}, x::AbstractRange, y::AbstractRange, z::AbstractRange) where C
+_grid_step(x::AbstractRange) = step(x)
+_grid_step(x::Real) = oneunit(x)
+
+const AbstractRangeOrNumber = Union{AbstractRange, Number}
+function CartesianGrid(::Type{C}, x::AbstractRangeOrNumber, y::AbstractRangeOrNumber, z::AbstractRangeOrNumber) where C
+    C <: Union{R_θ_λ, NSR_NSθ_λ} && throw(ArgumentError("CartesianGrid does not support cylindrical coordinates ($C). Use CylindricalGrid instead."))
     xyz = (x, y, z)
     lengths = length.(xyz)
-    spacing = step.(xyz)
+    spacing = _grid_step.(xyz)
     start = first.(xyz)
     CartesianGrid(lengths, C(start...), spacing)
 end
@@ -135,7 +140,17 @@ struct CylindricalGrid{C, Dim,T} <: Domain{C, Dim, T}
         0 <= θ_stop <= 2π || throw(ArgumentError("CylindricalGrid requires the angular range to stay within [0, 2π]."))
         new{C, Dim, T}(spacing, origin, lengths)
     end
+end,
+function CylindricalGrid(::Type{C}, r::AbstractRangeOrNumber, θ::AbstractRangeOrNumber, z::AbstractRangeOrNumber) where C
+    C <: Union{X_Y_λ, NSX_NSY_λ} && throw(ArgumentError("CylindricalGrid does not support Cartesian coordinates ($C). Use CartesianGrid instead."))
+    rθz = (r, θ, z)
+    lengths = length.(rθz)
+    spacing = _grid_step.(rθz)
+    start = first.(rθz)
+    CylindricalGrid(lengths, C(start...), spacing)
 end
+
+
 function area(grid::CylindricalGrid{C,2}, ind::Integer) where C
     pos = centroid(grid, ind)
     grid.spacing[1] * grid.spacing[2] * pos[1]

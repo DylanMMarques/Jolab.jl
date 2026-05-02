@@ -64,3 +64,11 @@ grid = Jolab.CylindricalGrid((10, 10, 10), Jolab.R_θ_λ(0.05,0,0), (0.1, 2π / 
 @test_opt Jolab.volume(grid, CartesianIndex(2,2,2))
 @test_opt Jolab.centroid(grid, 1)
 @test_opt Jolab.volume(grid, 1)
+
+# Test coordinate validation for CartesianGrid
+@test_throws ArgumentError Jolab.CartesianGrid(Jolab.R_θ_λ, range(0, 1), range(0, 2π), 1550E-9)
+@test_throws ArgumentError Jolab.CartesianGrid(Jolab.NSR_NSθ_λ, range(0, 0.5), range(0, 2π), 1550E-9)
+
+# Test coordinate validation for CylindricalGrid
+@test_throws ArgumentError Jolab.CylindricalGrid(Jolab.X_Y_λ, range(0, 1), range(0, 2π), 1550E-9)
+@test_throws ArgumentError Jolab.CylindricalGrid(Jolab.NSX_NSY_λ, range(-0.5, 0.5), range(-0.5, 0.5), 1550E-9)

@@ -1,4 +1,3 @@
-
 struct MeshedBeam{T, D, C, P<:AbstractPolarization, V, E<:AbstractArray{<:RealOrComplex{T},4}, M<:Medium{T,<:RealOrComplex{T}}, T2<:RealOrComplex{T}} <: AbstractField{T, D}
     mesh::V
     e::E
@@ -14,130 +13,70 @@ struct MeshedBeam{T, D, C, P<:AbstractPolarization, V, E<:AbstractArray{<:RealOr
     end
 end
 
-function polarization_system(beam::MeshedBeam{T,D,C,P}) where {T,D,C,P}
-    P
-end
-
-function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
-    mesh = CartesianGrid((length(nsx), length(nsy), 1),
-        NSX_NSY_λ(first(nsx), first(nsy), λ), 
-        (step(nsx), step(nsy), eps_factor * eps(T)))
-    e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, NSX_NSY_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
-end
-MonochromaticAngularSpectrum(::Type{D}, nsx::AbstractRange, nsy::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticAngularSpectrum(Float64, D, nsx, nsy, e, λ, medium, frame)
-
-function gaussianbeam_electricfield_angspe(::Type{T}, nsr_squared, ω, λ, n) where T
-    norm = T(ω) / (4 * T(√2) * T(π)^T(3/2))
-    exp(-T(ω)^2 * T(π)^2 * T(nsr_squared) / 4 / T(λ)^2) * norm
-end,
-function gaussianbeam_electricfield_angspe(::Type{T}, nsx, nsy, ω, λ, n) where T
-gaussianbeam_electricfield_angspe(T, (nsx^2 + nsy^2), ω, λ, n)
-end
-
-function MonochromaticAngularSpectrum_gaussian(::Type{T}, ::Type{D}, nsx::AbstractRange, nsy::AbstractRange, ω, λ, medium, frame) where {T,D}
-    e = complex.(gaussianbeam_electricfield_angspe.(T, nsx, nsy', ω, λ, medium.n))
-    MonochromaticAngularSpectrum(T, D, nsx, nsy, e, λ, medium, frame)
-end,
-function MonochromaticAngularSpectrum_gaussian(D, nsx, nsy, ω, λ, medium, frame) 
-    MonochromaticAngularSpectrum_gaussian(Float64, D, nsx, nsy, ω, λ, medium, frame) 
-end
-
-function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, nsr::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
-    mesh = CylindricalGrid((length(nsr), 1, 1),
-        NSR_NSθ_λ(first(nsr), T(0), λ), 
-        (step(nsr), 2π, eps_factor * eps(T)))
-    e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, NSR_NSθ_λ, PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
-end
-
-function MonochromaticAngularSpectrumRadialSymmetric_gaussian(::Type{T}, ::Type{D}, nsr::AbstractRange, ω, λ, medium, frame) where {T,D}
-    e = complex.(gaussianbeam_electricfield_angspe.(T, nsr.^2, ω, λ, medium.n))
-    MonochromaticAngularSpectrumRadialSymmetric(T, D, nsr, e, λ, medium, frame)
-end,
-function MonochromaticAngularSpectrumRadialSymmetric_gaussian(D, nsr, ω, λ, medium, frame) 
-    MonochromaticAngularSpectrumRadialSymmetric_gaussian(Float64, D, nsr, ω, λ, medium, frame) 
-end
-
-function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
-    mesh = CartesianGrid((length(x), length(y), 1),
-        X_Y_λ(first(x), first(y), λ),  # The -0.5 is to center the point on the face
-        (step(x), step(y), eps_factor * eps(T)))
-    e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, X_Y_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
-end
-MonochromaticSpatialBeam(::Type{D}, x::AbstractRange, y::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D} = MonochromaticSpatialBeam(Float64, D, x, y, e, λ, medium, frame)
-
-function MonochromaticSpatialBeamVectorial(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {T, D}
-    mesh = CartesianGrid((length(x), length(y), 1),
-        X_Y_λ(first(x), first(y), λ),  # The -0.5 is to center the point on the face
-        (step(x), step(y), eps_factor * eps(T)))
-    e .= e ./ sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, X_Y_λ,PolarizationXYZ}(mesh, e, medium, frame)
-end,
-function MonochromaticSpatialBeamVectorial(::Type{D}, x::AbstractRange, y::AbstractRange, e::AbstractArray, λ, medium::Medium, frame::ReferenceFrame) where {D}
-    MonochromaticSpatialBeamVectorial(Float64, D, x, y, e, λ, medium, frame)
-end
-
-
-
-
-function gaussianbeam_electricfield_space(::Type{T}, r_squared, ω, λ, n) where T
-    norm = 2 * T(√(2 / π)) / T(ω)
-    T(exp(T(r_squared) * (-4 / T(ω)^2)) * norm)
-end,
-function gaussianbeam_electricfield_space(::Type{T}, x, y, ω, λ, n) where T
-    gaussianbeam_electricfield_space(T, (x^2 + y^2), ω, λ, n)
-end
-
-function MonochromaticSpatialBeam_gaussian(::Type{T}, ::Type{D}, x::AbstractVector, y::AbstractVector, ω, λ, medium, frame) where {T,D}
-    e = complex.(gaussianbeam_electricfield_space.(T, x, y', ω, λ, medium.n))
-    MonochromaticSpatialBeam(T, D, x, y, e, λ, medium, frame)
-end,
-function MonochromaticSpatialBeam_gaussian(D, x, y, ω, λ, medium, frame) 
-    MonochromaticSpatialBeam_gaussian(Float64, D, x, y, ω, λ, medium, frame) 
-end
-const eps_factor = 1000
-function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, r::AbstractRange, e::AbstractArray, λ, medium, frame) where {T,D}
-    mesh = CylindricalGrid((length(r), 1, 1),
-        R_θ_λ(first(r), T(0), λ), 
-        (step(r), 2π, eps_factor * eps(T)))
-    e ./= sqrt(eps_factor * eps(T))
-    MeshedBeam{T, D, R_θ_λ,PolarizationScalar}(mesh, reshape(e, size(mesh)[1:3]..., 1), medium, frame)
-end,
-function MonochromaticSpatialBeamRadialSymmetric(::Type{D}, r, e, λ, medium, frame) where D
-    MonochromaticSpatialBeamRadialSymmetric(Float64, D, r, e, λ, medium, frame) 
-end
-
-function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{T}, ::Type{D}, r::AbstractRange, ω, λ, medium, frame) where {T,D}
-    e = complex.(gaussianbeam_electricfield_space.(T, r.^2, ω, λ, medium.n))
-    MonochromaticSpatialBeamRadialSymmetric(T, D, r, e, λ, medium, frame)
-end,
-function MonochromaticSpatialBeamRadialSymmetric_gaussian(::Type{D}, r, ω, λ, medium, frame) where D
-    MonochromaticSpatialBeamRadialSymmetric_gaussian(Float64, D, r, ω, λ, medium, frame) 
-end
-
-function intensity(beam::MeshedBeam{T,D,C}) where {T,D,C}
-    norm(ind) = C <: AngularSpectrumCoords ? T(16π^4) / (centroid(beam.mesh, ind)[3])^2 : 1
-    f(e, ind) = abs2(e) * volume(beam.mesh, ind) * norm(ind)
-    mapreduce(f, +, vec(values_nonzeros(beam.e)), eachindex_nonzeros(beam.e))
-end
-
 const AngularSpectrumCoords = Union{NSX_NSY_λ, NSR_NSθ_λ}
 const MeshedAngularSpectrum{T,D,C<:AngularSpectrumCoords} = MeshedBeam{T,D,C}
 
 const SpatialCoords = Union{X_Y_λ, R_θ_λ}
 const MeshedSpatialBeam{T,D,C<:SpatialCoords} = MeshedBeam{T,D,C}
 
-function MeshedPlaneWaveScalar(::Type{T}, ::Type{D}, nsx, nsy, e::T2, λ, medium, frame) where {T,D,T2}
-    mesh = CartesianGrid((1, 1, 1),
-        NSX_NSY_λ(nsx, nsy, λ), 
-        eps_factor .* (eps(T), eps(T), eps(T))
-        )
-    TE = T2 <: Complex ? Complex{T} : T
-    MeshedBeam{T, D, NSX_NSY_λ, PolarizationScalar}(mesh, (@SArray [TE(e);;;;]), medium, frame)
+struct Gaussian{T}
+    ω::T
 end
-MeshedPlaneWaveScalar(::Type{D}, nsx, nsy, e, λ, medium, frame) where D = MeshedPlaneWaveScalar(Float64, D, nsx, nsy, e, λ, medium, frame)
+Base.convert(::Type{Gaussian{T2}}, g::Gaussian{T1}) where {T1, T2} = Gaussian(T2(g))
+_electric_field_f(gauss::Gaussian, coord::R_θ_λ) = exp(-(coord[1] * 2 / gauss.ω)^2) * 2 * √(2 / π) / gauss.ω
+_electric_field_f(gauss::Gaussian, coord::X_Y_λ) = _electric_field_f(gauss, R_θ_λ(coord))
+
+_electric_field_f(gauss::Gaussian, coord::NSR_NSθ_λ) = exp(-gauss.ω^2 * π^2 * coord[1]^2 / 4 / coord[3]^2) * gauss.ω / (4 * √2 * π^(3/2))
+_electric_field_f(gauss::Gaussian, coord::NSX_NSY_λ) = _electric_field_f(gauss, NSR_NSθ_λ(coord))
+function electric_field!(e::AbstractArray, gauss::Gaussian{T}, mesh::Domain) where {T}
+    e .= map(i -> _electric_field_f(gauss, centroid(mesh, i)), eachindex(mesh))
+end
+
+
+
+function polarization_system(beam::MeshedBeam{T,D,C,P}) where {T,D,C,P}
+    P
+end
+
+function _SpatialBeam(::Type{T}, ::Type{D}, grid::Domain{C,3}, e::AbstractArray, medium::Medium, frame::ReferenceFrame) where {C<:SpatialCoords, D<:AbstractDirection, T<:Real}
+    e_reshaped = reshape(e, size(grid)[1:3]..., 1)
+    MeshedBeam{T, D, C, PolarizationScalar}(grid, e_reshaped, medium, frame)
+end,
+function _SpatialBeam(::Type{T}, ::Type{D}, grid::Domain{C,3}, g::Gaussian, medium::Medium, frame::ReferenceFrame) where {C<:SpatialCoords, D<:AbstractDirection, T<:Real}
+    e = zeros(Complex{T}, size(grid)[1:3]..., 1)
+    electric_field!(vec(view(e, :,:,:,1)), g, grid)
+    MeshedBeam{T, D, C, PolarizationScalar}(grid, e, medium, frame)
+end
+function SpatialBeam(args...)
+    _SpatialBeam(Float64, args...)
+end,
+function SpatialBeam(::Type{T}, args...) where T<:Real
+    _SpatialBeam(T, args...)
+end
+
+# Constructor that accepts a Domain (CartesianGrid or CylindricalGrid) directly for AngularSpectrum
+function _AngularSpectrum(::Type{T}, ::Type{D}, grid::Domain{C,3}, e::AbstractArray, medium::Medium, frame::ReferenceFrame) where {C<:AngularSpectrumCoords, D<:AbstractDirection, T<:Real}
+    e_reshaped = reshape(e, size(grid)[1:3]..., 1)
+    MeshedBeam{T, D, C, PolarizationScalar}(grid, e_reshaped, medium, frame)
+end,
+function _AngularSpectrum(::Type{T}, ::Type{D}, grid::Domain{C,3}, g::Gaussian, medium::Medium, frame::ReferenceFrame) where {C<:AngularSpectrumCoords, D<:AbstractDirection, T<:Real}
+    e = zeros(Complex{T}, size(grid)[1:3]..., 1)
+    electric_field!(vec(view(e, :,:,:,1)), g, grid)
+    MeshedBeam{T, D, C, PolarizationScalar}(grid, e, medium, frame)
+end
+function AngularSpectrum(args...)
+    _AngularSpectrum(Float64, args...)
+end,
+function AngularSpectrum(::Type{T}, args...) where T<:Real
+    _AngularSpectrum(T, args...)
+end
+
+
+function intensity(beam::MeshedBeam{T,D,C}) where {T,D,C}
+    norm(ind) = C <: AngularSpectrumCoords ? T(16π^4) / (centroid(beam.mesh, ind)[3])^2 : 1
+    f(e, ind) = abs2(e) * volume(beam.mesh, ind) * norm(ind)
+    mapreduce(f, +, vec(values_nonzeros(beam.e)), eachindex_nonzeros(beam.e))
+end
 
 
 function Base.isapprox(beam1::MeshedBeam{T1,D,C}, beam2::MeshedBeam{T2,D,C}; kwargs...) where {T1, T2, D, C}

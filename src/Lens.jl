@@ -138,10 +138,10 @@ get_polarization_type(::Type{Lens}, P::Type{PolarizationXYZ}) = PolarizationSP
 get_polarization_type(::Type{Lens}, P::Type{PolarizationSP}) = PolarizationXYZ
 get_polarization_type(::Type{Lens}, P::Type{PolarizationScalar}) = PolarizationScalar
 
-get_transmitted_coord_type(::Type{Lens}, ::Type{NSX_NSY_λ}) = X_Y_λ
-get_transmitted_coord_type(::Type{Lens}, ::Type{NSR_NSθ_λ}) = R_θ_λ
-get_transmitted_coord_type(::Type{Lens}, ::Type{X_Y_λ}) = NSX_NSY_λ
-get_transmitted_coord_type(::Type{Lens}, ::Type{R_θ_λ}) = NSR_NSθ_λ
+get_transmitted_coord_type(::Type{Lens}, ::Type{<:NSX_NSY_λ}) = X_Y_λ
+get_transmitted_coord_type(::Type{Lens}, ::Type{<:NSR_NSθ_λ}) = R_θ_λ
+get_transmitted_coord_type(::Type{Lens}, ::Type{<:X_Y_λ}) = NSX_NSY_λ
+get_transmitted_coord_type(::Type{Lens}, ::Type{<:R_θ_λ}) = NSR_NSθ_λ
 
 function check_output_fields(field_b, field_f, comp::Lens, field_i::MeshedAngularSpectrum)
     error("to be done")

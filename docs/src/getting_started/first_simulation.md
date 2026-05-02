@@ -47,14 +47,33 @@ x = range(-5E-3, 5E-3, length=100) # 10 mm beam diameter
 y = range(-5E-3, 5E-3, length=100)
 
 # Define the coordinate system for the simulation (x, y, and wavelength)
-grid= Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, range(500E-9, step=1E-15, length = 1)) 
+λ = 500E-9  # 500 nm
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, λ)
+```
 
-field_frame = ReferenceFrame((0,0,-focal_length), (0,0,0)) # Place the field in the back focal plane of the lens
+## Probing grid positions
 
+Once the grid is defined, the coordinates at each grid point can be retrieved using the `centroid` function. For example, the first grid point has (x,y,wavelength) coordinates of:
+```julia first_simulation
+Jolab.centroid(grid, 1) # returns the coordinates of the first grid point
+```
+
+The `centroid` can be used to evaluate to calculate the electric field of a Gaussian beam at each grid point, as:
+
+```julia first_simulation
 gaussian_e_field(coord) = exp(-((coord[1]^2 + coord[2]^2)/(2*(2.5E-3)^2))) # Gaussian beam with a waist of 2.5 mm
-e = gaussian_e_field.(centroid.(grid))
+e = [gaussian_e_field(Jolab.centroid(grid, i)) for i in eachindex(grid)]
 
-field = SpatialBeam(grid, e, lens_media[1], field_frame)
+Jolab is a framework to simulate complex optical systems and therefore, the position of the field relative to each optical element is important. In Jolab, the position and orientation of optical elements and fields are defined using reference frames. A reference frame is defined by a position vector and an orientation (rotation) vector. The position vector specifies the location of the reference frame in space, while the orientation vector specifies the rotation of the reference frame relative to a global coordinate system.
+
+```julia first_simulation
+# Define the reference frame for the field
+field_frame = ReferenceFrame((0,0,-focal_length), (0,0,0)) # Place the field in the back focal plane of the lens
+```
+
+Finally, we can combine the grid, electric field, and reference frame to define the spatial beam representing the light source in the simulation. The `SpatialBeam` class represents a spatial beam of light defined on a Cartesian grid, with a specified electric field and reference frame. We specify `Forward` to indicate the direction of propagation (the light travels forward through the optical system).
+``` julia first_simulation
+field = SpatialBeam(Forward, grid, e, lens_media[1], field_frame)
 ```
 
 The field is now defined, and we can propagate it through the system. The propagation is performed in order of the optical elements defined in the system. In this example, the field is first propagated through the lens to calculate the field at the focal plane. For this, we use the light_interaction function which calculates the reflected and transmitted field by an optical component for a given incident field.
@@ -63,12 +82,77 @@ The field is now defined, and we can propagate it through the system. The propag
 (rfield, tfield) = light_interaction(lens, field)
 ```
 
-The light_interaction function returns the reflected and transmitted fields by the lens. In this case, no field is reflected by the lens because the model of lens does not include reflections (simulates an ideal lens). The transmitted field is the field at the focal plane of the lens, which illuminates the microscope slide. The next step is to propagate the transmitted field through the microscope slide.
+The light_interaction function returns the reflected and transmitted fields by the lens. In this case, the field reflected by the lens is null because the model of lens does not include reflections (simulates an ideal lens).
+
+```julia first_simulation
+intensity(rfield) 
+```
+
+Let's now focus on the transmitted field `tfield`. The intensity of the transmitted field is the same as the incident field, which is expected for an ideal lens that does not introduce losses.
+
+```julia first_simulation
+intensity(tfield) / intensity(field) 
+```
+
+Looking at the reference frame of the transmitted field, we can see that the reference frame changed to the focal plane of the lens. This is due to the solver of the lens, which propagates the field from the back focal plane to the focal plane of the lens. 
+
+```julia first_simulation
+tfield.frame
+```
+
+The field incident upon the lens was defined in the spatial domain, meaning that the electric field values were defined at specific physical locations in space. The transmitted field is now represented in the angular spectrum domain, which is the Fourier-space representation of the field. The representation of the field can be checked by looking at the coordinates of the mesh grid of the field (X_Y_λ for spatial domain, NSX_NSY_λ for angular spectrum domain - more info in field representations).
+```julia first_simulation
+(typeof(field.mesh), typeof(tfield.mesh))
+```
+
+Similarly to the reference frames, the solver of each element determine the type of field representation of the incident, transmitted, and reflected fields. The information about the field representations needed for each solver is available in the documentation of each solver.
+
+## Converting the field back to spatial domain with the Fourier operator
+
+The transmitted field `tfield` is currently represented in the angular spectrum domain (NSX_NSY_λ). To analyze or visualize the field at specific spatial locations, we can convert it back to the spatial domain (X_Y_λ). This is accomplished using a Fourier transform operator, which performs an inverse FFT to compute the spatial field distribution from the angular spectrum.
+
+The `FourierFFT` operator performs this transformation:
+
+```julia first_simulation
+# Apply Fourier transform to convert from angular spectrum to spatial domain
+(_, field_spatial) = light_interaction(Jolab.FourierFFT(), tfield)
+```
+
+The returned `field_spatial` is now a field in spatial domain coordinates, showing the electric field at specific physical locations. We can verify this by checking the coordinate types:
+
+```julia first_simulation
+# The input was in angular spectrum coordinates (NSX_NSY_λ)
+typeof(tfield.mesh)
+# The output is in spatial coordinates (X_Y_λ)  
+typeof(field_spatial.mesh)
+```
+
+For example, we can compute the intensity distribution in spatial domain to see how the Gaussian beam is focused by the lens:
+
+```julia first_simulation
+using GLMakie
+
+heatmap(abs2.(field_spatial.e[:,:,1,1]))
+```
+
+## Propagating through the microscope slide
+The transmitted field is now ready to interact with the next optical element in the system. The next step is to propagate the transmitted field through the microscope slide.
 
 ```julia first_simulation
 (rfield_slide, tfield_slide) = light_interaction(slide, tfield)
 ```
 
+We could for example analyse the phase profile introduced by the microscope slide by looking at the phase of the transmitted field `tfield_slide`:
 
+```julia first_simulation
+heatmap(angle.(tfield_slide.e[:,:,1,1]))
+```
 
+In some scenarios, it may be interesting to propagate the reflected field `rfield_slide` back through the lens to analyze the reflected light at the back focal plane. This can be done by applying the `light_interaction` function again, using the reflected field as input and the lens as the optical element:
+
+```julia first_simulation
+(rfield_slide_backward), rfield_slide_forward) = light_interaction(lens, rfield_slide)
+```
+
+Here, the `rfield_slide_backward` is the field propagating backward thought the optical system, while `rfield_slide_forward` is the field propagating forward. Consequently, the `rfield_slide_backward` is the field transmitted by the lens while the `rfield_slide_forward` is the field reflected by the lens. This is the convention used in Jolab, the light_interaction function always returns two outputs, the first one which is the field propagating backward and the second one which is the field propagating forward.
 

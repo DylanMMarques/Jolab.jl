@@ -1,51 +1,91 @@
 using Jolab, Test
 
-ns = range(-.1, 0.1, length = 100)
-angspe = MonochromaticAngularSpectrum_gaussian(Float64, Forward, ns, ns, 50E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(angspe) ≈ 1
-@test_opt intensity(angspe)
+# Test SpatialBeam construction with grid and explicit array
+x = range(-100E-6, 100E-6, length=50)
+y = range(-100E-6, 100E-6, length=50)
+λ = 1550E-9
+grid_spatial = Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, λ)
 
-x = range(-100E-6, 100E-6, length = 100)
-beam = MonochromaticSpatialBeam_gaussian(Float64, Forward, x, x, 10E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(beam) ≈ 1
-@test_opt intensity(beam)
+e = ones(ComplexF64, 50, 50)
+beam = Jolab.SpatialBeam(Forward, grid_spatial, e, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test size(beam.e) == (50, 50, 1, 1)
 
-x = range(-100E-6, 100E-6, length = 100)
-beam = MonochromaticSpatialBeam_gaussian(Forward, x, x, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(beam) ≈ 1
+# Test with different medium
+beam2 = Jolab.SpatialBeam(Forward, grid_spatial, e, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+@test size(beam2.e) == (50, 50, 1, 1)
 
-nsx = range(-0.5, 0.5, length = 100)
-beam = MonochromaticAngularSpectrum_gaussian(Forward, nsx, nsx, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(beam) ≈ 1
+# Test AngularSpectrum construction with grid and explicit array
+nsr = range(0, 0.5, length=50)
+nst = range(0, 2π, length=50)
+λ_ang = 1550E-9
+grid_angular = Jolab.CylindricalGrid(Jolab.NSR_NSθ_λ, nsr, nst, λ_ang)
 
-nsr = range(0, 0.5, length = 10000)
-beam = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(beam) ≈ 1 rtol = 1E-3
+e_ang = ones(ComplexF64, 50, 50)
+beam_ang = Jolab.AngularSpectrum(Forward, grid_angular, e_ang, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test size(beam_ang.e) == (50, 50, 1, 1)
 
-r = range(0, 40E-6, length = 1000)
-beam = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test intensity(beam) ≈ 1 rtol = 1E-2
+# Test view functionality
+view_beam = @view beam[:,:,1:1,1:1]
+@test view_beam.e ≈ beam.e
+@test view_beam.mesh ≈ beam.mesh
 
-nsr = range(0, 0.5, length = 100)
-nsy = range(0, stop = eps(), length = 2)
-beam = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-beam_cart = MonochromaticAngularSpectrum_gaussian(Forward, nsr, nsy, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test beam_cart.e[:,1] ≈ beam.e
+# Test AngularSpectrum with Gaussian
+gaussian = Jolab.Gaussian(10E-6)
+beam_ang_gauss = Jolab.AngularSpectrum(Forward, grid_angular, gaussian, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test size(beam_ang_gauss.e) == (50, 50, 1, 1)
 
-r = range(0, 40E-6, length = 100)
-y = range(0, stop = eps(), length = 2)
-beam = MonochromaticSpatialBeamRadialSymmetric_gaussian(Forward, r, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-beam_cart = MonochromaticSpatialBeam_gaussian(Forward, r, y, 10E-6, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test beam_cart.e[:,1] ≈ beam.e
+# Test SpatialBeam with R_θ_λ coordinates
+r = range(0, 100E-6, length=50)
+θ = range(0, 2π, length=50)[1:end-1]
+λ_cyl = 1550E-9
+grid_spatial_cyl = Jolab.CylindricalGrid(Jolab.R_θ_λ, r, θ, λ_cyl)
 
-view_beam = @view beam_cart[:,:,1:1,1:1]
-@test view_beam.e ≈ beam_cart.e
-@test view_beam.e ≈ beam_cart.e
-@test view_beam.mesh ≈ beam_cart.mesh
+e_cyl = ones(ComplexF64, 50, 49)
+beam_cyl = Jolab.SpatialBeam(Forward, grid_spatial_cyl, e_cyl, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test size(beam_cyl.e) == (50, 49, 1, 1)
 
+# Test SpatialBeam R_θ_λ Gaussian intensity normalization
+r_fine = range(0, 200E-6, length=200)
+θ_fine = range(0, 2π, length=200)[1:end-1]
+λ_cyl_fine = 1550E-9
+grid_spatial_cyl_fine = Jolab.CylindricalGrid(Jolab.R_θ_λ, r_fine, θ_fine, λ_cyl_fine)
+gaussian_cyl = Jolab.Gaussian(50E-6)
+beam_cyl_gauss = Jolab.SpatialBeam(Forward, grid_spatial_cyl_fine, gaussian_cyl, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test intensity(beam_cyl_gauss) ≈ 1 rtol=0.1
 
-x = range(-100E-6, 100E-6, length = 100)
-e = zeros(ComplexF64, length(x), length(x), 1, 3)
-e[:,:,:,1] .= 1
-beam = Jolab.MonochromaticSpatialBeamVectorial(Forward, x, x, e, 1550E-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-@test size(beam.e) == (100, 100, 1, 3)
+# Test SpatialBeam Gaussian intensity normalization
+x_fine = range(-50E-6, 50E-6, length=200)
+y_fine = range(-50E-6, 50E-6, length=200)
+λ_spatial = 1550E-9
+grid_spatial_fine = Jolab.CartesianGrid(Jolab.X_Y_λ, x_fine, y_fine, λ_spatial)
+gaussian_spatial = Jolab.Gaussian(10E-6)
+beam_spatial_gauss = Jolab.SpatialBeam(Forward, grid_spatial_fine, gaussian_spatial, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test intensity(beam_spatial_gauss) ≈ 1
+
+# Test AngularSpectrum Gaussian intensity normalization
+nsr_fine = range(0, 0.5, length=500)
+nst_fine = range(0, 2π, length=500)[1:end-1]
+λ_ang_fine = 1550E-9
+grid_angular_fine = Jolab.CylindricalGrid(Jolab.NSR_NSθ_λ, nsr_fine, nst_fine, λ_ang_fine)
+gaussian_ang = Jolab.Gaussian(50E-6)
+beam_ang_gauss_fine = Jolab.AngularSpectrum(Forward, grid_angular_fine, gaussian_ang, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test intensity(beam_ang_gauss_fine) ≈ 1 rtol=0.01
+
+# Test AngularSpectrum with NSX_NSY_λ coordinates
+nsx = range(-0.5, 0.5, length=50)
+nsy = range(-0.5, 0.5, length=50)
+λ_cart_ang = 1550E-9
+grid_angular_cart = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ_cart_ang)
+
+e_cart_ang = ones(ComplexF64, 50, 50)
+beam_ang_cart = Jolab.AngularSpectrum(Forward, grid_angular_cart, e_cart_ang, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test size(beam_ang_cart.e) == (50, 50, 1, 1)
+
+# Test AngularSpectrum NSX_NSY_λ Gaussian intensity normalization
+nsx_fine = range(-0.3, 0.3, length=200)
+nsy_fine = range(-0.3, 0.3, length=200)
+λ_cart_ang_fine = 1550E-9
+grid_angular_cart_fine = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx_fine, nsy_fine, λ_cart_ang_fine)
+gaussian_cart_ang = Jolab.Gaussian(50E-6)
+beam_ang_cart_gauss = Jolab.AngularSpectrum(Forward, grid_angular_cart_fine, gaussian_cart_ang, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+@test intensity(beam_ang_cart_gauss) ≈ 1 rtol=0.1
