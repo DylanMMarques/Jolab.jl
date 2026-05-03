@@ -96,7 +96,7 @@ function solver(comp::RoughInterface, field_i)
     RoughInterfaceRRSolver(comp, field_i)
 end
 
-function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, solver::RoughInterfaceRRSolver, field_i::MeshedBeam{T,D,NSX_NSY_λ,P}) where {T,D,P<:PolarizationScalar}
+function _light_interaction!(field_b::MeshedBeam{<:Any,Backward}, field_f::MeshedBeam{<:Any,Forward}, solver::RoughInterfaceRRSolver, field_i::MeshedBeam{T,D,<:NSX_NSY_λ,P}) where {T,D,P<:PolarizationScalar}
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     (ru, tu, ris, tis, rss, tss) = if D == Forward 
         (solver.r12, solver.t12, solver.ir12, solver.it12, solver.sr12, solver.st12)
