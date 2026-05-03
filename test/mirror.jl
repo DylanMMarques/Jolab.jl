@@ -1,8 +1,13 @@
 using Jolab, Test
 R = 0.9
 mirror = Mirror((Medium(1.0), Medium(2.0)), ReferenceFrame((0,0,0), (0,0,0)), reflectivity = R)
-pw2 = MeshedPlaneWaveScalar(Forward, 0.1, 0.0, 1, 500e-9, Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
-pw = MeshedPlaneWaveScalar(Forward, 0.1, 0.0, 1, 500e-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+
+grid_pw2 = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, 0.1, 0.0, 500e-9)
+pw2 = Jolab.AngularSpectrum(Jolab.Forward, grid_pw2, reshape([1.0 + 0.0im], 1, 1), Medium(2), ReferenceFrame((0,0,0), (0,0,0)))
+
+grid_pw = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, 0.1, 0.0, 500e-9)
+pw = Jolab.AngularSpectrum(Jolab.Forward, grid_pw, reshape([1.0 + 0.0im], 1, 1), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+
 (rpw, tpw) = light_interaction(mirror, pw)
 @test intensity(rpw) ≈ R * intensity(pw)
 @test intensity(tpw) ≈ (1-R) * intensity(pw)
@@ -10,9 +15,10 @@ pw = MeshedPlaneWaveScalar(Forward, 0.1, 0.0, 1, 500e-9, Medium(1), ReferenceFra
 @test rpw.medium == first(mirror.mat)
 @test rpw.frame == tpw.frame == pw.frame
 
-nsx = range(0, 0.5, length = 100)
+nsx = range(0, 0.5, length = 50)
 
-beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, (nsx .* nsx'), 1550E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
+grid_beam = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, 1550E-9)
+beam = Jolab.AngularSpectrum(Float64, Jolab.Forward, grid_beam, nsx .* nsx', Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 i_i = intensity(beam)
 (r_beam, t_beam) = light_interaction(mirror, beam)
 @test_opt light_interaction(mirror, beam)
@@ -32,8 +38,13 @@ mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (.2,0,0)), r
 ## Plane wave case
 
 mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)), reflectivity = R)
-pw_f = MeshedPlaneWaveScalar(Forward, 0.1, 0.1, 1, 500e-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
-pw_b = MeshedPlaneWaveScalar(Backward, 0.1, 0.1, 1, 500e-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0))) 
+
+grid_pw_f = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, 0.1, 0.1, 500e-9)
+pw_f = Jolab.AngularSpectrum(Jolab.Forward, grid_pw_f, reshape([1.0 + 0.0im], 1, 1), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+
+grid_pw_b = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, 0.1, 0.1, 500e-9)
+pw_b = Jolab.AngularSpectrum(Jolab.Backward, grid_pw_b, reshape([1.0 + 0.0im], 1, 1), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+
 (lpw_f, rpw_f) = light_interaction(mirror, pw_f)
 (lpw_b, rpw_b) = light_interaction(mirror, pw_b)
 @test lpw_f.e == -rpw_b.e
@@ -46,10 +57,12 @@ mirror = Mirror((Medium(2.0), Medium(2.0)), ReferenceFrame((0,0,0), (0,0,0)), re
 mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (.2,0,0)), reflectivity = R)
 @test_throws ArgumentError light_interaction(mirror, pw_b)
 @test_throws ArgumentError light_interaction(mirror, pw_f)
+
 using StaticArrays
 function test_scatmat_f(mls)
-    nsx = range(0, 0.95, length = 100)
-    beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, (nsx .* nsx'), 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)));
+    nsx = range(0, 0.95, length = 50)
+    grid_beam = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, 1500E-9)
+    beam = Jolab.AngularSpectrum(Float64, Jolab.Forward, grid_beam, reshape(nsx .* nsx', (length(nsx), length(nsx))), Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
     mat = ScatteringMatrix(mls, beam)
     (mat_r, mat_t) = light_interaction(mat, beam)
     (aux_r, aux_t) = light_interaction(mls, beam)
@@ -62,8 +75,9 @@ mirror = Mirror((Medium(1.0), Medium(1.0)), ReferenceFrame((0,0,0), (0,0,0)), re
 @test test_scatmat_f(mirror)
 
 function test_scatmat_b(mls)
-    nsx = range(0, 0.95, length = 100)
-    beam = MonochromaticAngularSpectrum(Float64, Backward, nsx, nsx, (nsx .* nsx'), 1550E-9, Medium(1.0), last(mls.frames));
+    nsx = range(0, 0.95, length = 50)
+    grid_beam = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, 1550E-9)
+    beam = Jolab.AngularSpectrum(Float64, Jolab.Backward, grid_beam, nsx .* nsx', Medium(1.0), last(mls.frames))
     mat = ScatteringMatrix(mls, beam)
     (mat_r, mat_t) = mat * beam
     (aux_r, aux_t) = light_interaction(mls, beam)

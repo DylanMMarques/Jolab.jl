@@ -10,7 +10,8 @@ p_int = Jolab.DielectricStack(Medium.([1, 2]), zeros(0), ReferenceFrame((0,0,0.0
 nsx = range(-0.5, 0.5, length=64)
 nsy = range(-0.5, 0.5, length=64)
 λ = 1550E-9
-beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(1.0), int.frame);
+grid_beam = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
+beam = Jolab.AngularSpectrum(Float64, Jolab.Forward, grid_beam, ones(ComplexF64, 64, 64), Medium(1.0), int.frame)
 
 (r, t) = light_interaction(int, deepcopy(beam))
 @test (@allocated light_interaction(int, deepcopy(beam))) < 1E7
@@ -18,13 +19,15 @@ beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, ones(ComplexF64,
 @test isapprox(r, r_p, rtol = 1E-10)
 @test isapprox(t, t_p, rtol = 1E-10)
 
-beam = MonochromaticAngularSpectrum(Float64, Backward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(2.0), int.frame);
+grid_beam_b = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
+beam = Jolab.AngularSpectrum(Float64, Jolab.Backward, grid_beam_b, ones(ComplexF64, 64, 64), Medium(2.0), int.frame)
 (r, t) = light_interaction(int, deepcopy(beam))
 (r_p, t_p) = light_interaction(p_int, deepcopy(beam))
 @test isapprox(r, r_p, rtol = 1E-10)
 @test isapprox(t, t_p, rtol = 1E-10)
 
-beam = MonochromaticAngularSpectrum(Float64, Forward, nsx, nsx, ones(ComplexF64, 64, 64),λ, Medium(1.0), int.frame);
+grid_beam_f = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
+beam = Jolab.AngularSpectrum(Float64, Jolab.Forward, grid_beam_f, ones(ComplexF64, 64, 64), Medium(1.0), int.frame)
 z_dist = 1E-9
 topography_dist(x,y) = z_dist
 int = Jolab.RoughInterface(Medium.((1, 2)), topography_dist, ReferenceFrame((0,0,0.0), (0,0,0.0)))
@@ -66,12 +69,12 @@ int = zeros(length(λ))
 
 λ_base = 1500E-9
 grid_ang_base = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, sx, sx, λ_base)
-field = Jolab.AngularSpectrum(Forward, grid_ang_base, Jolab.Gaussian(10E-6), Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
+field = Jolab.AngularSpectrum(Jolab.Forward, grid_ang_base, Jolab.Gaussian(10E-6), Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
 @time (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, printBool = false);
 
 for i in 1:length(λ)
     grid_ang = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, sx, sx, λ[i])
-    field = Jolab.AngularSpectrum(Forward, grid_ang, Jolab.Gaussian(10E-6), Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
+    field = Jolab.AngularSpectrum(Jolab.Forward, grid_ang, Jolab.Gaussian(10E-6), Medium(1.0), ReferenceFrame((0,0,0.0), (0,0,0.0)))
     (fieldr, fieldt) = Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = false)
     int[i] = intensity(fieldr) / intensity(field)
 end

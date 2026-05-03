@@ -26,11 +26,14 @@ function SingleModeFibre(::Type{T}, mfd, length, media, frames) where T
 end
 SingleModeFibre(mfd, length, media, frames) = SingleModeFibre(Float64, mfd, length, media, frames)
 
-@inline mode_field(mode::GaussianMode{T}, coord::R_θ_λ) where T = gaussianbeam_electricfield_space(T, coord[1]^2, mode.sigma, mode.wavelength, 1)
-@inline mode_field(mode::GaussianMode, coord::X_Y_λ) = mode_field(mode, R_θ_λ(coord))
-
-@inline mode_field(mode::GaussianMode{T}, coord::NSR_NSθ_λ) where T = (2π / coord[3])^2 * 4π^2 * gaussianbeam_electricfield_angspe(T, coord[1]^2, mode.sigma, mode.wavelength, 1)
-@inline mode_field(mode::GaussianMode, coord::NSX_NSY_λ) = mode_field(mode, NSR_NSθ_λ(coord))
+@inline function mode_field(mode::GaussianMode{T}, coord::SpatialCoords) where T 
+    gauss = Gaussian(T(mode.sigma))
+    _electric_field_f(gauss, coord)
+end
+@inline function mode_field(mode::GaussianMode{T}, coord::AngularSpectrumCoords) where T
+    gauss = Gaussian(T(mode.sigma))
+    (2π / coord[3])^2 * 4π^2 * _electric_field_f(gauss, coord)
+end
 
 function findmodes(profile::SingleModeProfile{T}, _λ) where T
     return @SVector [GaussianMode(T, Bothway, complex(1), profile.mode_field_diameter, _λ, ReferenceFrame((0,0,0), (0,0,0)))]

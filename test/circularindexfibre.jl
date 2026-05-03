@@ -9,7 +9,9 @@ Jolab.findmodes!(fibre, 1500E-9)
 
 x = range(-100E-6, 100E-6, length = 20)
 
-field = MonochromaticSpatialBeam_gaussian(Float64, Forward, x, x, 30E-6, 1500E-9, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
+λ = 1500E-9
+grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
+field = Jolab.SpatialBeam(Jolab.Forward, grid, Jolab.Gaussian(30E-6), Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 
 (back, forw) = light_interaction(fibre, field)
 
@@ -38,7 +40,7 @@ function coupling_field_derivative(x, fibre, e, λ, medium,ref)
     e_m = zeros(ComplexF64, length(x), length(x))
     e_m[1] = e
     grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
-    field = Jolab.SpatialBeam(Forward, grid, e_m, medium, ref)
+    field = Jolab.SpatialBeam(Jolab.Forward, grid, e_m, medium, ref)
     (back, forw) = light_interaction(fibre, field)
     forw.modes.e
 end
