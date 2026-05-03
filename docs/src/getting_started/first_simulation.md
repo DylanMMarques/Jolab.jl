@@ -110,7 +110,7 @@ Similarly to the reference frames, the solver of each element determine the type
 
 ## Converting the field back to spatial domain with the Fourier operator
 
-The transmitted field `tfield` is currently represented in the angular spectrum domain (NSX_NSY_λ). To analyze or visualize the field at specific spatial locations, we can convert it back to the spatial domain (`X_Y_λ`). This is accomplished using a Fourier transform operator, which performs an inverse FFT to compute the spatial field distribution from the angular spectrum.
+The transmitted field `tfield` is currently represented in the angular spectrum domain (`NSX_NSY_λ`). To analyze or visualize the field at specific spatial locations, we can convert it back to the spatial domain (`X_Y_λ`). This is accomplished using a Fourier transform operator, which performs an inverse FFT to compute the spatial field distribution from the angular spectrum.
 
 The `FourierFFT` operator performs this transformation:
 
