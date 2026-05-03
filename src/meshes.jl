@@ -117,13 +117,7 @@ struct CartesianGrid{C, Dim, T} <: Domain{C, Dim,T}
     end
 end
 
-function _grid_step(x::AbstractRange{T}) where T
-    if isone(length(x))
-        oneunit(eltype(x))
-    else
-        step(x)
-    end
-end
+_grid_step(x::AbstractRange{T}) where T = step(x)
 _grid_step(x::Real) = oneunit(x)
 
 const AbstractRangeOrNumber = Union{AbstractRange, Number}

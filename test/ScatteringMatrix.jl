@@ -1,7 +1,11 @@
 using Jolab, Test
 
-nsr = range(0, 0.5, length = 1000)
-field = MonochromaticAngularSpectrumRadialSymmetric_gaussian(Forward, nsr, 10E-6, 1550E-9, Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
+nsr = range(0, 0.5, length = 50)
+nθ = 0.0
+λ = 1550E-9
+w0 = 10E-6
+grid = Jolab.CylindricalGrid(Jolab.NSR_NSθ_λ, nsr, nθ, λ)
+field = Jolab.AngularSpectrum(Jolab.Forward, grid, Jolab.Gaussian(w0), Medium(1), ReferenceFrame((0,0,0), (0,0,0)))
 
 mls = DielectricStack(Medium.([1,2,3]), [100E-6], ReferenceFrame((0,0,0), (0,0,0)))
 @test_opt ScatteringMatrix(mls, field)
