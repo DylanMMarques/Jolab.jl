@@ -14,7 +14,7 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-         "Getting Started" => "getting_started.md",
+        "Getting Started" => "getting_started/first_simulation.md",
         "Examples" => "examples/microscopy.md",
     ],
     warnonly = true,

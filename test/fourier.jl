@@ -11,8 +11,8 @@ grid_spatial = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
 beam_space_analytical = Jolab.SpatialBeam(Float64, Forward, grid_spatial, Jolab.Gaussian(50E-6), Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 (field_b, ang_spe) = light_interaction(fft_op, beam_space_analytical)
 
-(nsx, nsy, λ_ang) = Jolab.get_ranges(ang_spe.mesh)
-grid_angular = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ_ang)
+(nsx, nsy, _) = Jolab.get_ranges(ang_spe.mesh)
+grid_angular = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ)
 ang_spe_analitical = Jolab.AngularSpectrum(Float64, Forward, grid_angular, Jolab.Gaussian(50E-6), Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 
 @test ang_spe ≈ ang_spe_analitical
@@ -21,8 +21,8 @@ ang_spe_analitical = Jolab.AngularSpectrum(Float64, Forward, grid_angular, Jolab
 
 (field_b, beam_space) = light_interaction(fft_op, ang_spe_analitical)
 
-(x, y, λ_beam) = Jolab.get_ranges(beam_space.mesh)
-grid_spatial_beam = Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, λ_beam)
+(x, y, _) = Jolab.get_ranges(beam_space.mesh)
+grid_spatial_beam = Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, λ)
 beam_space_analytical = Jolab.SpatialBeam(Float64, Forward, grid_spatial_beam, Jolab.Gaussian(50E-6), Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
 
 @test beam_space ≈ beam_space_analytical
