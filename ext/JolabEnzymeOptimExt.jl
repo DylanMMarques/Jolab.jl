@@ -23,4 +23,3 @@ function Jolab.wavefunction_solutions(profile, λ, β, m_i)
     Optim.minimizer(res)[1]
 end
 end
-

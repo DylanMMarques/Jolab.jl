@@ -33,8 +33,14 @@ const errors_dict = Dict(
     (INVALID_MEDIUM, Backward) => "The medium is invalid",
     (INVALID_FRAME, Forward) => "The frame is invalid",
     (INVALID_FRAME, Backward) => "The frame is invalid",
-    (INVALID_MEDIUM_COMPLEX, Forward) => "The medium cannot have a complex refractive index",
-    (INVALID_MEDIUM_COMPLEX, Backward) => "The medium cannot have a complex refractive index",
+    (
+        INVALID_MEDIUM_COMPLEX,
+        Forward,
+    ) => "The medium cannot have a complex refractive index",
+    (
+        INVALID_MEDIUM_COMPLEX,
+        Backward,
+    ) => "The medium cannot have a complex refractive index",
     (INVALID_BEAM_SHAPE, Forward) => "The beam sampling does not match.",
     (INVALID_BEAM_SHAPE, Backward) => "The beam sampling does not match.",
 )

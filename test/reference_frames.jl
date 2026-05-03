@@ -8,14 +8,14 @@ using Test, Jolab
     frame_sum = frame1 + frame2
     @test frame_sum.origin ≈ Jolab.X_Y_Z(1.5, 3.0, 5.0)
     @test frame_sum.direction ≈ Jolab.X_Y_Z(0, 0, 0)
-    
+
     # Test 2: Adding frames with same non-zero direction
     frame3 = ReferenceFrame((1.0, 2.0, 3.0), (π/4, π/6, 0))
     frame4 = ReferenceFrame((0.5, 1.0, 2.0), (π/4, π/6, 0))
     frame_sum2 = frame3 + frame4
     @test frame_sum2.origin ≈ Jolab.X_Y_Z(1.5, 3.0, 5.0)
     @test frame_sum2.direction ≈ Jolab.X_Y_Z(π/4, π/6, 0)
-    
+
     # Test 3: Error when directions differ
     frame5 = ReferenceFrame((1.0, 2.0, 3.0), (0, 0, 0))
     frame6 = ReferenceFrame((0.5, 1.0, 2.0), (π/4, 0, 0))
@@ -24,40 +24,65 @@ end
 
 θ, ϕ = 0.015, π/4
 grid_pw = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, 0.0, 0.0, 1550E-9)
-pw = Jolab.AngularSpectrum(Jolab.Forward, grid_pw, reshape([1.0 + 0.0im], 1, 1), Medium(1.0), ReferenceFrame((0,0,0), (0, 0, 0)))
+pw = Jolab.AngularSpectrum(
+    Jolab.Forward,
+    grid_pw,
+    reshape([1.0 + 0.0im], 1, 1),
+    Medium(1.0),
+    ReferenceFrame((0, 0, 0), (0, 0, 0)),
+)
 # pw2 = rotate_referenceframe(pw, (θ, 0, ϕ))
 # @test pw2.nsx ≈ sin(θ)*cos(ϕ)
 # @test pw2.nsy ≈ sin(θ)*sin(ϕ)
 # @test pw.e ≈ pw2.e
 
-θ, ϕ = 0.0,0.0
-p1 = (1.0, .5, .1)
-p2 = Jolab.X_Y_Z(1.2, .6, .0)
+θ, ϕ = 0.0, 0.0
+p1 = (1.0, 0.5, 0.1)
+p2 = Jolab.X_Y_Z(1.2, 0.6, 0.0)
 nsx, nsy, λ, n = 0.1, 0.35, 1550E-9, 1.0
 grid_pw2 = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsy, λ)
-pw = Jolab.AngularSpectrum(Jolab.Forward, grid_pw2, reshape([5.6 + 2.5im], 1, 1), Medium(n), ReferenceFrame(p1, (θ, 0.0, ϕ)))
+pw = Jolab.AngularSpectrum(
+    Jolab.Forward,
+    grid_pw2,
+    reshape([5.6 + 2.5im], 1, 1),
+    Medium(n),
+    ReferenceFrame(p1, (θ, 0.0, ϕ)),
+)
 pw2 = Jolab.translate_referenceframe(pw, p2)[2]
 
 @test Jolab.centroid(pw2.mesh, 1) ≈ Jolab.NSX_NSY_λ(nsx, nsy, λ) atol = 1E-15
-@test pw2.e[1] ≈ pw.e[1] * exp(im * 2π/λ * sum((p2 .- p1) .* (nsx, nsy, √(n^2 - nsx^2 - nsy^2))))
+@test pw2.e[1] ≈
+      pw.e[1] * exp(im * 2π/λ * sum((p2 .- p1) .* (nsx, nsy, √(n^2 - nsx^2 - nsy^2))))
 
-nsx = range(-1, 1, length=2000)
+nsx = range(-1, 1, length = 2000)
 λ = 1550E-9
 grid_angular = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
-beam = Jolab.AngularSpectrum(Jolab.Forward, grid_angular, (nsx .* nsx') .+ 0im, Medium(1.0 + im), ReferenceFrame((0,0,0), (0,0,0)))
-ref2 = ReferenceFrame((100E-9,50E-9,10E-9), (0,0,0))
+beam = Jolab.AngularSpectrum(
+    Jolab.Forward,
+    grid_angular,
+    (nsx .* nsx') .+ 0im,
+    Medium(1.0 + im),
+    ReferenceFrame((0, 0, 0), (0, 0, 0)),
+)
+ref2 = ReferenceFrame((100E-9, 50E-9, 10E-9), (0, 0, 0))
 
 Jolab.translate_referenceframe(beam, ref2.origin)
-Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(1,1,1))
-@test_opt Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(1,1,1))
+Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(1, 1, 1))
+@test_opt Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(1, 1, 1))
 
 # Check if translation in z axis is the same as DielectricStack of a single medium
-nsx = range(-1, 1, length=2000)
+nsx = range(-1, 1, length = 2000)
 λ = 1550E-9
 grid_angular = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
-beam = Jolab.AngularSpectrum(Jolab.Forward, grid_angular, (nsx .* nsx') .+ 0im, Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
-mls = DielectricStack(Medium.([1, 1, 1]), [10E-6], ReferenceFrame((0,0,0), (0,0,0)))
-(_, tfield) = Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(0,0,10E-6))
+beam = Jolab.AngularSpectrum(
+    Jolab.Forward,
+    grid_angular,
+    (nsx .* nsx') .+ 0im,
+    Medium(1.0),
+    ReferenceFrame((0, 0, 0), (0, 0, 0)),
+)
+mls = DielectricStack(Medium.([1, 1, 1]), [10E-6], ReferenceFrame((0, 0, 0), (0, 0, 0)))
+(_, tfield) = Jolab.translate_referenceframe(beam, Jolab.X_Y_Z(0, 0, 10E-6))
 (_, tfield2) = Jolab.light_interaction(mls, beam)
 @test tfield ≈ tfield2
 

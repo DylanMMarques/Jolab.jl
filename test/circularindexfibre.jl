@@ -3,7 +3,12 @@ using Jolab: Forward
 
 profile = CircularStepIndexProfile(100E-6, 0.2, Medium(1.55))
 
-fibre = Fibre(profile, 1, Medium.((1,1)), (ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,1), (0,0,0))))
+fibre = Fibre(
+    profile,
+    1,
+    Medium.((1, 1)),
+    (ReferenceFrame((0, 0, 0), (0, 0, 0)), ReferenceFrame((0, 0, 1), (0, 0, 0))),
+)
 
 Jolab.findmodes!(fibre, 1500E-9)
 
@@ -11,7 +16,13 @@ x = range(-100E-6, 100E-6, length = 20)
 
 λ = 1500E-9
 grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
-field = Jolab.SpatialBeam(Jolab.Forward, grid, Jolab.Gaussian(30E-6), Medium(1.0), ReferenceFrame((0,0,0), (0,0,0)))
+field = Jolab.SpatialBeam(
+    Jolab.Forward,
+    grid,
+    Jolab.Gaussian(30E-6),
+    Medium(1.0),
+    ReferenceFrame((0, 0, 0), (0, 0, 0)),
+)
 
 (back, forw) = light_interaction(fibre, field)
 
@@ -27,16 +38,21 @@ b_cte(β) = (β - k * nclad) / k / (profile.ncore.n - nclad)
 
 r_s = 5E-6:5E-6:200E-6
 V_s = f_V.(r_s, λ, na)
-n_modes(r_i) = begin 
+n_modes(r_i) = begin
     profile = CircularStepIndexProfile(r_i, na, Medium(1.5))
-    fibre = Fibre(profile, 1, Medium.((1,1)), (ReferenceFrame((0,0,0), (0,0,0)), ReferenceFrame((0,0,1), (0,0,0))))
+    fibre = Fibre(
+        profile,
+        1,
+        Medium.((1, 1)),
+        (ReferenceFrame((0, 0, 0), (0, 0, 0)), ReferenceFrame((0, 0, 1), (0, 0, 0))),
+    )
     Jolab.findmodes!(fibre, λ)
     modes = fibre.modes[Jolab.round_to_attometre(λ)]
     (modes, length(modes))
 end
 val = n_modes.(r_s)
 
-function coupling_field_derivative(x, fibre, e, λ, medium,ref)
+function coupling_field_derivative(x, fibre, e, λ, medium, ref)
     e_m = zeros(ComplexF64, length(x), length(x))
     e_m[1] = e
     grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, x, λ)
@@ -49,9 +65,9 @@ x = range(-150E-6, 150E-6, length = 10)
 const x2 = x
 e = ones(length(x), length(x)) .+ eps()
 b = ones(size(e))
-const fibre2 = fibre 
+const fibre2 = fibre
 
-frame = ReferenceFrame((0,0,0), (0,0,0))
+frame = ReferenceFrame((0, 0, 0), (0, 0, 0))
 e = 1.0
 tmp_(e, λ) = coupling_field_derivative(x2, fibre, e, λ, Medium(1.0), frame)
 

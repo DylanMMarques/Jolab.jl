@@ -2,15 +2,17 @@ abstract type AbstractWaveguideProfile{T} end
 abstract type AbstractWaveguideMode{T,D} <: AbstractMode{T} end
 
 ## CicurlarStepIndexMode
-struct CircularStepIndexProfile{T, M<:Medium{T}} <: AbstractWaveguideProfile{T}
+struct CircularStepIndexProfile{T,M<:Medium{T}} <: AbstractWaveguideProfile{T}
     radius::T
     na::T
     ncore::M
-    CircularStepIndexProfile(::Type{T}, r, na, ncore::M) where {T,M} = new{T,M}(r, na, ncore)
+    CircularStepIndexProfile(::Type{T}, r, na, ncore::M) where {T,M} =
+        new{T,M}(r, na, ncore)
 end
 CircularStepIndexProfile(r, na, ncore) = CircularStepIndexProfile(Float64, r, na, ncore)
 
-struct CircularStepIndexMode{T,Dir<:AbstractDirection,T2<:RealOrComplex{T},M} <: AbstractFieldMode{T,Dir}
+struct CircularStepIndexMode{T,Dir<:AbstractDirection,T2<:RealOrComplex{T},M} <:
+       AbstractFieldMode{T,Dir}
     e::T2
     wavelength::T
     m::Int
@@ -19,34 +21,55 @@ struct CircularStepIndexMode{T,Dir<:AbstractDirection,T2<:RealOrComplex{T},M} <:
     D::T
     profile::CircularStepIndexProfile{T,M}
     frame::ReferenceFrame{T}
-    function CircularStepIndexMode(e::T2, wavelength::T, m::Int, β::T, C::T, D::T, profile::CircularStepIndexProfile{T,M}, frame::ReferenceFrame{T}) where {T,T2<:RealOrComplex{T}, M} # Missing Dir. Not sure how to deal with that
+    function CircularStepIndexMode(
+        e::T2,
+        wavelength::T,
+        m::Int,
+        β::T,
+        C::T,
+        D::T,
+        profile::CircularStepIndexProfile{T,M},
+        frame::ReferenceFrame{T},
+    ) where {T,T2<:RealOrComplex{T},M} # Missing Dir. Not sure how to deal with that
         new{T,Forward,T2,M}(e, wavelength, m, β, C, D, profile, frame)
     end
 end
-function CircularStepIndexMode(::Type{T}, ::Type{Dir}, e::E, wavelength, m, β, C, D, profile::CircularStepIndexProfile{<:Any, M}, frame) where {T,Dir,E,M}
+function CircularStepIndexMode(
+    ::Type{T},
+    ::Type{Dir},
+    e::E,
+    wavelength,
+    m,
+    β,
+    C,
+    D,
+    profile::CircularStepIndexProfile{<:Any,M},
+    frame,
+) where {T,Dir,E,M}
     T2 = E <: Complex ? Complex{T} : T
     CircularStepIndexMode{T,Dir,T2,M}(e, wavelength, m, β, C, D, profile, frame)
 end
-CircularStepIndexMode(::Type{Dir}, e, wavelength, m, β, C, D, profile, frame) where Dir = CircularStepIndexMode(Float64, Dir, e, wavelength, m, β, C, D, profile, frame)
+CircularStepIndexMode(::Type{Dir}, e, wavelength, m, β, C, D, profile, frame) where {Dir} =
+    CircularStepIndexMode(Float64, Dir, e, wavelength, m, β, C, D, profile, frame)
 
-function intensity(mode::AbstractFieldMode, ::Type{C}, mesh) where C
+function intensity(mode::AbstractFieldMode, ::Type{C}, mesh) where {C}
     f(i) = begin
         abs2(mode_field(mode, C(centroid(mesh, i)))) * volume(mesh, i)
     end
     mapreduce(f, +, eachindex(mesh))
 end
 
-struct Fibre{T,R, M, VM <: AbstractVector{M}}
+struct Fibre{T,R,M,VM<:AbstractVector{M}}
     refractive_index_profile::R
     length::T
-    frames::Tuple{ReferenceFrame{T}, ReferenceFrame{T}}
-    media::Tuple{Medium{T,T}, Medium{T,T}}
-    modes::Dict{T, VM}
+    frames::Tuple{ReferenceFrame{T},ReferenceFrame{T}}
+    media::Tuple{Medium{T,T},Medium{T,T}}
+    modes::Dict{T,VM}
     function Fibre(::Type{T}, profile::R, length, media, frames) where {T,R}
         M = mode_type(R)
         SM = struct_type(R)
-        modes = Dict{T, M}()
-        new{T, R, M, SM}(profile, length, frames, media, modes)
+        modes = Dict{T,M}()
+        new{T,R,M,SM}(profile, length, frames, media, modes)
     end
 end
 Fibre(profile, length, media, frames) = Fibre(Float64, profile, length, media, frames)
@@ -54,12 +77,16 @@ Fibre(profile, length, media, frames) = Fibre(Float64, profile, length, media, f
 function check_input_field(fibre::Fibre, beam::Beam{<:Any,D}) where {D}
     code = zero(UInt64)
     eltype(beam.modes) <: CircularStepIndexMode || (return 1 << INVALID_MODE_TYPE)
-    all(beam.modes.profile .== fibre.refractive_index_profile) || (code |= 1 << INVALID_MEDIUM)
+    all(beam.modes.profile .== fibre.refractive_index_profile) ||
+        (code |= 1 << INVALID_MEDIUM)
     fib_frame = fibre.frames[D == Forward ? 1 : 2]
     all(beam.modes.fream .≈ fib_frame) || (code |= 1 << INVALID_FRAME)
     code
 end,
-function check_input_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile}, beam::MeshedBeam{<:Any,D,<:SpatialCoords,P}) where {D,P<:AbstractPolarization}
+function check_input_field(
+    fibre::Fibre{<:Any,<:CircularStepIndexProfile},
+    beam::MeshedBeam{<:Any,D,<:SpatialCoords,P},
+) where {D,P<:AbstractPolarization}
     ind = D == Forward ? 1 : 2
     n_fibre = fibre.media[ind]
     frame_fibre = fibre.frames[ind]
@@ -69,7 +96,7 @@ function check_input_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile}, beam
     (frame_fibre ≈ beam.frame) || (code |= 1 << INVALID_FRAME)
     code
 end
-check_input_field(fibre::Fibre, beam::MeshedBeam) = 1 << INVALID_BEAM_TYPE 
+check_input_field(fibre::Fibre, beam::MeshedBeam) = 1 << INVALID_BEAM_TYPE
 
 export Fibre, CircularStepIndexProfile
 
@@ -77,17 +104,17 @@ export Fibre, CircularStepIndexProfile
 α2(na, ncore, λ, β) = √(β^2 + (2π / λ)^2 * (na^2 - ncore^2))
 nclad(ncore, na) = √(ncore^2 - na^2)
 
-function find_wavefunction_solutions(profile::AbstractWaveguideProfile{T}, m, λ) where T
+function find_wavefunction_solutions(profile::AbstractWaveguideProfile{T}, m, λ) where {T}
     tol = T(1E-12)
     _nclad = nclad(profile.ncore.n, profile.na)
     if m > 0
-        α2_min = (T(1E50) * √(T(2m / π))) ^(T(-1/m)) * 2m / T(exp(1)) / profile.radius
+        α2_min = (T(1E50) * √(T(2m / π))) ^ (T(-1/m)) * 2m / T(exp(1)) / profile.radius
         βmin = √(α2_min^2 + (T(2π) * (_nclad + tol) / λ)^2);
     else
         βmin = real(2π / λ * (_nclad + tol))
     end
     βmax = real(2π / λ * (profile.ncore.n));
-    
+
     initial_guess = 100
     initial_diff = 5000
     i = 1
@@ -109,7 +136,7 @@ function find_wavefunction_solutions(profile::AbstractWaveguideProfile{T}, m, λ
 end
 function wavefunction_solutions() end
 
-function findmodes(profile::P, _λ) where {P<:AbstractWaveguideProfile{T}} where T
+function findmodes(profile::P, _λ) where {P<:AbstractWaveguideProfile{T}} where {T}
     λ = T(_λ)
     m = 0
     sizeA = 10000
@@ -122,23 +149,23 @@ function findmodes(profile::P, _λ) where {P<:AbstractWaveguideProfile{T}} where
     while true
         condition(β) = modecondition(profile, λ, m, β)
         β_solutions = find_wavefunction_solutions(profile, m, λ)
-        
+
         isempty(β_solutions) && break
         number_solutions = length(β_solutions)
-        for i in 0:(number_solutions-1)
+        for i = 0:(number_solutions-1)
             if modeNumber > (sizeA * inc_size_i) - 2
                 map(i -> resize!(i, sizeA * inc_size_i), (β_vec, m_vec, C_vec, D_vec))
                 inc_size_i += 1
             end
 
-            βᵢ = β_solutions[i + 1]
+            βᵢ = β_solutions[i+1]
             modeNumber += 1;
             β_vec[modeNumber] = βᵢ
             m_vec[modeNumber] = m
             (C_vec[modeNumber], D_vec[modeNumber]) = modeconstant(profile, λ, m, βᵢ)
 
             (m == 0) && continue
-            βᵢ = β_solutions[i + 1]
+            βᵢ = β_solutions[i+1]
             modeNumber += 1;
             β_vec[modeNumber] = βᵢ
             m_vec[modeNumber] = m
@@ -147,12 +174,21 @@ function findmodes(profile::P, _λ) where {P<:AbstractWaveguideProfile{T}} where
         m += 1
     end
     map(i -> resize!(i, modeNumber), (β_vec, m_vec, C_vec, D_vec))
-    a = (Ones(modeNumber), Fill(λ, modeNumber), m_vec, β_vec, C_vec, D_vec, Fill(profile, modeNumber), Fill(ReferenceFrame((0,0,0), (0,0,0)), modeNumber))
-    StructVector{CircularStepIndexMode{T, Bothway, T, Medium{T,T}}}(a) 
+    a = (
+        Ones(modeNumber),
+        Fill(λ, modeNumber),
+        m_vec,
+        β_vec,
+        C_vec,
+        D_vec,
+        Fill(profile, modeNumber),
+        Fill(ReferenceFrame((0, 0, 0), (0, 0, 0)), modeNumber),
+    )
+    StructVector{CircularStepIndexMode{T,Bothway,T,Medium{T,T}}}(a)
 end
 
 function findmodes!(fibre::Fibre, λ)
-    _λ = round_to_attometre(λ) 
+    _λ = round_to_attometre(λ)
     if _λ ∉ keys(fibre.modes)
         push!(fibre.modes, _λ => findmodes(fibre.refractive_index_profile, λ))
     end
@@ -161,21 +197,43 @@ end
 round_to_attometre(val) = round(Int, val * 1E18)
 function modes(fibre, λ)
     _λ = round_to_attometre(λ)
-    @argcheck haskey(fibre.modes, _λ) ErrorException("Mode for that wavelength not yet calculated. Use `findmodes!(fibre, λ)` to pre calculate the modes")
+    @argcheck haskey(fibre.modes, _λ) ErrorException(
+        "Mode for that wavelength not yet calculated. Use `findmodes!(fibre, λ)` to pre calculate the modes",
+    )
     fibre.modes[_λ]
 end
 
 
-mode_type(::Type{<:CircularStepIndexProfile{T}}) where T = CircularStepIndexMode{T, Bothway, T, Medium{T,T}}
-struct_type(::Type{<:CircularStepIndexProfile{T}}) where T =  StructVector{CircularStepIndexMode{T, Bothway, T, Medium{T, T}}, @NamedTuple{e::Ones{T, 1, Tuple{Base.OneTo{Int}}}, wavelength::Fill{T, 1, Tuple{Base.OneTo{Int}}}, m::Vector{Int}, β::Vector{T}, C::Vector{T}, D::Vector{T}, profile::Fill{CircularStepIndexProfile{T, Medium{T, T}}, 1, Tuple{Base.OneTo{Int}}}, frame::Fill{ReferenceFrame{T}, 1, Tuple{Base.OneTo{Int}}}}, Int}
+mode_type(::Type{<:CircularStepIndexProfile{T}}) where {T} =
+    CircularStepIndexMode{T,Bothway,T,Medium{T,T}}
+struct_type(::Type{<:CircularStepIndexProfile{T}}) where {T} = StructVector{
+    CircularStepIndexMode{T,Bothway,T,Medium{T,T}},
+    @NamedTuple{
+        e::Ones{T,1,Tuple{Base.OneTo{Int}}},
+        wavelength::Fill{T,1,Tuple{Base.OneTo{Int}}},
+        m::Vector{Int},
+        β::Vector{T},
+        C::Vector{T},
+        D::Vector{T},
+        profile::Fill{CircularStepIndexProfile{T,Medium{T,T}},1,Tuple{Base.OneTo{Int}}},
+        frame::Fill{ReferenceFrame{T},1,Tuple{Base.OneTo{Int}}},
+    },
+    Int,
+}
 
 function modecondition(profile::CircularStepIndexProfile, λ, m, β)
     α_1 = α1(profile.na, profile.ncore.n, λ, β) # Doesn't work for dispersiveModes
     α_2 = α2(profile.na, profile.ncore.n, λ, β) # Doens't work for dispersiveModes
-    besselj(m-1, profile.radius * α_1) / besselj(m, profile.radius * α_1) + α_2 / α_1 * besselkx(m-1, profile.radius * α_2) / besselkx(m, profile.radius * α_2)
+    besselj(m-1, profile.radius * α_1) / besselj(m, profile.radius * α_1) +
+    α_2 / α_1 * besselkx(m-1, profile.radius * α_2) / besselkx(m, profile.radius * α_2)
 end
 
-function modeconstant(profile::CircularStepIndexProfile{T}, λ::Real, m::Integer, β::Number) where {T<:Real}
+function modeconstant(
+    profile::CircularStepIndexProfile{T},
+    λ::Real,
+    m::Integer,
+    β::Number,
+) where {T<:Real}
     ncore = profile.ncore.n
     α_1 = α1(profile.na, ncore, λ, β)
     α_2 = α2(profile.na, ncore, λ, β)
@@ -183,9 +241,13 @@ function modeconstant(profile::CircularStepIndexProfile{T}, λ::Real, m::Integer
     (p1, tmp) = hcubature(f1, SVector(zero(T)), SVector(profile.radius); rtol = 1E-8);
 
     f2(r) = besselk(m, r[1] * α_2)^2 * r[1];
-    (p2, tmp) = hcubature(f2, SVector(profile.radius), SVector(2profile.radius); rtol = 1E-8);
+    (p2, tmp) =
+        hcubature(f2, SVector(profile.radius), SVector(2profile.radius); rtol = 1E-8);
 
-    F = T(2π) * p1[1] + T(2π) * p2[1] * besselj(m, profile.radius * α_1)^2 / besselk(m, profile.radius * α_2)^2
+    F =
+        T(2π) * p1[1] +
+        T(2π) * p2[1] * besselj(m, profile.radius * α_1)^2 /
+        besselk(m, profile.radius * α_2)^2
 
     C = 1 / √(F)
     D = C * besselj(m, profile.radius * α_1) / besselk(m, profile.radius * α_2);
@@ -205,10 +267,13 @@ end
 mode_field(mode::CircularStepIndexMode, coord::X_Y_λ) = mode_field(mode, R_θ_λ(coord))
 
 function mode_coupling(mode, field::MeshedSpatialBeam{T,D,C}) where {T,D,C}
-   overlap_integral(field.e, (coord) -> mode_field(mode, coord), field.mesh)
+    overlap_integral(field.e, (coord) -> mode_field(mode, coord), field.mesh)
 end
 
-function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, <:CircularStepIndexMode}, field::MeshedBeam{T,D,C,P}) where {T,D,C,P}
+function forward_backward_field(
+    fibre::Fibre{<:Any,<:CircularStepIndexProfile,<:CircularStepIndexMode},
+    field::MeshedBeam{T,D,C,P},
+) where {T,D,C,P}
     isone(size(field.mesh)[3]) || error("not done yet")
     λ = centroid(field.mesh, 1)[3]
 
@@ -228,15 +293,36 @@ function forward_backward_field(fibre::Fibre{<:Any, <:CircularStepIndexProfile, 
     modes_C .= modes.C
     modes_D .= modes.D
     frame = Fill((D == Forward ? first : last)(fibre.frames), number_modes)
-    field_t = Beam(StructVector{CircularStepIndexMode{T,D,Complex{T}, Medium{T,T}}}((modes_e, modes_wavelength, modes_m, modes_β, modes_C, modes_D, Fill(fibre.refractive_index_profile, number_modes), frame)))
-    field_r = MeshedBeam{T,!D,C,P}(field.mesh, Zeros(T, size(field.mesh)..., number_components(P)), field.medium, field.frame)
+    field_t = Beam(
+        StructVector{CircularStepIndexMode{T,D,Complex{T},Medium{T,T}}}((
+            modes_e,
+            modes_wavelength,
+            modes_m,
+            modes_β,
+            modes_C,
+            modes_D,
+            Fill(fibre.refractive_index_profile, number_modes),
+            frame,
+        )),
+    )
+    field_r = MeshedBeam{T,!D,C,P}(
+        field.mesh,
+        Zeros(T, size(field.mesh)..., number_components(P)),
+        field.medium,
+        field.frame,
+    )
     reverse_if_backward(D, (field_r, field_t))
 end
 
-function _light_interaction!(back_beam, forw_beam::Beam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Forward,C}) where {T,C}
+function _light_interaction!(
+    back_beam,
+    forw_beam::Beam,
+    fibre::Fibre,
+    ifield::MeshedSpatialBeam{T,Forward,C},
+) where {T,C}
     wavelengths = forw_beam.modes.wavelength[1]
     size(ifield.mesh)[3] == 1 || error("not done yet")
-        
+
     dλ = sqrt(ifield.mesh.spacing[3]) # To correct for the integration over the wavelength dimension
 
     map!(forw_beam.modes.e, forw_beam.modes) do mode_i
@@ -244,19 +330,46 @@ function _light_interaction!(back_beam, forw_beam::Beam, fibre::Fibre, ifield::M
     end
     (back_beam, forw_beam)
 end
-function _light_interaction!(back_beam::Beam, forw_beam::MeshedSpatialBeam, fibre::Fibre, ifield::MeshedSpatialBeam{T,Backward,C}) where {T,C}
+function _light_interaction!(
+    back_beam::Beam,
+    forw_beam::MeshedSpatialBeam,
+    fibre::Fibre,
+    ifield::MeshedSpatialBeam{T,Backward,C},
+) where {T,C}
     _light_interaction!(forw_beam, back_beam, fibre, ifield)
 end
 
-function _light_interaction!(back_beam, forw_beam::MeshedSpatialBeam, fibre::Fibre, ifield::Beam{T,Forward}) where T
+function _light_interaction!(
+    back_beam,
+    forw_beam::MeshedSpatialBeam,
+    fibre::Fibre,
+    ifield::Beam{T,Forward},
+) where {T}
     eltype(ifield.modes) <: CircularStepIndexMode || error("Invalid mode type")
     error("not donw yet")
 end
 
 function translate_referenceframe(beam::Beam, new_origin::X_Y_Z)
     eltype(beam.modes) <: CircularStepIndexMode || error("Invalid mode type")
-    all(iscollinear.(beam.modes.frame.position, beam.modes.frame.position .+ beam.modes.frame.direction, new_origin))
+    all(
+        iscollinear.(
+            beam.modes.frame.position,
+            beam.modes.frame.position .+ beam.modes.frame.direction,
+            new_origin,
+        ),
+    )
     error("To be done")
     new_frame = ReferenceFrame(new_origin, beam.frame.direction)
-    Beam(StructVector{CircularStepIndexMode{T,Forward,Complex{T}, Medium{T,T}}}((beam.modes.e, beam.modes.wavelength, beam.modes.m, beam.modes.β, beam.modes.C, beam.modes.D, beam.modes.profile, Fill(new_frame, length(beam.modes)))))
+    Beam(
+        StructVector{CircularStepIndexMode{T,Forward,Complex{T},Medium{T,T}}}((
+            beam.modes.e,
+            beam.modes.wavelength,
+            beam.modes.m,
+            beam.modes.β,
+            beam.modes.C,
+            beam.modes.D,
+            beam.modes.profile,
+            Fill(new_frame, length(beam.modes)),
+        )),
+    )
 end

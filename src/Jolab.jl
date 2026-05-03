@@ -1,6 +1,7 @@
 module Jolab
 
-using CoordinateTransformations, Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations
+using CoordinateTransformations,
+    Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations
 using Bessels, HCubature, FFTW, Static
 
 export light_interaction, intensity
@@ -27,7 +28,7 @@ struct Forward <: AbstractDirection end
 struct Backward <: AbstractDirection end
 struct Bothway <: AbstractDirection end
 
-const RealOrComplex{T} = Union{T, Complex{T}}
+const RealOrComplex{T} = Union{T,Complex{T}}
 
 include("errors.jl")
 include("arrays.jl")
