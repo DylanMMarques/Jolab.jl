@@ -88,7 +88,7 @@ for c_type in (:X_Y_Z, :X_Y_λ, :R_θ_Z, :R_θ_ϕ, :R_θ_λ, :NSX_NSY_λ, :NSR_N
         end
     end)
 end
-function same_coordinate_type(::Type{<:AbstractCoordinate}, ::Type{<:AbstractCoordinate}) where {C1, C2}
+function same_coordinate_type(::Type{<:AbstractCoordinate}, ::Type{<:AbstractCoordinate})
     false
 end
 function same_coordinate_type(c1::C1, c2::C2) where {C1<:AbstractCoordinate, C2<:AbstractCoordinate}
@@ -210,16 +210,22 @@ Base.axes(grid::Domain, ind) = Base.OneTo(size(grid, ind))
 Base.size(grid::Domain) = grid.lengths
 Base.size(grid::Domain, ind::Integer) = grid.lengths[ind]
 
-function Base.isapprox(grid::CylindricalGrid{C, 3}, grid2::CylindricalGrid{C, 3}; kwargs...) where C
+function Base.isapprox(grid::CylindricalGrid{C1, 3}, grid2::CylindricalGrid{C2, 3}; kwargs...) where {C1<:AbstractCoordinate, C2<:AbstractCoordinate}
+    same_coordinate_type(C1, C2) &&
     all(isapprox.(grid.spacing, grid2.spacing, kwargs...)) &&
     isapprox(grid.origin, grid2.origin, kwargs...) &&
     grid.lengths == grid2.lengths
 end
 
-function Base.isapprox(grid::CartesianGrid{C, 3}, grid2::CartesianGrid{C, 3}; kwargs...) where C
+function Base.isapprox(grid::CartesianGrid{C1, 3}, grid2::CartesianGrid{C2, 3}; kwargs...) where {C1<:AbstractCoordinate, C2<:AbstractCoordinate}
+    same_coordinate_type(C1, C2) &&
     all(isapprox.(grid.spacing, grid2.spacing; kwargs...)) &&
     isapprox(grid.origin, grid2.origin; kwargs...) &&
     grid.lengths == grid2.lengths
+end
+
+function Base.isapprox(grid1::Domain, grid2::Domain; kwargs...)
+    false
 end
 
 function Base.getindex(grid::CylindricalGrid{C, 3}, ::Colon, ::Colon, ind::Int) where C

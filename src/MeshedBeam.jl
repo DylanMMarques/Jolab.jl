@@ -80,7 +80,6 @@ end
 
 
 function Base.isapprox(beam1::MeshedBeam{T1,D,C1}, beam2::MeshedBeam{T2,D,C2}; kwargs...) where {T1, T2, D, C1, C2}
-    !same_coordinate_type(C1, C2) &&
     isapprox(beam1.mesh, beam2.mesh; kwargs...) &&
     isapprox(beam1.frame, beam2.frame; kwargs...) &&
     isapprox(beam1.medium, beam2.medium; kwargs...) &&
