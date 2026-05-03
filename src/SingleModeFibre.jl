@@ -70,23 +70,3 @@ function get_frame_medium(fibre::SingleModeFibre, ::Type{D}) where D
         last.((fibre.frames, fibre.media))
     end
 end
-function MonochromaticAngularSpectrum(::Type{T}, ::Type{D}, fibre::SingleModeFibre, nsx, nsy, λ) where {T,D}
-    mode = modes(fibre, λ)[1]
-    frame, medium = get_frame_medium(fibre, D)
-    MonochromaticAngularSpectrum_gaussian(T, D, nsx, nsy, mode.sigma, λ, medium, frame)
-end
-function MonochromaticAngularSpectrumRadialSymmetric(::Type{T}, ::Type{D}, fibre::SingleModeFibre, nsr, λ) where {T,D}
-    mode = modes(fibre, λ)[1]
-    frame, medium = get_frame_medium(fibre, D)
-    MonochromaticAngularSpectrumRadialSymmetric_gaussian(T, D, nsr, mode.sigma, λ, medium, frame)
-end
-function MonochromaticSpatialBeam(::Type{T}, ::Type{D}, fibre::SingleModeFibre, x, y, λ) where {T,D}
-    mode = modes(fibre, λ)[1]
-    frame, medium = get_frame_medium(fibre, D)
-    MonochromaticSpatialBeam_gaussian(T, D, x, y, mode.sigma, λ, medium, frame)
-end
-function MonochromaticSpatialBeamRadialSymmetric(::Type{T}, ::Type{D}, fibre::SingleModeFibre, r, λ) where {T,D}
-    mode = modes(fibre, λ)[1]
-    frame, medium = get_frame_medium(fibre, D)
-    MonochromaticSpatialBeamRadialSymmetric_gaussian(T, D, r, mode.sigma, λ, medium, frame)
-end
