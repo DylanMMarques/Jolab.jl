@@ -7,9 +7,7 @@ export light_interaction, intensity
 export translate_referenceframe, rotate_referenceframe
 export Forward, Backward
 export ScatteringMatrix
-export MonochromaticAngularSpectrum, MonochromaticSpatialBeam, MeshedPlaneWaveScalar, MonochromaticAngularSpectrum_gaussian, MonochromaticSpatialBeam_gaussian, SpatialBeam, AngularSpectrum
-export MonochromaticAngularSpectrumRadialSymmetric, MonochromaticAngularSpectrumRadialSymmetric_gaussian
-export MonochromaticSpatialBeamRadialSymmetric_gaussian, MonochromaticSpatialBeamRadialSymmetric
+export SpatialBeam, AngularSpectrum
 export Propagation
 export Fourier
 
