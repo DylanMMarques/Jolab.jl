@@ -1,6 +1,6 @@
 struct RoughInterface{T,T2<:RealOrComplex{T},F} <: AbstractOpticalElement{T}
     Δz::F
-    mat::Tuple{Medium{T2},Medium{T2}}
+    mat::Tuple{Medium{T, T2},Medium{T, T2}}
     frame::ReferenceFrame{T}
     function RoughInterface{T}(
         media::N,

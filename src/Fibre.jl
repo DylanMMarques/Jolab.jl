@@ -318,7 +318,7 @@ function _light_interaction!(
     back_beam,
     forw_beam::Beam,
     fibre::Fibre,
-    ifield::MeshedSpatialBeam{T,Forward,C},
+    ifield::MeshedBeam{T,<:Any,C},
 ) where {T,C}
     wavelengths = forw_beam.modes.wavelength[1]
     size(ifield.mesh)[3] == 1 || error("not done yet")
@@ -332,16 +332,16 @@ function _light_interaction!(
 end
 function _light_interaction!(
     back_beam::Beam,
-    forw_beam::MeshedSpatialBeam,
+    forw_beam::MeshedBeam,
     fibre::Fibre,
-    ifield::MeshedSpatialBeam{T,Backward,C},
+    ifield::MeshedBeam{T,Backward,C},
 ) where {T,C}
     _light_interaction!(forw_beam, back_beam, fibre, ifield)
 end
 
 function _light_interaction!(
     back_beam,
-    forw_beam::MeshedSpatialBeam,
+    forw_beam::MeshedBeam,
     fibre::Fibre,
     ifield::Beam{T,Forward},
 ) where {T}

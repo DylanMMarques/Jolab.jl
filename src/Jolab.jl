@@ -1,7 +1,7 @@
 module Jolab
 
 using CoordinateTransformations,
-    Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations
+    Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations, Statistics
 using Bessels, HCubature, FFTW, Static
 
 export light_interaction, intensity
@@ -48,6 +48,7 @@ include("Axicon.jl")
 include("Fibre.jl")
 include("SingleModeFibre.jl")
 include("NonPlanarInterface.jl")
+include("PhaseScreen3D.jl")
 include("SpatialLightModulator.jl")
 include("lightinteraction_recursive.jl")
 

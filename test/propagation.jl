@@ -18,7 +18,7 @@ prop = Propagation(
 
 @test all((0, intensity(field)) .≈ intensity.(light_interaction(prop, field)))
 
-nsr = range(0, 0.5, length = 100)
+ns = range(0, 0.5, length = 100)
 nst = range(0, 2π, length = 100)[1:(end-1)]
 grid_ang_radial = Jolab.CylindricalGrid(Jolab.NSR_NSθ_λ, nsr, nst, λ)
 field = Jolab.AngularSpectrum(

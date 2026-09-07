@@ -13,7 +13,7 @@ focal_length = 10E-3 # 10 mm
 numerical_aperture = 0.5
 
 # Define the reference frame specifying the position and orientation of the lens
-lens_frame = ReferenceFrame((0,0,0), (0,0,0)) 
+lens_frame = ReferenceFrame((0,0,0), (0,0,0))
 
 lens = Lens(focal_length, numerical_aperture, lens_media, lens_frame)
 ```
@@ -31,7 +31,7 @@ slide_frame = lens_frame + ReferenceFrame((0,0,focal_length), (0,0,0)) # Place t
 slide = DielectricStack(stack_refractive_index, thickness, slide_frame)
 ```
 
-The code currently defines the optical elements of the system. The next step is to define the light source illuminating the optical system. In this example, we will use a monochromatic scalar collimated beam. 
+The code currently defines the optical elements of the system. The next step is to define the light source illuminating the optical system. In this example, we will use a monochromatic scalar collimated beam.
 
 ## Defining the coordinate grid
 
@@ -54,6 +54,7 @@ grid = Jolab.CartesianGrid(Jolab.X_Y_λ, x, y, λ)
 ## Probing grid positions
 
 Once the grid is defined, the coordinates at each grid point can be retrieved using the `centroid` function. For example, the first grid point has (x,y,wavelength) coordinates of:
+
 ```@example first_simulation
 Jolab.centroid(grid, 1) # returns the coordinates of the first grid point
 ```
@@ -73,6 +74,7 @@ field_frame = ReferenceFrame((0,0,-focal_length), (0,0,0)) # Place the field in 
 ```
 
 Finally, we can combine the grid, electric field, and reference frame to define the spatial beam representing the light source in the simulation. The `SpatialBeam` class represents a spatial beam of light defined on a Cartesian grid, with a specified electric field and reference frame. We specify `Forward` to indicate the direction of propagation (the light travels forward through the optical system).
+
 ```@example first_simulation
 field = SpatialBeam(Forward, grid, e, lens_media[1], field_frame)
 ```
@@ -86,22 +88,23 @@ The field is now defined, and we can propagate it through the system. The propag
 The light_interaction function returns the reflected and transmitted fields by the lens. In this case, the field reflected by the lens is null because the model of lens does not include reflections (simulates an ideal lens).
 
 ```@example first_simulation
-intensity(rfield) 
+intensity(rfield)
 ```
 
 Let's now focus on the transmitted field `tfield`. The intensity of the transmitted field is the same as the incident field, which is expected for an ideal lens that does not introduce losses.
 
 ```@example first_simulation
-intensity(tfield) / intensity(field) 
+intensity(tfield) / intensity(field)
 ```
 
-Looking at the reference frame of the transmitted field, we can see that the reference frame changed to the focal plane of the lens. This is due to the solver of the lens, which propagates the field from the back focal plane to the focal plane of the lens. 
+Looking at the reference frame of the transmitted field, we can see that the reference frame changed to the focal plane of the lens. This is due to the solver of the lens, which propagates the field from the back focal plane to the focal plane of the lens.
 
 ```@example first_simulation
 tfield.frame
 ```
 
 The field incident upon the lens was defined in the spatial domain, meaning that the electric field values were defined at specific physical locations in space. The transmitted field is now represented in the angular spectrum domain, which is the Fourier-space representation of the field. The representation of the field can be checked by looking at the coordinates of the mesh grid of the field (`X_Y_λ` for spatial domain, `NSX_NSY_λ` for angular spectrum domain - more info in field representations).
+
 ```@example first_simulation
 (typeof(field.mesh), typeof(tfield.mesh))
 ```
@@ -123,7 +126,7 @@ The returned `field_spatial` is now a field in spatial domain coordinates, showi
 
 ```@example first_simulation
 # The input was in angular spectrum coordinates (NSX_NSY_λ)
-# The output is in spatial coordinates (X_Y_λ)  
+# The output is in spatial coordinates (X_Y_λ)
 (typeof(tfield.mesh), typeof(field_spatial.mesh))
 ```
 
@@ -136,6 +139,7 @@ heatmap(abs2.(field_spatial.e[:,:,1,1]))
 ```
 
 ## Propagating through the microscope slide
+
 The transmitted field is now ready to interact with the next optical element in the system. The next step is to propagate the transmitted field through the microscope slide.
 
 ```@example first_simulation
@@ -155,4 +159,3 @@ In some scenarios, it may be interesting to propagate the reflected field `rfiel
 ```
 
 Here, the `rfield_slide_backward` is the field propagating backward thought the optical system, while `rfield_slide_forward` is the field propagating forward. Consequently, the `rfield_slide_backward` is the field transmitted by the lens while the `rfield_slide_forward` is the field reflected by the lens. This is the convention used in Jolab, the `light_interaction` function always returns two outputs, the first one which is the field propagating backward and the second one which is the field propagating forward.
-
