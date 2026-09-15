@@ -1,10 +1,12 @@
 # Implementation of the phase screen method from the paper "Model-based wavefront shaping microscopy" of Abhilash Thendiyammal, Gerwin Osnabrugge, Tom Knop, and Ivo M. Vellekoop 
-struct PhaseScreenSolver{F1,F2,F3,N,P,C,C2,Z} <: AbstractSolver
+struct PhaseScreenSolver{F1,F2,F3,N,B,P,PI,C,C2,Z} <: AbstractSolver
     field_b::F2
     field_f::F3
     field_i::F1
     n::N
+    boundaries::B
     plan_fft::P
+    plan_fft_inv::PI
     tmp_array::C
     tmp_field_i::C
     kr_squared::C2
@@ -32,13 +34,12 @@ function _light_interaction!(field_b::MeshedBeam{<:Any, Backward}, field_f::Mesh
         
         mul!(solver.tmp_array, solver.plan_fft, field_t.e)
 
-        solver.tmp_array .*= exp.(im .* deltaz .* 2pi ./ λ .* (refractive_index_slice .- mean_refractive_index))
+        solver.tmp_array .*= solver.boundaries .* exp.(im .* deltaz .* 2pi ./ λ .* (refractive_index_slice .- mean_refractive_index))
         
-        ldiv!(solver.tmp_field_i, solver.plan_fft, solver.tmp_array)
+        mul!(solver.tmp_field_i, solver.plan_fft_inv, solver.tmp_array)
 
         solver.tmp_field_i .*= exp.(0.5im .* deltaz .* sqrt.(complex.((2 .* pi .* mean_refractive_index ./ λ).^2 .- solver.kr_squared)))
     end
-    print(z_f)
     field_t.e .= solver.tmp_field_i .* exp.(-scale .* z_f .* sqrt.(complex.((2 .* pi .* field_t.medium.n ./ λ).^2 .- solver.kr_squared))) # Translate the field back to the interface instead of the tip of the last slice
 
     (field_b, field_f)
@@ -49,7 +50,7 @@ function forward_backward_field(solver::PhaseScreenSolver, field_i::MeshedAngula
 end
 
 
-function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{T,D,C,P}, steps) where {T,D,C,P}
+function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{T,D,C,P}, steps, boundaries = 0.1, num_threads = Threads.nthreads()) where {T,D,C,P}
     n1, n2 = comp.mat[1].n, comp.mat[2].n
     
     nsx, nsy, wavelength = get_ranges(field_i.mesh)
@@ -61,17 +62,24 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{
 
     n = similar(field_i.e, Complex{T}, (length(nsx), length(nsy), length(λ), 1, steps))
 
-    z_s = range(minimum(topography), maximum(topography), length = steps)
+    z_s = range(minimum(topography), maximum(topography), length=steps)
+    z_s_reshaped = reshape(z_s, 1, 1, 1, 1, :)
     
-    for (i, z_i) in enumerate(z_s)
-        n[:, :, :, :, i] .= ifelse.(topography .> z_i, n2, n1)
-    end
+    # Lazy version using broadcasting
+    n = LazyArray(@~ ifelse.(topography .> z_s_reshaped, n2, n1))
 
-    p_fft = plan_ifft(field_i.e, (1, 2))
+    p_fft = plan_bfft(field_i.e, (1, 2), num_threads=num_threads)
+    p_fft_inv = inv(p_fft) # Precompute the inverse FFT plan for efficiency
+
     tmp_array = similar(field_i.e)
     tmp_field_i = similar(field_i.e)
     kr_squared = similar(field_i.e, T)
     kr_squared .= (nsx.^2 .+ nsy'.^2) .* (2π ./ λ).^2
+
+    # TODO: give a eliptical window instead of a circular based on the aspect ratio of the grid
+    minimum_r_squared = min(maximum(abs2, x), maximum(abs2, y))
+    boundaries_window = similar(field_i.e, T)
+    boundaries_window .= tukey.((x.^2 .+ y'.^2) ./ minimum_r_squared, T(boundaries))
 
     e_b, e_f = reverse_if_backward(D, (Zeros(field_i.e), similar(field_i.e)))
 
@@ -80,12 +88,43 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{
         MeshedBeam{T, Forward,C,P}(field_i.mesh, e_f, comp.mat[2], field_i.frame),
         field_i,
         n,
+        boundaries_window, 
         p_fft,
+        p_fft_inv,
         tmp_array,
         tmp_field_i,
         kr_squared,
         z_s
     )
+end
+
+"""
+    tukey(x::Real, a::Real=0.5) -> Real
+
+Evaluate the Tukey window at position x with taper ratio a.
+
+# Arguments
+- `x::Real`: Position where to evaluate the window (typically 0 to 1, normalized)
+- `a::Real`: Taper ratio (0 ≤ a ≤ 1)
+  - a = 0: rectangular window
+  - a = 1: Hann window
+  - 0 < a < 1: tapered cosine window (default)
+
+# Returns
+- `Real`: Window value between 0 and 1
+"""
+function tukey(x::T, a) where T <: Real
+    @assert 0 ≤ a ≤ 1 "Taper ratio a must be in [0, 1]"
+    abs_x = abs(x)
+    a_T = T(a)
+    
+    if abs_x ≤ 1 - a
+        return one(T)
+    elseif abs_x > 1
+        return zero(T)
+    else
+        return 0.5 * (1 + cos(π * (abs_x - (1 - a_T)) / a_T))
+    end
 end
 
 function check_input_field(solver::PhaseScreenSolver, field_i::MeshedAngularSpectrum{T,D,C,P}) where {T,D,C,P}

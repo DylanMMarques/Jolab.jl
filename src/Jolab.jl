@@ -1,7 +1,7 @@
 module Jolab
 
 using CoordinateTransformations,
-    Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations, Statistics
+    Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations, Statistics, LazyArrays
 using Bessels, HCubature, FFTW, Static
 
 export light_interaction, intensity

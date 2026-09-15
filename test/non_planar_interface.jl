@@ -107,7 +107,7 @@ rmls = [
     Propagation((ref3, ref4), Medium(1.5)),
     Jolab.RoughInterface(Medium.((1.5, 1)), topography_tan_minus, ref4),
 ]
-int = zeros(length(λ))
+intensities = zeros(length(λ))
 
 λ_base = 1500E-9
 grid_ang_base = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, sx, sx, λ_base)
@@ -132,10 +132,10 @@ for i = 1:length(λ)
     )
     (fieldr, fieldt) =
         Jolab.lightinteraction_recursivegridded(rmls, field, rtol = 1E-9; printBool = false)
-    int[i] = intensity(fieldr) / intensity(field)
+    intensities[i] = intensity(fieldr) / intensity(field)
 end
 
-@test all(isapprox.(int, data, rtol = 1E-6))
+@test all(isapprox.(intensities, data, rtol = 1E-6))
 
 
 beam = Jolab.AngularSpectrum(
@@ -153,12 +153,13 @@ beam = Jolab.AngularSpectrum(
     Float64,
     Jolab.Forward,
     grid_beam,
-    ones(ComplexF64, 512, 512),
+    ones(ComplexF64, 64, 64),
     Medium(1.),
     int.frame,
 )
 
-solver = Jolab.PhaseScreenSolver(int_test, beam, 10)
+solver = Jolab.PhaseScreenSolver(int_test, beam, 10, 0.1, 4)
+solver.boundaries .= 1
 (r_screen, t_screen) = light_interaction(solver, beam)
 
 (r_ref, t_ref) = light_interaction(p_int_test, beam)
@@ -167,14 +168,6 @@ prop = Propagation((t_ref.frame, t_screen.frame), t_ref.medium)
 @test allequal(r_screen.e, 0.0)
 @test isapprox(angle.(t_screen.e), angle.(t_ref.e))
 
-beam = Jolab.AngularSpectrum(
-    Float64,
-    Jolab.Backward,
-    grid_beam,
-    ones(ComplexF64, 64, 64),
-    Medium(1.5),
-    int.frame,
-)
 (t_screen, r_screen) = light_interaction(solver, beam)
 (t_ref, r_ref) = light_interaction(p_int_test, beam)
 prop = Propagation((t_ref.frame, t_screen.frame), t_ref.medium)
@@ -198,7 +191,7 @@ beam = Jolab.AngularSpectrum(
     int.frame,
 )
 int_test_2 = Jolab.RoughInterface(Medium.((1, 1.5)), (x,y) -> x, ReferenceFrame((0, 0, 0.0), (0, 0.0, 0)))
-solver_2 = Jolab.PhaseScreenSolver(int_test_2, beam, 100)
+solver_2 = Jolab.PhaseScreenSolver(int_test_2, beam, 100, 0.1, 4)
 (r_screen, t_screen) = light_interaction(solver_2, beam)
 
 
