@@ -68,7 +68,7 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{
     # Lazy version using broadcasting
     n = LazyArray(@~ ifelse.(topography .> z_s_reshaped, n2, n1))
 
-    p_fft = plan_bfft(field_i.e, (1, 2), num_threads=num_threads)
+    p_fft = plan_bfft(field_i.e, (1, 2))
     p_fft_inv = inv(p_fft) # Precompute the inverse FFT plan for efficiency
 
     tmp_array = similar(field_i.e)
@@ -79,7 +79,9 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{
     # TODO: give a eliptical window instead of a circular based on the aspect ratio of the grid
     minimum_r_squared = min(maximum(abs2, x), maximum(abs2, y))
     boundaries_window = similar(field_i.e, T)
-    boundaries_window .= tukey.((x.^2 .+ y'.^2) ./ minimum_r_squared, T(boundaries))
+    tukey_x = T.(tukey(length(x), boundaries, zerophase=true))
+    tukey_y = T.(tukey(length(y), boundaries, zerophase=true))
+    boundaries_window .= tukey_x .* tukey_y'
 
     e_b, e_f = reverse_if_backward(D, (Zeros(field_i.e), similar(field_i.e)))
 
@@ -96,35 +98,6 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{
         kr_squared,
         z_s
     )
-end
-
-"""
-    tukey(x::Real, a::Real=0.5) -> Real
-
-Evaluate the Tukey window at position x with taper ratio a.
-
-# Arguments
-- `x::Real`: Position where to evaluate the window (typically 0 to 1, normalized)
-- `a::Real`: Taper ratio (0 ≤ a ≤ 1)
-  - a = 0: rectangular window
-  - a = 1: Hann window
-  - 0 < a < 1: tapered cosine window (default)
-
-# Returns
-- `Real`: Window value between 0 and 1
-"""
-function tukey(x::T, a) where T <: Real
-    @assert 0 ≤ a ≤ 1 "Taper ratio a must be in [0, 1]"
-    abs_x = abs(x)
-    a_T = T(a)
-    
-    if abs_x ≤ 1 - a
-        return one(T)
-    elseif abs_x > 1
-        return zero(T)
-    else
-        return 0.5 * (1 + cos(π * (abs_x - (1 - a_T)) / a_T))
-    end
 end
 
 function check_input_field(solver::PhaseScreenSolver, field_i::MeshedAngularSpectrum{T,D,C,P}) where {T,D,C,P}

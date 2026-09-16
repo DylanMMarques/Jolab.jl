@@ -1,8 +1,8 @@
 module Jolab
 
 using CoordinateTransformations,
-    Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations, Statistics, LazyArrays
-using Bessels, HCubature, FFTW, Static
+    Rotations, StaticArrays, ArgCheck, StructArrays, FillArrays, LinearAlgebra, Rotations, Statistics, LazyArrays, AbstractFFTs, DSP
+using Bessels, HCubature, Static
 
 export light_interaction, intensity
 export translate_referenceframe, rotate_referenceframe

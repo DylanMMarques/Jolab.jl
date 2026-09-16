@@ -1,4 +1,4 @@
-using Jolab, Test, Unitful
+using Jolab, Test, Unitful, FFTW
 
 zero_offset(x, y) = 0.0
 int = Jolab.RoughInterface(
@@ -175,12 +175,12 @@ prop = Propagation((t_ref.frame, t_screen.frame), t_ref.medium)
 @test allequal(r_screen.e, 0.0)
 @test isapprox(angle.(t_screen.e), angle.(t_ref.e))
 
-nsx = range(-0.5, 0.5, length = 512)
-nsy = range(-0.5, 0.5, length = 512)
+nsx = range(-0.5, 0.5, length = 2048)
+nsy = range(-0.5, 0.5, length = 2048)
 λ = 1550E-9
 grid_beam = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
 
-a = zeros(ComplexF64, 512, 512)
+a = zeros(ComplexF64, length(nsx), length(nsy))
 a[256, 256] = 1.0
 beam = Jolab.AngularSpectrum(
     Float64,
@@ -191,7 +191,8 @@ beam = Jolab.AngularSpectrum(
     int.frame,
 )
 int_test_2 = Jolab.RoughInterface(Medium.((1, 1.5)), (x,y) -> x, ReferenceFrame((0, 0, 0.0), (0, 0.0, 0)))
-solver_2 = Jolab.PhaseScreenSolver(int_test_2, beam, 100, 0.1, 4)
+
+solver_2 = Jolab.PhaseScreenSolver(int_test_2, beam, 10, 0.1, 4)
 (r_screen, t_screen) = light_interaction(solver_2, beam)
 
 
