@@ -50,7 +50,7 @@ function forward_backward_field(solver::PhaseScreenSolver, field_i::MeshedAngula
 end
 
 
-function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedAngularSpectrum{T,D,C,P}, steps, boundaries = 0.1, num_threads = Threads.nthreads()) where {T,D,C,P}
+function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, steps, boundaries = 0.1) where {T,D,C,P}
     n1, n2 = comp.mat[1].n, comp.mat[2].n
     
     nsx, nsy, wavelength = get_ranges(field_i.mesh)

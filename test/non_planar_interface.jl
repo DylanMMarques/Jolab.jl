@@ -158,7 +158,7 @@ beam = Jolab.AngularSpectrum(
     int.frame,
 )
 
-solver = Jolab.PhaseScreenSolver(int_test, beam, 10, 0.1, 4)
+solver = Jolab.PhaseScreenSolver(int_test, beam, 10, 0.1)
 solver.boundaries .= 1
 (r_screen, t_screen) = light_interaction(solver, beam)
 
@@ -175,24 +175,24 @@ prop = Propagation((t_ref.frame, t_screen.frame), t_ref.medium)
 @test allequal(r_screen.e, 0.0)
 @test isapprox(angle.(t_screen.e), angle.(t_ref.e))
 
-nsx = range(-0.5, 0.5, length = 2048)
-nsy = range(-0.5, 0.5, length = 2048)
-λ = 1550E-9
+nsx = range(-0.5f0, 0.5f0, length = 2048)
+nsy = range(-0.5f0, 0.5f0, length = 2048)
+λ = Float32(1550E-9)
 grid_beam = Jolab.CartesianGrid(Jolab.NSX_NSY_λ, nsx, nsx, λ)
 
-a = zeros(ComplexF64, length(nsx), length(nsy))
+a = zeros(ComplexF32, length(nsx), length(nsy))
 a[256, 256] = 1.0
 beam = Jolab.AngularSpectrum(
-    Float64,
+    Float32,
     Jolab.Forward,
     grid_beam,
     a,
-    Medium(1.),
+    Medium(Float32, 1.),
     int.frame,
 )
-int_test_2 = Jolab.RoughInterface(Medium.((1, 1.5)), (x,y) -> x, ReferenceFrame((0, 0, 0.0), (0, 0.0, 0)))
+int_test_2 = Jolab.RoughInterface(Float32, Medium.(Float32, (1, 1.5)), (x,y) -> x, ReferenceFrame((0, 0, 0.0), (0, 0.0, 0)))
 
-solver_2 = Jolab.PhaseScreenSolver(int_test_2, beam, 10, 0.1, 4)
+solver_2 = Jolab.PhaseScreenSolver(int_test_2, beam, 10, 0.1)
 (r_screen, t_screen) = light_interaction(solver_2, beam)
 
 
