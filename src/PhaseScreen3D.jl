@@ -4,7 +4,7 @@ struct PhaseScreenSolver{F1,F2,F3,N,NI,B,P,PI,C,C2,Z} <: AbstractSolver
     field_f::F3
     field_i::F1
     n::N
-	n_iterable::NI
+    n_iterable::NI
     boundaries::B
     plan_fft::P
     plan_fft_inv::PI
@@ -79,7 +79,7 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
     minimum_r_squared = min(maximum(abs2, x), maximum(abs2, y))
     boundaries_window = similar(field_i.e, T)
 
-	_tukey_x = tukey(length(x), boundaries, zerophase=true)
+    _tukey_x = tukey(length(x), boundaries, zerophase=true)
     _tukey_y = tukey(length(y), boundaries, zerophase=true)
     tukey_x = similar(field_i.e, T, (length(x), 1))
     tukey_y = similar(field_i.e, T, (1, length(y)))
@@ -94,7 +94,7 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
         MeshedBeam{T, Forward,C,P}(field_i.mesh, e_f, comp.mat[2], field_i.frame),
         field_i,
         n_cache,
-		n_iterable,
+	n_iterable,
         boundaries_window, 
         p_fft,
         p_fft_inv,
