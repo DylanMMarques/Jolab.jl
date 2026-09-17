@@ -17,7 +17,6 @@ end
 function _light_interaction!(field_b::MeshedBeam{<:Any, Backward}, field_f::MeshedBeam{<:Any, Forward}, solver::PhaseScreenSolver, field_i::MeshedBeam{T, D}) where {T,D}
     field_r, field_t = reverse_if_backward(D, (field_b, field_f))
 
-    _n_slices = eachslice(solver.n, dims = 5)
     n_iterable = D == Forward ? solver.n_iterable : Iterators.reverse(solver.n_iterable)
 
     _, _, λ = get_ranges(field_i.mesh)
@@ -25,22 +24,22 @@ function _light_interaction!(field_b::MeshedBeam{<:Any, Backward}, field_f::Mesh
     (z_i, z_f) = reverse_if_backward(D, (solver.z_interfaces[1], solver.z_interfaces[end]))
     deltaz = step(solver.z_interfaces)
     scale = D == Forward ? 1im : -1im
-    solver.tmp_field_i .= field_i.e .* exp.(scale .* z_i .* sqrt.(complex.((2 .* pi .* field_i.medium.n ./ λ).^2 .- solver.kr_squared))) # Translate the field from the interface to the tip of the first slice
+    solver.tmp_field_i .= field_i.e .* exp.(scale .* z_i .* sqrt.(complex.((2π .* field_i.medium.n ./ λ).^2 .- solver.kr_squared))) # Translate the field from the interface to the tip of the first slice
 
-    for _ in n_iterable
+    for _ in n_iterable # inplace edit of solver.n to match slices
         mean_refractive_index = mean(solver.n)
 
-        field_t.e .= exp.(0.5im .* deltaz .* sqrt.(complex.((2 .* pi .* mean_refractive_index ./ λ).^2 .- solver.kr_squared))) .* solver.tmp_field_i
+        field_t.e .= exp.(0.5im .* deltaz .* sqrt.(complex.((2π .* mean_refractive_index ./ λ).^2 .- solver.kr_squared))) .* solver.tmp_field_i
         
         mul!(solver.tmp_array, solver.plan_fft, field_t.e)
 
-        solver.tmp_array .*= solver.boundaries .* exp.(im .* deltaz .* 2pi ./ λ .* (solver.n .- mean_refractive_index))
+        solver.tmp_array .*= solver.boundaries .* exp.(im .* deltaz .* 2π ./ λ .* (solver.n .- mean_refractive_index))
         
         mul!(solver.tmp_field_i, solver.plan_fft_inv, solver.tmp_array)
 
-        solver.tmp_field_i .*= exp.(0.5im .* deltaz .* sqrt.(complex.((2 .* pi .* mean_refractive_index ./ λ).^2 .- solver.kr_squared)))
+        solver.tmp_field_i .*= exp.(0.5im .* deltaz .* sqrt.(complex.((2π .* mean_refractive_index ./ λ).^2 .- solver.kr_squared)))
     end
-    field_t.e .= solver.tmp_field_i .* exp.(-scale .* z_f .* sqrt.(complex.((2 .* pi .* field_t.medium.n ./ λ).^2 .- solver.kr_squared))) # Translate the field back to the interface instead of the tip of the last slice
+    field_t.e .= solver.tmp_field_i .* exp.(-scale .* z_f .* sqrt.(complex.((2π .* field_t.medium.n ./ λ).^2 .- solver.kr_squared))) # Translate the field back to the interface instead of the tip of the last slice
 
     (field_b, field_f)
 end
@@ -62,10 +61,9 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
     topography .= comp.Δz.(x, y')    
 
     z_s = range(minimum(topography), maximum(topography), length=steps)
-    z_s_reshaped = reshape(z_s, 1, 1, 1, 1, :)
     
-	n_cache = similar(field_i.e, Complex{T}, (length(nsx), length(nsy), length(λ), 1))
-	n_iterable = Iterators.map(i -> n_cache .= ifelse.(topography .> z_s[i], n2, n1), 1:steps)
+    n_cache = similar(field_i.e, Complex{T}, (length(nsx), length(nsy), length(λ), 1))
+    n_iterable = Iterators.map(i -> n_cache .= ifelse.(topography .> z_s[i], n2, n1), 1:steps)
 
     p_fft = plan_bfft(field_i.e, (1, 2))
     p_fft_inv = inv(p_fft) # Precompute the inverse FFT plan for efficiency
@@ -75,9 +73,6 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
     kr_squared = similar(field_i.e, T)
     kr_squared .= (nsx.^2 .+ nsy'.^2) .* (2π ./ λ).^2
 
-    # TODO: give a eliptical window instead of a circular based on the aspect ratio of the grid
-    minimum_r_squared = min(maximum(abs2, x), maximum(abs2, y))
-    boundaries_window = similar(field_i.e, T)
 
     _tukey_x = tukey(length(x), boundaries, zerophase=true)
     _tukey_y = tukey(length(y), boundaries, zerophase=true)
@@ -85,6 +80,7 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
     tukey_y = similar(field_i.e, T, (1, length(y)))
     copyto!(tukey_x, _tukey_x)
     copyto!(tukey_y, _tukey_y)
+    boundaries_window = similar(field_i.e, T)
     boundaries_window .= tukey_x .* tukey_y'
 
     e_b, e_f = reverse_if_backward(D, (Zeros(field_i.e), similar(field_i.e)))
