@@ -44,7 +44,7 @@ Lens(focal_length, numerical_aperture, media, frame) =
     fill!(field_r.e, 0)
 
     function t_aux(ind)
-        t(lens, C(centroid(field_i.mesh, ind))) * field_i.e[ind]
+        t(lens, D, C(centroid(field_i.mesh, ind))) * field_i.e[ind]
     end
 
     vec(field_t.e) .= t_aux.(eachindex(field_i.e))
@@ -69,7 +69,7 @@ end
     function t_aux(ind)
 
         r_pupil = R_θ_λ(centroid(field_i.mesh, ind))
-        t_coef = t(lens, r_pupil)
+        t_coef = t(lens, D, r_pupil)
 
         n_s = unit_vector(R_θ_Z(r_pupil[1], r_pupil[2], zero(T)), Val(:θ))
         n_p = unit_vector(R_θ_Z(r_pupil[1], r_pupil[2], zero(T)), Val(:R))
@@ -84,9 +84,10 @@ end
     (field_b, field_f)
 end
 
-function t(lens::Lens{T}, coord::NSR_NSθ_λ) where {T<:AbstractFloat}
+function t(lens::Lens{T}, ::Type{D}, coord::NSR_NSθ_λ) where {T<:AbstractFloat,D}
     (nsr, θ, λ) = coord
-    cosθ² = 1 - (nsr / real(lens.mat[1].n))^2
+    n_lens = real(D == Forward ? first(lens.mat).n : last(lens.mat).n)
+    cosθ² = 1 - (nsr / n_lens)^2
     if cosθ² < 0 # Evasnecent waves
         zero(Complex{T})
     else # Plane waves
@@ -97,7 +98,7 @@ function t(lens::Lens{T}, coord::NSR_NSθ_λ) where {T<:AbstractFloat}
         end
     end
 end,
-function t(lens::Lens{T}, coord::R_θ_λ) where {T<:AbstractFloat}
+function t(lens::Lens{T}, ::Type{D}, coord::R_θ_λ) where {T<:AbstractFloat, D}
     (r, θ, λ) = coord
     cosθ² = 1 - (r / lens.focal_length)^2
     if cosθ² < 0 # Evasnecent waves
@@ -110,12 +111,14 @@ function t(lens::Lens{T}, coord::R_θ_λ) where {T<:AbstractFloat}
         end
     end
 end,
-function t(lens::Lens, coord::X_Y_λ)
-    t(lens, R_θ_λ(coord))
+function t(lens::Lens, ::Type{D}, coord::X_Y_λ) where D
+    t(lens, D, R_θ_λ(coord))
 end,
-function t(lens::Lens, coord::NSX_NSY_λ)
-    t(lens, NSR_NSθ_λ(coord))
-end,
+function t(lens::Lens, ::Type{D}, coord::NSX_NSY_λ) where D
+    t(lens, D, NSR_NSθ_λ(coord))
+end
+
+
 function _ScatteringMatrix(
     field_b::MeshedBeam,
     field_f::MeshedBeam,
@@ -127,7 +130,7 @@ function _ScatteringMatrix(
 
     t_dia = similar(field_i.e, Complex{T}, length(field_i.e))
 
-    t_aux(ind) = t(comp, C(centroid(field_i.mesh, ind)))
+    t_aux(ind) = t(comp, D, C(centroid(field_i.mesh, ind)))
 
     vec(t_dia) .= t_aux.(eachindex(field_i.mesh))
 

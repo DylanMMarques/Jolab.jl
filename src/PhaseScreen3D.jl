@@ -57,7 +57,7 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
     x = fftfreq(length(nsx), λ / step(nsx))
     y = fftfreq(length(nsy), λ / step(nsy))
 
-	topography = similar(field_i.e, T, (length(nsx), length(nsy)))
+    topography = similar(field_i.e, T, (length(nsx), length(nsy)))
     topography .= comp.Δz.(x, y')    
 
     z_s = range(minimum(topography), maximum(topography), length=steps)

@@ -37,7 +37,7 @@ function FourierFFTSolver(field_i::MeshedBeam{T}) where {T}
     tmp_array = similar(field_i.e, complex(T))
     
     p = plan_fft(tmp_array, (1, 2))
-    p_inv = plan_ifft(tmp_array, (1, 2))
+    p_inv = inv(p)
     field_b, field_f = forward_backward_field(FourierFFT(), field_i)
     FourierFFTSolver(field_b, field_f, p, p_inv, tmp_array, field_i)
 end
