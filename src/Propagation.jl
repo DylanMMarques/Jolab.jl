@@ -25,8 +25,7 @@ function _light_interaction!(
 
     rpos = delta_pos_referenceframe(field_i.frame, frame.origin)
 
-    f(ind) = t(prop, D, prop.medium.n, rpos, C(centroid(field_i.mesh, ind)))
-    vec(field_t.e) .= f.(eachindex(field_i.e)) .* vec(field_i.e)
+    vec(field_t.e) .= t.(Ref(prop), D, prop.medium.n, Ref(rpos), C.(centroid.(Ref(field_i.mesh), eachindex(field_i.e)))) .* vec(field_i.e)
 
     (field_b, field_f)
 end

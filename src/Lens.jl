@@ -43,11 +43,7 @@ Lens(focal_length, numerical_aperture, media, frame) =
     (field_r, field_t) = reverse_if_backward(D, (field_b, field_f))
     fill!(field_r.e, 0)
 
-    function t_aux(ind)
-        t(lens, D, C(centroid(field_i.mesh, ind))) * field_i.e[ind]
-    end
-
-    vec(field_t.e) .= t_aux.(eachindex(field_i.e))
+    vec(field_t.e) .= t.(Ref(lens), D, C.(centroid.(Ref(field_i.mesh), eachindex(field_i.e)))) .* vec(field_i.e)
 
     (field_b, field_f)
 end
