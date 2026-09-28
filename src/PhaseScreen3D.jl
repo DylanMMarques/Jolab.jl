@@ -24,8 +24,8 @@ function _light_interaction!(field_b::MeshedBeam{<:Any, Backward}, field_f::Mesh
     (z_i, z_f) = reverse_if_backward(D, (solver.z_interfaces[1], solver.z_interfaces[end]))
     deltaz = step(solver.z_interfaces)
     scale = D == Forward ? 1im : -1im
-    solver.tmp_field_i .= field_i.e .* exp.(scale .* z_i .* sqrt.(complex.((2π .* field_i.medium.n ./ λ).^2 .- solver.kr_squared))) # Translate the field from the interface to the tip of the first slice
 
+    copyto!(solver.tmp_field_i, field_i.e)
     for _ in n_iterable # inplace edit of solver.n to match slices
         mean_refractive_index = mean(solver.n)
 
@@ -39,7 +39,8 @@ function _light_interaction!(field_b::MeshedBeam{<:Any, Backward}, field_f::Mesh
 
         solver.tmp_field_i .*= exp.(0.5im .* deltaz .* sqrt.(complex.((2π .* mean_refractive_index ./ λ).^2 .- solver.kr_squared)))
     end
-    field_t.e .= solver.tmp_field_i .* exp.(-scale .* z_f .* sqrt.(complex.((2π .* field_t.medium.n ./ λ).^2 .- solver.kr_squared))) # Translate the field back to the interface instead of the tip of the last slice
+
+    copyto!(field_t.e, solver.tmp_field_i)
 
     (field_b, field_f)
 end
@@ -51,6 +52,7 @@ end
 
 function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, steps, boundaries = 0.1) where {T,D,C,P}
     n1, n2 = comp.mat[1].n, comp.mat[2].n
+    # print(n1, n2)
     
     nsx, nsy, wavelength = get_ranges(field_i.mesh)
     λ = only(wavelength)
@@ -60,10 +62,10 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
     topography = similar(field_i.e, T, (length(nsx), length(nsy)))
     topography .= comp.Δz.(x, y')    
 
-    z_s = range(minimum(topography), maximum(topography), length=steps)
+    z_s = range(minimum(topography) - 1E-9, maximum(topography) + 1E-9, length=steps)
     
     n_cache = similar(field_i.e, Complex{T}, (length(nsx), length(nsy), length(λ), 1))
-    n_iterable = Iterators.map(i -> n_cache .= ifelse.(topography .> z_s[i], n2, n1), 1:steps)
+    n_iterable = Iterators.map(i -> n_cache .= ifelse.(topography .< z_s[i], n2, n1), 1:steps)
 
     p_fft = plan_bfft(field_i.e, (1, 2))
     p_fft_inv = inv(p_fft) # Precompute the inverse FFT plan for efficiency
@@ -85,12 +87,16 @@ function PhaseScreenSolver(comp::RoughInterface, field_i::MeshedBeam{T,D,C,P}, s
 
     e_b, e_f = reverse_if_backward(D, (Zeros(field_i.e), similar(field_i.e)))
 
+    ## TODO accept rotation of component
+    ref_backward = comp.frame + ReferenceFrame((0,0,first(z_s)), (0,0,0))
+    ref_forward = comp.frame + ReferenceFrame((0,0,last(z_s)), (0,0,0))
+
     PhaseScreenSolver(
-        MeshedBeam{T, Backward,C,P}(field_i.mesh, e_b, comp.mat[1], field_i.frame),
-        MeshedBeam{T, Forward,C,P}(field_i.mesh, e_f, comp.mat[2], field_i.frame),
+        MeshedBeam{T, Backward,C,P}(field_i.mesh, e_b, comp.mat[1], ref_backward),
+        MeshedBeam{T, Forward,C,P}(field_i.mesh, e_f, comp.mat[2], ref_forward),
         field_i,
         n_cache,
-	n_iterable,
+	    n_iterable,
         boundaries_window, 
         p_fft,
         p_fft_inv,
@@ -103,7 +109,7 @@ end
 
 function check_input_field(solver::PhaseScreenSolver, field_i::MeshedAngularSpectrum{T,D,C,P}) where {T,D,C,P}
     msg_code = zero(UInt64)
-    field_i.frame ≈ solver.field_i.frame || (msg_code |= 1 << INVALID_FRAME)
+    field_i.frame ≈ (D == Forward ? solver.field_b.frame : solver.field_f.frame) || (msg_code |= 1 << INVALID_FRAME)
     field_i.medium ≈ solver.field_i.medium || (msg_code |= 1 << INVALID_MEDIUM)
     msg_code
 end
